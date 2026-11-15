@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Duel Arena · проба походки</title>
+<style>
+  * { margin:0; padding:0; }
+  html, body { height:100%; overflow:hidden; background:#0c1017; touch-action:none; }
+  canvas { display:block; width:100vw; height:100dvh; }
+  #hud {
+    position:fixed; top:12px; left:14px; color:#aab6c8; z-index:5;
+    font:13px/1.5 system-ui, sans-serif; text-shadow:0 1px 4px #000; pointer-events:none;
+  }
+  #hud b { color:#e8ecf4; }
+  #pad { color:#7fd98a; display:none; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud"><b>Duel Arena</b> · проба походки<br>
+ПК: стрелки / WASD · Телефон: палец по экрану — стик<br>
+<span id="pad">🎮 геймпад подключён</span></div>
+<script>
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+let DPR = 1, W = 0, H = 0;
+function resize() {
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  W = window.innerWidth; H = window.innerHeight;
+  cv.width = W * DPR; cv.height = H * DPR;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+window.addEventListener('resize', resize); resize();
+
+const META = {
+  front: { frames: 20, w: 161, h: 300, cycle: 1.58 },
+  side:  { frames: 16, w: 178, h: 300, cycle: 1.25 },
+};
+const img = {};
+let loaded = 0;
+for (const k of ['front', 'side']) {
+  img[k] = new Image();
+  img[k].onload = () => { loaded++; };
+  img[k].src = k + '.png';
+}
+
+// --- игрок ---
+const P = {
+  x: 0, y: 0, speed: 170,
+  dir: 'front', flip: false, moving: false,
+  animT: 0, idleT: 0,
+};
+let inited = false;
+
+// --- управление: клавиатура ---
+const keys = {};
+addEventListener('keydown', e => { keys[e.code] = true; });
+addEventListener('keyup', e => { keys[e.code] = false; });
+
+// --- управление: виртуальный стик ---
+const stick = { active: false, id: null, x0: 0, y0: 0, dx: 0, dy: 0 };
+addEventListener('touchstart', e => {
+  const t = e.changedTouches[0];
+  stick.active = true; stick.id = t.identifier;
+  stick.x0 = t.clientX; stick.y0 = t.clientY; stick.dx = 0; stick.dy = 0;
+}, { passive: true });
+addEventListener('touchmove', e => {
+  for (const t of e.changedTouches) {
+    if (t.identifier === stick.id) {
+      const R = 60;
+      stick.dx = Math.max(-R, Math.min(R, t.clientX - stick.x0)) / R;
+      stick.dy = Math.max(-R, Math.min(R, t.clientY - stick.y0)) / R;
+    }
+  }
+}, { passive: true });
+addEventListener('touchend', e => {
+  for (const t of e.changedTouches) {
+    if (t.identifier === stick.id) { stick.active = false; stick.dx = 0; stick.dy = 0; }
+  }
+}, { passive: true });
+
+// --- геймпад ---
+const padEl = document.getElementById('pad');
+function padAxes() {
+  const gps = navigator.getGamepads ? navigator.getGamepads() : [];
+  for (const g of gps) {
+    if (!g) continue;
+    padEl.style.display = 'inline';
+    const dz = v => Math.abs(v) > 0.25 ? v : 0;
+    let ax = dz(g.axes[0] || 0), ay = dz(g.axes[1] || 0);
+    if (g.buttons[14] && g.buttons[14].pressed) ax = -1;
+    if (g.buttons[15] && g.buttons[15].pressed) ax = 1;
+    if (g.buttons[12] && g.buttons[12].pressed) ay = -1;
+    if (g.buttons[13] && g.buttons[13].pressed) ay = 1;
+    if (ax || ay) return { ax, ay };
+  }
+  return null;
+}
+
+function inputVector() {
+  let ax = 0, ay = 0;
+  if (keys.ArrowLeft || keys.KeyA) ax -= 1;
+  if (keys.ArrowRight || keys.KeyD) ax += 1;
+  if (keys.ArrowUp || keys.KeyW) ay -= 1;
+  if (keys.ArrowDown || keys.KeyS) ay += 1;
+  if (stick.active) { ax = stick.dx; ay = stick.dy; }
+  const gp = padAxes();
+  if (gp) { ax = gp.ax; ay = gp.ay; }
+  const m = Math.hypot(ax, ay);
+  if (m > 1) { ax /= m; ay /= m; }
+  return { ax, ay, m: Math.min(1, m) };
+}
+
+// --- сцена ---
+function drawArena() {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#182134'); g.addColorStop(0.55, '#131a28'); g.addColorStop(1, '#0b0f16');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const cx = W / 2, cy = H * 0.62;
+  const rg = ctx.createRadialGradient(cx, cy, 40, cx, cy, Math.max(W, H) * 0.55);
+  rg.addColorStop(0, 'rgba(66,96,150,0.20)'); rg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(120,150,200,0.07)';
+  ctx.lineWidth = 1;
+  for (let i = 1; i < 7; i++) {
+    const y = H * 0.35 + (H * 0.6 - H * 0.35) * (i / 7) ** 1.6;
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
+  const vg = ctx.createRadialGradient(W/2, H*0.45, Math.min(W,H)*0.45, W/2, H*0.45, Math.max(W,H)*0.85);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.5)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+}
+
+function drawStickUI() {
+  if (!stick.active) return;
+  ctx.save();
+  ctx.globalAlpha = 0.35;
+  ctx.strokeStyle = '#9fb6d9'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(stick.x0, stick.y0, 60, 0, 7); ctx.stroke();
+  ctx.fillStyle = '#9fb6d9';
+  ctx.beginPath(); ctx.arc(stick.x0 + stick.dx * 60, stick.y0 + stick.dy * 60, 22, 0, 7); ctx.fill();
+  ctx.restore();
+}
+
+let last = performance.now();
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (loaded < 2) { drawArena(); return; }
+  if (!inited) { P.x = W / 2; P.y = H * 0.62; inited = true; }
+
+  const { ax, ay, m } = inputVector();
+  P.moving = m > 0.12;
+  const charH = Math.min(300, H * 0.34);
+  if (P.moving) {
+    P.x += ax * P.speed * dt * (charH / 300);
+    P.y += ay * P.speed * 0.72 * dt * (charH / 300);
+    if (Math.abs(ax) >= Math.abs(ay)) {
+      P.dir = 'side'; P.flip = ax > 0;
+    } else {
+      P.dir = 'front';
+    }
+    P.animT += dt * m;
+    P.idleT = 0;
+  } else {
+    P.idleT += dt;
+  }
+  const mrg = charH * 0.25;
+  P.x = Math.max(mrg, Math.min(W - mrg, P.x));
+  P.y = Math.max(H * 0.34, Math.min(H * 0.88, P.y));
+
+  drawArena();
+
+  const spec = META[P.dir === 'side' ? 'side' : 'front'];
+  const image = img[P.dir === 'side' ? 'side' : 'front'];
+  let fi = 0;
+  if (P.moving) {
+    fi = Math.floor((P.animT % spec.cycle) / spec.cycle * spec.frames) % spec.frames;
+  }
+  const scale = charH / spec.h;
+  const dw = spec.w * scale, dh = charH;
+  const breath = P.moving ? 1 : 1 + 0.008 * Math.sin(P.idleT * 2.2);
+
+  // тень
+  ctx.save();
+  ctx.globalAlpha = 0.45;
+  const sg = ctx.createRadialGradient(P.x, P.y, 2, P.x, P.y, dw * 0.46);
+  sg.addColorStop(0, 'rgba(0,0,0,0.6)'); sg.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = sg;
+  ctx.beginPath(); ctx.ellipse(P.x, P.y, dw * 0.46, dh * 0.045, 0, 0, 7); ctx.fill();
+  ctx.restore();
+
+  // спрайт
+  ctx.save();
+  ctx.translate(P.x, P.y);
+  if (P.flip) ctx.scale(-1, 1);
+  ctx.scale(1, breath);
+  ctx.drawImage(image, fi * spec.w, 0, spec.w, spec.h, -dw / 2, -dh + dh * 0.015, dw, dh);
+  ctx.restore();
+
+  drawStickUI();
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
