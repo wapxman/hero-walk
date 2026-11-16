@@ -218,7 +218,7 @@ function hurtEnemy(e, dmg, col) {
   say(e.x + rnd(-14, 14), e.y - e.rad * 2.2, Math.round(dmg), col || '#bfe6ff');
   if (e.hp <= 0) {
     kills++;
-    fx.push({ type: 'puff', x: e.x, y: e.y, t: 0, dur: 0.45, R: e.rad * 1.6 });
+    e.dieT = 0; e.anim = 'die'; e.act = null; corpses.push(e);
     play('em_rockburst', e.boss ? 0.6 : 0.3, e.boss ? 0.8 : 1.4);
   }
 }
@@ -229,6 +229,7 @@ function shoot() {
   if (t) { dx = t.x - P.x; dy = (t.y - P.y) / YK; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m; }
   shots.push({ own: 'p', x: P.x + dx * 26, y: P.y + dy * 26 * YK, dx, dy, sp: 980, tgt: t, left: 700, dmg: rnd(44, 56), h: CH * 0.55 });
   P.atkCd = 0.62; P.cast = 0.16;
+  P.act = { anim: 'atk', t: 0, dur: 0.36, row: t ? runRow(t.x - P.x, t.y - P.y) : null };
   if (DOTA_ON) { play(pick(['d_pre1', 'd_pre2']), 0.45); play(pick(['d_shot1', 'd_shot2']), 0.8); }
   else play(pick(SHOTS), 0.7, rnd(0.94, 1.06));
 }
@@ -253,6 +254,7 @@ function cast(id) {
     if (DOTA_ON) play('d_ff', 0.9); else { play('cm3_ult', 0.9); play('cm_ult_purga', 0.55); }
   }
   P.cd[id] = CDMAX[id]; P.cast = 0.3;
+  P.act = { anim: 'cast', t: 0, dur: 0.7, row: null };
 }
 function hurtPlayer(d) {
   if (P.dead > 0) return;
@@ -266,14 +268,68 @@ function shard(x, y, R, dmg, sk, st) {
 }
 
 // ---------- враги ----------
+// Спрайты отрендерены из 3D-моделей: 5 направлений в строках (вниз, вниз-влево, влево, вверх-влево, вверх),
+// остальные три получаются зеркалом. AN: [первая колонка, число кадров].
+const COS_EL = Math.cos(35 * Math.PI / 180);
+const AN = { run: [0, 8], atk: [8, 6], die: [14, 5], idle: [19, 1], cast: [20, 5] };
+const HERO_AN = { idle: [0, 4], run: [4, 8], atk: [12, 5], cast: [17, 6], die: [23, 5] };
+// U — сколько единиц мира приходится на метр модели; top — высота полоски здоровья в метрах
+const CHARS = {
+  hero: { cell: 288, ortho: 3.0, zc: 0.9, U: 118, top: 1.5, an: HERO_AN },
+  zombie: { cell: 256, ortho: 3.0, zc: 0.9, U: 104, top: 1.5 },
+  vampire: { cell: 256, ortho: 3.0, zc: 0.9, U: 114, top: 1.5 },
+  mage: { cell: 256, ortho: 3.0, zc: 0.9, U: 108, top: 1.6 },
+  archer: { cell: 256, ortho: 3.0, zc: 0.9, U: 104, top: 1.5 },
+  boss: { cell: 320, ortho: 4.0, zc: 1.15, U: 122, top: 1.95 },
+};
+for (const k in CHARS) { const im = CHARS[k].img = new Image(); im.onload = () => { CHARS[k].ok = true; }; im.src = 'chars/mx_' + k + '.webp' + V; }
+// один кадр персонажа: row — направление 0..7 (0 вниз, дальше по часовой), три правых получаются зеркалом
+function drawSprite(c, anim, fi, row, flash) {
+  const a = (c.an || AN)[anim] || (c.an || AN).idle;
+  fi = Math.max(0, Math.min(a[1] - 1, fi));
+  let flip = false;
+  if (row > 4) { row = 8 - row; flip = true; }
+  const size = c.ortho * c.U, ay = 0.5 + c.zc * COS_EL / c.ortho;
+  ctx.save();
+  if (flip) ctx.scale(-1, 1);
+  ctx.drawImage(c.img, (a[0] + fi) * c.cell, row * c.cell, c.cell, c.cell, -size / 2, -ay * size, size, size);
+  if (flash) {
+    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.75;
+    ctx.drawImage(c.img, (a[0] + fi) * c.cell, row * c.cell, c.cell, c.cell, -size / 2, -ay * size, size, size);
+  }
+  ctx.restore();
+}
+// героиня из Mixamo; адрес с #lira возвращает прежнюю Лиру
+function drawHero() {
+  const c = CHARS.hero;
+  if (!c.ok || location.hash.indexOf('lira') >= 0) return false;
+  let anim = 'idle', fi = Math.floor(P.heroT * 3) % 4, row = runRow(P.face.x, P.face.y);
+  if (P.dead > 0) { anim = 'die'; fi = Math.floor((3 - P.dead) / 0.6 * 5); }
+  else if (P.act) { anim = P.act.anim; fi = Math.floor(P.act.t / P.act.dur * c.an[anim][1]); if (P.act.row != null) row = P.act.row; }
+  else if (P.moving) { anim = 'run'; fi = Math.floor(P.heroT * (P.running ? 13 : 9)) % 8; }
+  ctx.save(); ctx.translate(P.x, P.y);
+  if (P.dead > 0) ctx.globalAlpha = Math.min(1, P.dead / 0.8);
+  drawSprite(c, anim, fi, row, P.hurt > 0.17);
+  ctx.restore();
+  return true;
+}
+// виды врагов: mel — ближний бой, rng — стрелок
+const KIND = {
+  min: { ch: 'zombie', mel: 1, hp: 120, rad: 20, speed: 150, dmg: [8, 11], cd: 0.9, reach: 62, col: '#8a4534' },
+  war: { ch: 'vampire', mel: 1, hp: 300, rad: 26, speed: 112, dmg: [17, 22], cd: 1.3, reach: 72, col: '#7a3a2c' },
+  mag: { ch: 'mage', rng: 1, hp: 150, rad: 22, speed: 100, dmg: [16, 21], cd: 2.0, want: 430, shot: 520, col: '#6a4590' },
+  rog: { ch: 'archer', rng: 1, hp: 120, rad: 21, speed: 125, dmg: [11, 14], cd: 1.4, want: 500, shot: 820, bolt: 1, col: '#3f6a55' },
+  boss: { ch: 'boss', boss: 1, hp: 1000, rad: 46, speed: 85, col: '#565a66' },
+};
+const corpses = [];
 function spawnEnemy(type) {
-  const boss = type === 'boss', rng = type === 'rng';
+  const k = KIND[type];
   const e = {
-    type, boss, x: (SRC_W - 430) * GS + rnd(-60, 60), y: 745 * GS + rnd(-150, 150),
-    hp: boss ? 950 : rng ? 150 : 230, rad: boss ? 46 : rng ? 22 : 26,
-    speed: boss ? 85 : rng ? 105 : 125,
-    col: boss ? '#565a66' : rng ? '#6a4590' : '#8a4534', eye: boss ? '#ffb347' : '#ffe27a',
+    type, k, ch: CHARS[k.ch], boss: !!k.boss, mel: !!k.mel, rng: !!k.rng,
+    x: (SRC_W - 430) * GS + rnd(-60, 60), y: 745 * GS + rnd(-150, 150),
+    hp: k.hp, rad: k.rad, speed: k.speed, col: k.col, eye: k.boss ? '#ffb347' : '#ffe27a',
     slowT: 0, slowK: 1, root: 0, dot: 0, atkCd: rnd(0.3, 1.2), flash: 0, bob: rnd(0, 6), slamCd: 2, quakeCd: 7,
+    anim: 'run', animT: rnd(0, 1), row: 2, act: null,
   };
   e.max = e.hp;
   e.draw = () => drawEnemy(e);
@@ -282,33 +338,59 @@ function spawnEnemy(type) {
 function spawnWave() {
   wave++;
   if (enemies.length >= 12) return;
-  for (let i = 0; i < Math.min(2 + wave, 5); i++) spawnEnemy('mel');
-  for (let i = 0; i < Math.min(1 + Math.floor(wave / 2), 3); i++) spawnEnemy('rng');
+  const nm = Math.min(2 + wave, 6);
+  for (let i = 0; i < nm; i++) spawnEnemy(wave >= 2 && i % 3 === 2 ? 'war' : 'min');
+  const nr = Math.min(1 + Math.floor(wave / 2), 3);
+  for (let i = 0; i < nr; i++) spawnEnemy((i + wave) % 2 ? 'mag' : 'rog');
   if (wave % 3 === 0) spawnEnemy('boss');
   say(P.x, P.y - CH * 1.3, 'Волна ' + wave, '#ffe9a8');
 }
+// действие с замахом: анимация длится dur, удар срабатывает в момент at (доля от dur)
+function startAct(e, anim, dur, at, fn) { e.act = { anim, dur, at, fn, t: 0, hit: false }; e.anim = anim; e.animT = 0; }
 function updateEnemy(e, dt) {
-  e.bob += dt * 7; e.flash -= dt; e.atkCd -= dt; e.slamCd -= dt; e.quakeCd -= dt;
+  e.bob += dt * 7; e.flash -= dt; e.atkCd -= dt; e.slamCd -= dt; e.quakeCd -= dt; e.animT += dt;
   if (e.slowT > 0) e.slowT -= dt;
-  if (e.root > 0) { e.root -= dt; hurtTick(e, e.dot * dt); return; }
-  if (P.dead > 0) return;
-  const d = gdist(P, e), sp = e.speed * (e.slowT > 0 ? e.slowK : 1);
+  if (e.root > 0) { e.root -= dt; e.act = null; e.anim = 'idle'; hurtTick(e, e.dot * dt); return; }
+  const k = e.k, sk = e.slowT > 0 ? e.slowK : 1;
   let dx = (P.x - e.x), dy = (P.y - e.y) / YK; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m;
-  const want = e.type === 'rng' ? 430 : e.boss ? 105 : 54;
-  if (d > want) { e.x += dx * sp * dt; e.y += dy * sp * YK * dt; collide(e); }
-  if (e.type === 'mel' && d < 70 && e.atkCd <= 0) { hurtPlayer(rnd(12, 16)); e.atkCd = 1; play(pick(ESHOTS), 0.22, 1.5); }
-  if (e.type === 'rng' && d < 470 && e.atkCd <= 0) {
-    shots.push({ own: 'e', x: e.x, y: e.y, dx, dy, sp: 520, left: 560, dmg: rnd(16, 21), h: e.rad * 1.4 });
-    e.atkCd = 1.9; play(pick(ESHOTS), 0.4, rnd(0.95, 1.05));
+  if (e.act) {
+    const a = e.act; a.t += dt * (0.5 + 0.5 * sk);
+    if (!a.hit && a.t >= a.dur * a.at) { a.hit = true; a.fn(dx, dy); }
+    if (a.t >= a.dur) { e.act = null; e.anim = 'idle'; }
+    return;
+  }
+  if (P.dead > 0) { e.anim = 'idle'; return; }
+  e.row = runRow(P.x - e.x, P.y - e.y);
+  const d = gdist(P, e), sp = e.speed * sk;
+  const want = e.rng ? k.want : e.boss ? 105 : k.reach - 10;
+  if (d > want) { e.x += dx * sp * dt; e.y += dy * sp * YK * dt; collide(e); e.anim = 'run'; }
+  else e.anim = 'idle';
+  if (e.mel && d < k.reach + 12 && e.atkCd <= 0) {
+    e.atkCd = k.cd;
+    startAct(e, 'atk', 0.5, 0.55, () => {
+      play(pick(ESHOTS), 0.22, 1.5);
+      if (gdist(P, e) < k.reach + 34) hurtPlayer(rnd(k.dmg[0], k.dmg[1]));
+    });
+  }
+  if (e.rng && d < k.want + 40 && e.atkCd <= 0) {
+    e.atkCd = k.cd;
+    startAct(e, 'atk', 0.55, 0.5, (ax, ay) => {
+      shots.push({ own: 'e', bolt: k.bolt, x: e.x + ax * 20, y: e.y + ay * 20 * YK, dx: ax, dy: ay, sp: k.shot, left: k.want + 150,
+        dmg: rnd(k.dmg[0], k.dmg[1]), h: e.ch.U * 0.75 });
+      play(pick(ESHOTS), k.bolt ? 0.3 : 0.4, k.bolt ? 1.5 : rnd(0.95, 1.05));
+    });
   }
   if (e.boss) {
-    if (d < 150 && e.slamCd <= 0) {
-      fx.push({ type: 'tele', x: e.x, y: e.y, t: 0, dur: 0.75, R: 150, dmg: 50, snd: 'em_slam' });
-      e.slamCd = 2.6;
-    }
     if (e.quakeCd <= 0) {
-      fx.push({ type: 'tele', x: P.x, y: P.y, t: 0, dur: 1.7, R: 290, dmg: 130, big: true });
-      e.quakeCd = 13; play('em_quake_ult', 0.8);
+      e.quakeCd = 13;
+      startAct(e, 'cast', 1.3, 0.25, () => {
+        fx.push({ type: 'tele', x: P.x, y: P.y, t: 0, dur: 1.7, R: 290, dmg: 130, big: true });
+        play('em_quake_ult', 0.8);
+      });
+    } else if (d < 150 && e.slamCd <= 0) {
+      e.slamCd = 2.8;
+      fx.push({ type: 'tele', x: e.x, y: e.y, t: 0, dur: 0.75, R: 150, dmg: 50, snd: 'em_slam' });
+      startAct(e, 'atk', 1.0, 2, () => {});
     }
   }
 }
@@ -322,7 +404,8 @@ function hurtTick(e, dmg) {
 function combatUpdate(dt) {
   padButtons();
   for (const k in P.cd) if (P.cd[k] > 0) P.cd[k] = Math.max(0, P.cd[k] - dt);
-  P.atkCd -= dt; P.cast -= dt; P.hurt -= dt;
+  P.atkCd -= dt; P.cast -= dt; P.hurt -= dt; P.heroT = (P.heroT || 0) + dt;
+  if (P.act) { P.act.t += dt; if (P.act.t >= P.act.dur || P.dead > 0) P.act = null; }
   if (P.dead > 0) {
     P.dead -= dt;
     if (P.dead <= 0) { P.dead = 0; P.hp = P.maxHp; P.x = SPAWN.x; P.y = SPAWN.y; }
@@ -402,6 +485,8 @@ function combatUpdate(dt) {
   }
   for (const t of texts) { t.t += dt; t.y -= 46 * dt; }
   const keep = (arr, ok) => { for (let i = arr.length - 1; i >= 0; i--) if (!ok(arr[i])) arr.splice(i, 1); };
+  for (const c of corpses) c.dieT += dt;
+  keep(corpses, c => c.dieT < 2.2);
   keep(enemies, e => e.hp > 0);
   keep(shots, s => s.left > 0);
   keep(zones, z => z.t > 0);
@@ -441,31 +526,52 @@ function combatGround(t) {
     }
   }
 }
-function drawEnemy(e) {
+function drawEnemyOval(e) {
   const r = e.rad, h = r * 2.2, bob = e.root > 0 ? 0 : Math.sin(e.bob) * 3;
-  ctx.save(); ctx.translate(e.x, e.y);
-  ctx.beginPath(); ctx.ellipse(0, 0, r * 1.05, r * 0.4, 0, 0, 7); ctx.fillStyle = 'rgba(8,20,6,0.45)'; ctx.fill();
   ctx.beginPath(); ctx.ellipse(0, -h * 0.5 + bob, r, h * 0.5, 0, 0, 7);
   ctx.fillStyle = e.flash > 0 ? '#ffffff' : e.col; ctx.fill();
   ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 3; ctx.stroke();
-  if (e.slowT > 0 || e.root > 0) { ctx.fillStyle = 'rgba(140,210,255,0.4)'; ctx.fill(); }
   const ex = Math.sign(P.x - e.x) * r * 0.22;
   ctx.fillStyle = e.eye;
   ctx.beginPath(); ctx.arc(-r * 0.34 + ex, -h * 0.64 + bob, r * 0.15, 0, 7); ctx.arc(r * 0.34 + ex, -h * 0.64 + bob, r * 0.15, 0, 7); ctx.fill();
-  if (e.type === 'rng') { ctx.fillStyle = '#b9a58f'; ctx.beginPath(); ctx.arc(ex * 3, -h * 1.02 + bob, r * 0.3, 0, 7); ctx.fill(); }
-  if (e.boss) { ctx.fillStyle = '#3a3d47'; ctx.fillRect(-r * 0.8, -h * 1.02 + bob, r * 0.35, r * 0.3); ctx.fillRect(r * 0.45, -h * 1.02 + bob, r * 0.35, r * 0.3); }
+}
+function drawEnemy(e) {
+  const r = e.rad, c = e.ch, dead = e.dieT != null;
+  const h = c.ok ? c.top * c.U : r * 2.2;
+  ctx.save(); ctx.translate(e.x, e.y);
+  if (dead) ctx.globalAlpha = Math.max(0, Math.min(1, (2.2 - e.dieT) / 0.9));
+  ctx.beginPath(); ctx.ellipse(0, 0, r * 1.05, r * 0.4, 0, 0, 7); ctx.fillStyle = 'rgba(8,20,6,0.45)'; ctx.fill();
+  if (!dead && e.slowT > 0) { ctx.beginPath(); ctx.ellipse(0, 0, r * 1.25, r * 0.5, 0, 0, 7); ctx.fillStyle = 'rgba(140,210,255,0.35)'; ctx.fill(); }
+  if (c.ok) {
+    const n = ((c.an || AN)[e.anim] || AN.idle)[1];
+    let fi = 0;
+    if (dead) fi = Math.floor(e.dieT / 0.6 * n);
+    else if (e.act) fi = Math.floor(e.act.t / e.act.dur * n);
+    else if (e.anim === 'run') fi = Math.floor(e.animT * e.speed / (e.boss ? 8 : 11) * (e.slowT > 0 ? e.slowK : 1)) % n;
+    drawSprite(c, e.anim, fi, e.row, e.flash > 0 && !dead);
+  } else if (!dead) drawEnemyOval(e);
+  if (dead) { ctx.restore(); return; }
   if (e.root > 0) {
-    ctx.fillStyle = 'rgba(190,235,255,0.6)'; ctx.strokeStyle = 'rgba(240,250,255,0.9)'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(-r * 1.2, 0); ctx.lineTo(-r * 0.8, -h * 0.7); ctx.lineTo(-r * 0.2, -h * 0.35); ctx.lineTo(r * 0.1, -h * 0.9);
-    ctx.lineTo(r * 0.7, -h * 0.4); ctx.lineTo(r * 1.2, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
+    const ih = h * 0.8;
+    ctx.fillStyle = 'rgba(190,235,255,0.55)'; ctx.strokeStyle = 'rgba(240,250,255,0.9)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(-r * 1.2, 0); ctx.lineTo(-r * 0.8, -ih * 0.7); ctx.lineTo(-r * 0.2, -ih * 0.35); ctx.lineTo(r * 0.1, -ih * 0.9);
+    ctx.lineTo(r * 0.7, -ih * 0.4); ctx.lineTo(r * 1.2, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
   }
-  const bw = r * 2.2, by = -h - 16;
+  const bw = e.boss ? 110 : r * 2.2, by = -h - 12;
   ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(-bw / 2 - 1, by - 1, bw + 2, 8);
   ctx.fillStyle = '#e0503f'; ctx.fillRect(-bw / 2, by, bw * Math.max(0, e.hp / e.max), 6);
   ctx.restore();
 }
 function drawShot(s) {
   const y = s.y - s.h;
+  if (s.bolt) {
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(s.x, y); ctx.lineTo(s.x - s.dx * 34, y - s.dy * 34 * YK); ctx.stroke();
+    ctx.strokeStyle = '#e9dcc0'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(s.x, y); ctx.lineTo(s.x - s.dx * 34, y - s.dy * 34 * YK); ctx.stroke();
+    ctx.fillStyle = '#9aa3ad'; ctx.beginPath(); ctx.arc(s.x, y, 4, 0, 7); ctx.fill();
+    return;
+  }
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   const col = s.own === 'p' ? '150,215,255' : '255,170,90';
   const g = ctx.createRadialGradient(s.x, y, 0, s.x, y, 26);
@@ -479,7 +585,7 @@ function drawShot(s) {
 }
 // то, что сортируется по глубине вместе с объектами арены
 function combatEntities() {
-  const out = enemies.slice();
+  const out = enemies.concat(corpses);
   for (const s of shots) { if (!s.draw) s.draw = () => drawShot(s); out.push(s); }
   for (const f of fx) {
     if (f.type !== 'shard') continue;

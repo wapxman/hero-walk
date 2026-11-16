@@ -22,7 +22,7 @@
 <div id="hud"><b>Duel Arena</b> · <span id="tip">стик — движение, кнопки справа — огонь и скилы (ПК: WASD, пробел, Q E F R)</span><br>
 <span id="snd">🔇 коснитесь экрана, чтобы включить звук</span> <span id="pad">🎮 геймпад подключён</span></div>
 <script>
-const V = '?v=10';
+const V = '?v=15';
 const cv = document.getElementById('c');
 const ctx = cv.getContext('2d');
 let DPR = 1, W = 0, H = 0;
@@ -321,6 +321,8 @@ function shadow(x, y, rx, ry, a) {
   ctx.restore();
 }
 function drawPlayer() {
+  if (drawHero()) return;
+  if (P.dead > 0) return;
   if (P.running) {
     const rs = CH * 0.95 / RUN.stand;
     const rf = Math.floor((P.animT % RUN.cycle) / RUN.cycle * RUN.frames) % RUN.frames;
@@ -438,7 +440,7 @@ function frame(now) {
     o.a += ((hide ? 0.45 : 1) - o.a) * Math.min(1, dt * 9);
     list.push(o);
   }
-  if (P.dead <= 0) list.push(P);
+  list.push(P);
   for (const e of combatEntities()) list.push(e);
   list.sort((a, b) => a.y - b.y);
   for (const o of list) { if (o === P) drawPlayer(); else if (o.draw) o.draw(); else drawObj(o, red); }
@@ -480,6 +482,6 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 </script>
-<script src="combat.js?v=10"></script>
+<script src="combat.js?v=15"></script>
 </body>
 </html>
