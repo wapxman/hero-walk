@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Duel Arena · проба походки</title>
+<title>Duel Arena · походка и бег</title>
 <style>
   * { margin:0; padding:0; }
   html, body { height:100%; overflow:hidden; background:#0c1017; touch-action:none; }
@@ -18,8 +18,9 @@
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="hud"><b>Duel Arena</b> · проба походки<br>
-ПК: стрелки / WASD · Телефон: палец по экрану — стик<br>
+<div id="hud"><b>Duel Arena</b> · походка и бег<br>
+ПК: стрелки / WASD — бег, с Shift — шаг · Телефон: палец по экрану — стик<br>
+Стик или геймпад: слабый наклон — шаг, до упора — бег в 8 сторон<br>
 <span id="pad">🎮 геймпад подключён</span></div>
 <script>
 const cv = document.getElementById('c');
@@ -37,18 +38,29 @@ const META = {
   front: { frames: 19, w: 161, h: 300, cycle: 1.542 },
   side:  { frames: 15, w: 184, h: 300, cycle: 1.208 },
 };
+// Бег: лист 8×8, ряд = направление, столбец = кадр. Ряды идут по часовой
+// стрелке на экране, начиная с «вниз»: 0 вниз, 1 вниз-влево, 2 влево,
+// 3 вверх-влево, 4 вверх, 5 вверх-вправо, 6 вправо, 7 вниз-вправо.
+const RUN = { w: 256, h: 256, ax: 128, ay: 201.7, stand: 175.8, frames: 8, cycle: 0.667 };
+const RUN_AT = 0.6;      // наклон стика, с которого шаг переходит в бег
+const RUN_SPEED = 330;
 const img = {};
 let loaded = 0;
-for (const k of ['front', 'side']) {
+for (const k of ['front', 'side', 'run']) {
   img[k] = new Image();
   img[k].onload = () => { loaded++; };
-  img[k].src = k + '.png?v=3';
+  img[k].src = k + (k === 'run' ? '.webp' : '.png') + '?v=4';
+}
+function runRow(ax, ay) {
+  // угол на экране (ось Y вниз): вниз = 90°, влево = 180°, вверх = 270°
+  const deg = Math.atan2(ay, ax) * 180 / Math.PI;
+  return ((Math.round((deg - 90) / 45) % 8) + 8) % 8;
 }
 
 // --- игрок ---
 const P = {
   x: 0, y: 0, speed: 170,
-  dir: 'front', flip: false, moving: false,
+  dir: 'front', flip: false, moving: false, running: false, row: 0,
   animT: 0, idleT: 0,
 };
 let inited = false;
@@ -104,6 +116,7 @@ function inputVector() {
   if (keys.ArrowRight || keys.KeyD) ax += 1;
   if (keys.ArrowUp || keys.KeyW) ay -= 1;
   if (keys.ArrowDown || keys.KeyS) ay += 1;
+  if ((ax || ay) && (keys.ShiftLeft || keys.ShiftRight)) { ax *= 0.5; ay *= 0.5; }
   if (stick.active) { ax = stick.dx; ay = stick.dy; }
   const gp = padAxes();
   if (gp) { ax = gp.ax; ay = gp.ay; }
@@ -147,13 +160,22 @@ let last = performance.now();
 function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  if (loaded < 2) { drawArena(); return; }
+  if (loaded < 3) { drawArena(); return; }
   if (!inited) { P.x = W / 2; P.y = H * 0.62; inited = true; }
 
   const { ax, ay, m } = inputVector();
   P.moving = m > 0.12;
   const charH = Math.min(300, H * 0.34);
-  if (P.moving) {
+  // гистерезис, чтобы на границе шаг/бег анимация не дёргалась
+  P.running = P.moving && m > (P.running ? RUN_AT - 0.1 : RUN_AT);
+  if (P.running) {
+    const k = RUN_SPEED / m * dt * (charH / 300);
+    P.x += ax * k;
+    P.y += ay * 0.72 * k;
+    P.row = runRow(ax, ay);
+    P.animT += dt;
+    P.idleT = 0;
+  } else if (P.moving) {
     P.x += ax * P.speed * dt * (charH / 300);
     P.y += ay * P.speed * 0.72 * dt * (charH / 300);
     if (Math.abs(ax) >= Math.abs(ay)) {
@@ -192,6 +214,14 @@ function frame(now) {
   ctx.restore();
 
   // спрайт
+  if (P.running) {
+    const rs = charH * 0.95 / RUN.stand;
+    const rf = Math.floor((P.animT % RUN.cycle) / RUN.cycle * RUN.frames) % RUN.frames;
+    ctx.drawImage(img.run, rf * RUN.w, P.row * RUN.h, RUN.w, RUN.h,
+      P.x - RUN.ax * rs, P.y - RUN.ay * rs, RUN.w * rs, RUN.h * rs);
+    drawStickUI();
+    return;
+  }
   ctx.save();
   ctx.translate(P.x, P.y);
   if (P.flip) ctx.scale(-1, 1);
