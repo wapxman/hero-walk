@@ -1,0 +1,68 @@
+Промты для ChatGPT: графика скиллов героя (лёд). Каждый промт — отдельная картинка.
+Фон везде чисто чёрный: в игре эффекты рисуются в режиме «свечения», чёрное становится прозрачным без вырезания.
+Сохранять как: fx_bolt.png, fx_hit.png, fx_nova.png, fx_chains.png, fx_hail.png, fx_storm.png
+
+=== ОБЩИЙ СТИЛЬ (уже вставлен в каждый промт ниже) ===
+Hand-painted stylized game VFX in the style of Dota 2 / League of Legends spell effects, icy palette: white core,
+cyan and deep blue edges, soft magical glow, sharp crystalline ice shards, frost mist, tiny sparkles.
+Pure solid black background (#000000) everywhere. No text, no numbers, no labels, no grid lines, no borders, no watermark, no UI.
+
+=== 1. ВЫСТРЕЛ — снаряд (fx_bolt.png) ===
+Create a game VFX sprite sheet, square image 1024x1024. Exactly 4 frames in a 2x2 grid, each frame centered in its equal
+512x512 cell, same scale and position in every cell, nothing touching the cell edges.
+Subject: an ice bolt projectile flying to the RIGHT, side view: a sharp glowing ice shard with a bright white core at the
+front (right side) and a long comet tail of frost, mist and small ice particles trailing to the left. The 4 frames are a
+looping flicker animation: the tail and sparkles change slightly, the shard stays in the same place.
+Hand-painted stylized game VFX in the style of Dota 2 / League of Legends spell effects, icy palette: white core, cyan and
+deep blue edges, soft magical glow. Pure solid black background (#000000). No text, no numbers, no grid lines, no borders, no watermark.
+
+=== 2. ВЫСТРЕЛ — попадание (fx_hit.png) ===
+Create a game VFX sprite sheet, square image 1024x1024. Exactly 16 frames in a 4x4 grid, read left-to-right, top-to-bottom,
+each frame centered in its equal 256x256 cell, same center point in every cell, nothing crossing the cell edges.
+Subject: an ice impact burst animation. Frame 1: tiny bright white flash. Frames 2-6: the flash explodes into a star-shaped
+burst of sharp ice shards and a ring of frost. Frames 7-12: shards fly outward, the ring expands and thins. Frames 13-16:
+only fading mist and a few sparkles remain, almost gone in the last frame.
+Hand-painted stylized game VFX in the style of Dota 2 / League of Legends spell effects, icy palette: white core, cyan and
+deep blue edges, soft magical glow. Pure solid black background (#000000). No text, no numbers, no grid lines, no borders, no watermark.
+
+=== 3. НОВА — ледяной взрыв по площади (fx_nova.png) ===
+Create a game VFX sprite sheet, square image 1024x1024. Exactly 16 frames in a 4x4 grid, read left-to-right, top-to-bottom,
+each frame centered in its equal 256x256 cell, same center point in every cell, nothing crossing the cell edges.
+Subject: "Crystal Nova" — a burst of frost exploding on the ground, seen from a 3/4 top-down game camera, so the ring on
+the ground looks like a wide ellipse (about twice as wide as it is tall). Frames 1-3: a small glowing snowflake rune appears
+on the ground. Frames 4-9: a ring of jagged ice crystals erupts and expands outward from the center, with a white shockwave
+and frost mist. Frames 10-13: the ring is at full size, crystals glitter. Frames 14-16: crystals crumble and fade into mist.
+Hand-painted stylized game VFX in the style of Dota 2 / League of Legends spell effects, icy palette: white core, cyan and
+deep blue edges, soft magical glow. Pure solid black background (#000000). No text, no numbers, no grid lines, no borders, no watermark.
+
+=== 4. ОКОВЫ — ледяная тюрьма на враге (fx_chains.png) ===
+Create a game VFX sprite sheet, square image 1024x1024. Exactly 16 frames in a 4x4 grid, read left-to-right, top-to-bottom,
+each frame centered in its equal 256x256 cell, the base of the effect at the same point near the bottom of every cell,
+nothing crossing the cell edges.
+Subject: "Frostbite" — ice that grows from the ground and encases a standing enemy (do NOT draw the enemy, only the ice).
+Seen from a 3/4 top-down game camera. Frames 1-5: sharp translucent ice crystals grow upward from a frost circle on the
+ground. Frames 6-12: a tall cluster of translucent blue ice crystals, like a cage about the height of a person, glittering,
+with cold mist at the base (these frames loop). Frames 13-16: the ice cracks and shatters into shards and mist.
+Hand-painted stylized game VFX in the style of Dota 2 / League of Legends spell effects, icy palette: white highlights, cyan
+and deep blue edges, soft magical glow. Pure solid black background (#000000). No text, no numbers, no grid lines, no borders, no watermark.
+
+=== 5. ГРАД — падающая льдина и удар о землю (fx_hail.png) ===
+Create a game VFX sprite sheet, square image 1024x1024. Exactly 16 frames in a 4x4 grid, read left-to-right, top-to-bottom,
+each frame centered in its equal 256x256 cell, the ground impact point at the same place near the bottom of every cell,
+nothing crossing the cell edges.
+Subject: a large sharp icicle falling from the sky and shattering on the ground, seen from a 3/4 top-down game camera.
+Frames 1-6: the glowing icicle falls straight down from the top of the cell to the ground, with a streak of frost behind it.
+Frames 7-11: it hits the ground and shatters: white flash, flying ice shards, an elliptical frost shockwave on the ground.
+Frames 12-16: shards and mist fade away, almost nothing left in the last frame.
+Hand-painted stylized game VFX in the style of Dota 2 / League of Legends spell effects, icy palette: white core, cyan and
+deep blue edges, soft magical glow. Pure solid black background (#000000). No text, no numbers, no grid lines, no borders, no watermark.
+
+=== 6. БУРЯ — ледяное поле вокруг героя (fx_storm.png) ===
+Create a game VFX sprite sheet, square image 1024x1024. Exactly 16 frames in a 4x4 grid, read left-to-right, top-to-bottom,
+each frame centered in its equal 256x256 cell, same center point and same size in every cell, nothing crossing the cell edges.
+Subject: "Freezing Field" — a huge circular blizzard aura on the ground around a hero (do NOT draw the hero), seen from a
+3/4 top-down game camera, so the circle looks like a wide ellipse (about twice as wide as it is tall). A swirling ring of
+snow, frost wind and glowing runes on the ground, with snowflakes and small ice shards spinning inside. The 16 frames are a
+seamless loop: the swirl rotates a little in every frame, the last frame flows back into the first.
+Hand-painted stylized game VFX in the style of Dota 2 / League of Legends spell effects, icy palette: white highlights, cyan
+and deep blue edges, soft magical glow. Pure solid black background (#000000). No text, no numbers, no grid lines, no borders, no watermark.

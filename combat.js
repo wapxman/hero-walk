@@ -278,7 +278,7 @@ const CHARS = {
   hero: { cell: 288, ortho: 3.0, zc: 0.9, U: 118, top: 1.5, an: HERO_AN },
   zombie: { cell: 256, ortho: 3.0, zc: 0.9, U: 104, top: 1.5 },
   vampire: { cell: 256, ortho: 3.0, zc: 0.9, U: 114, top: 1.5 },
-  mage: { cell: 256, ortho: 3.0, zc: 0.9, U: 108, top: 1.6 },
+  mage: { cell: 256, ortho: 3.0, zc: 0.9, U: 108, top: 1.65 },
   archer: { cell: 256, ortho: 3.0, zc: 0.9, U: 104, top: 1.5 },
   boss: { cell: 320, ortho: 4.0, zc: 1.15, U: 122, top: 1.95 },
 };
@@ -306,7 +306,7 @@ function drawHero() {
   let anim = 'idle', fi = Math.floor(P.heroT * 3) % 4, row = runRow(P.face.x, P.face.y);
   if (P.dead > 0) { anim = 'die'; fi = Math.floor((3 - P.dead) / 0.6 * 5); }
   else if (P.act) { anim = P.act.anim; fi = Math.floor(P.act.t / P.act.dur * c.an[anim][1]); if (P.act.row != null) row = P.act.row; }
-  else if (P.moving) { anim = 'run'; fi = Math.floor(P.heroT * (P.running ? 13 : 9)) % 8; }
+  else if (P.moving) { anim = 'run'; fi = Math.floor(P.heroT * (P.running ? 8.5 : 7)) % 8; }
   ctx.save(); ctx.translate(P.x, P.y);
   if (P.dead > 0) ctx.globalAlpha = Math.min(1, P.dead / 0.8);
   drawSprite(c, anim, fi, row, P.hurt > 0.17);
@@ -329,7 +329,7 @@ function spawnEnemy(type) {
     x: (SRC_W - 430) * GS + rnd(-60, 60), y: 745 * GS + rnd(-150, 150),
     hp: k.hp, rad: k.rad, speed: k.speed, col: k.col, eye: k.boss ? '#ffb347' : '#ffe27a',
     slowT: 0, slowK: 1, root: 0, dot: 0, atkCd: rnd(0.3, 1.2), flash: 0, bob: rnd(0, 6), slamCd: 2, quakeCd: 7,
-    anim: 'run', animT: rnd(0, 1), row: 2, act: null,
+    anim: 'run', animT: rnd(0, 1), runPh: rnd(0, 1), row: 2, act: null,
   };
   e.max = e.hp;
   e.draw = () => drawEnemy(e);
@@ -360,10 +360,16 @@ function updateEnemy(e, dt) {
     return;
   }
   if (P.dead > 0) { e.anim = 'idle'; return; }
-  e.row = runRow(P.x - e.x, P.y - e.y);
+  // поворот с запасом: враг меняет направление, только когда цель ушла от текущего больше чем на 30 градусов
+  const ang = Math.atan2(P.y - e.y, P.x - e.x) * 180 / Math.PI;
+  if (Math.abs(((ang - (e.row * 45 + 90) + 540) % 360) - 180) > 30) e.row = runRow(P.x - e.x, P.y - e.y);
   const d = gdist(P, e), sp = e.speed * sk;
   const want = e.rng ? k.want : e.boss ? 105 : k.reach - 10;
-  if (d > want) { e.x += dx * sp * dt; e.y += dy * sp * YK * dt; collide(e); e.anim = 'run'; }
+  if (d > want) {
+    e.x += dx * sp * dt; e.y += dy * sp * YK * dt; collide(e); e.anim = 'run';
+    // темп шагов привязан к скорости: один цикл бега покрывает около 2,3 метра модели
+    e.runPh += dt * Math.max(0.8 * sk, Math.min(1.5, sp / (2.3 * e.ch.U)));
+  }
   else e.anim = 'idle';
   if (e.mel && d < k.reach + 12 && e.atkCd <= 0) {
     e.atkCd = k.cd;
@@ -547,7 +553,7 @@ function drawEnemy(e) {
     let fi = 0;
     if (dead) fi = Math.floor(e.dieT / 0.6 * n);
     else if (e.act) fi = Math.floor(e.act.t / e.act.dur * n);
-    else if (e.anim === 'run') fi = Math.floor(e.animT * e.speed / (e.boss ? 8 : 11) * (e.slowT > 0 ? e.slowK : 1)) % n;
+    else if (e.anim === 'run') fi = Math.floor(e.runPh * n) % n;
     drawSprite(c, e.anim, fi, e.row, e.flash > 0 && !dead);
   } else if (!dead) drawEnemyOval(e);
   if (dead) { ctx.restore(); return; }
