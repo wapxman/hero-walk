@@ -3,26 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Duel Arena · походка и бег</title>
+<title>Duel Arena · лесная арена</title>
 <style>
   * { margin:0; padding:0; }
   html, body { height:100%; overflow:hidden; background:#0c1017; touch-action:none; }
   canvas { display:block; width:100vw; height:100dvh; }
   #hud {
-    position:fixed; top:12px; left:14px; color:#aab6c8; z-index:5;
-    font:13px/1.5 system-ui, sans-serif; text-shadow:0 1px 4px #000; pointer-events:none;
+    position:fixed; top:12px; left:14px; color:#d5dfd0; z-index:5;
+    font:13px/1.5 system-ui, sans-serif; text-shadow:0 1px 4px #000, 0 0 8px #000; pointer-events:none;
   }
-  #hud b { color:#e8ecf4; }
-  #pad { color:#7fd98a; display:none; }
+  #hud b { color:#fff; }
+  #pad { color:#9df0a6; display:none; }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="hud"><b>Duel Arena</b> · походка и бег<br>
+<div id="hud"><b>Duel Arena</b> · лесная арена<br>
 ПК: стрелки / WASD — бег, с Shift — шаг · Телефон: палец по экрану — стик<br>
 Стик или геймпад: слабый наклон — шаг, до упора — бег в 8 сторон<br>
 <span id="pad">🎮 геймпад подключён</span></div>
 <script>
+const V = '?v=5';
 const cv = document.getElementById('c');
 const ctx = cv.getContext('2d');
 let DPR = 1, W = 0, H = 0;
@@ -30,10 +31,18 @@ function resize() {
   DPR = Math.min(2, window.devicePixelRatio || 1);
   W = window.innerWidth; H = window.innerHeight;
   cv.width = W * DPR; cv.height = H * DPR;
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 }
 window.addEventListener('resize', resize); resize();
 
+// ---------- мир ----------
+const GS = 1.4;                          // во сколько раз растянута картинка земли
+const SRC_W = 2048, SRC_H = 1536;        // земля: левая половина + её зеркало
+const WORLD_W = SRC_W * GS, WORLD_H = SRC_H * GS;
+const CH = 170;                          // рост героини в единицах мира
+// граница, за которую нельзя выйти: «скруглённый прямоугольник» по кромке камней
+const BOUND = { cx: 1024 * GS, cy: 778 * GS, a: 930 * GS, b: 595 * GS };
+
+// ---------- героиня ----------
 const META = {
   front: { frames: 19, w: 161, h: 300, cycle: 1.542 },
   side:  { frames: 15, w: 184, h: 300, cycle: 1.208 },
@@ -43,34 +52,164 @@ const META = {
 // 3 вверх-влево, 4 вверх, 5 вверх-вправо, 6 вправо, 7 вниз-вправо.
 const RUN = { w: 256, h: 256, ax: 128, ay: 201.7, stand: 175.8, frames: 8, cycle: 0.667 };
 const RUN_AT = 0.6;      // наклон стика, с которого шаг переходит в бег
-const RUN_SPEED = 330;
-const img = {};
-let loaded = 0;
-for (const k of ['front', 'side', 'run']) {
-  img[k] = new Image();
-  img[k].onload = () => { loaded++; };
-  img[k].src = k + (k === 'run' ? '.webp' : '.png') + '?v=4';
-}
+const WALK_SPEED = 105, RUN_SPEED = 260;   // единиц мира в секунду
 function runRow(ax, ay) {
   // угол на экране (ось Y вниз): вниз = 90°, влево = 180°, вверх = 270°
   const deg = Math.atan2(ay, ax) * 180 / Math.PI;
   return ((Math.round((deg - 90) / 45) % 8) + 8) % 8;
 }
 
-// --- игрок ---
+// ---------- картинки ----------
+const img = {};
+let loaded = 0;
+const FILES = {
+  front: 'front.png', side: 'side.png', run: 'run.webp', ground: 'arena/ground.webp',
+  s2: 'arena/s2.webp', s3: 'arena/s3.webp', s4: 'arena/s4.webp', s5: 'arena/s5.webp', s6: 'arena/s6.webp',
+};
+const TOTAL = Object.keys(FILES).length;
+for (const k in FILES) {
+  img[k] = new Image();
+  img[k].onload = () => { loaded++; };
+  img[k].src = FILES[k] + V;
+}
+
+// Вырезки на листах: [лист, x, y, ширина, высота]
+const SPR = {
+  tree1: ['s2', 20, 23, 490, 454], tree2: ['s2', 551, 22, 400, 454], tree3: ['s2', 976, 33, 541, 429],
+  column: ['s2', 98, 518, 173, 469], columnB: ['s2', 392, 575, 171, 411],
+  statue: ['s2', 666, 501, 236, 483], arch: ['s2', 989, 536, 477, 433],
+  bush1: ['s3', 70, 44, 248, 204], bush2: ['s3', 405, 52, 361, 190], bush3: ['s3', 833, 26, 253, 238], bush4: ['s3', 1163, 28, 322, 219],
+  rock1: ['s3', 30, 286, 345, 228], rock2: ['s3', 474, 329, 248, 166], rock3: ['s3', 849, 374, 162, 99],
+  stump1: ['s3', 1134, 289, 372, 226], stump2: ['s3', 53, 571, 258, 185], log: ['s3', 406, 581, 307, 170],
+  flW: ['s3', 832, 571, 212, 167], flP: ['s3', 1217, 560, 221, 178], flY: ['s3', 53, 812, 205, 165],
+  wall1: ['s3', 349, 808, 379, 174], wall2: ['s3', 795, 796, 296, 188], slabs: ['s3', 1160, 815, 326, 158],
+  shrine: ['s4', 114, 17, 590, 479], tower: ['s4', 953, 29, 328, 451],
+  obelisk: ['s4', 209, 521, 311, 459], gate: ['s4', 705, 543, 731, 436],
+  braz1: ['s5', 133, 26, 201, 308], braz2: ['s5', 499, 23, 206, 311],
+  ban1: ['s5', 851, 22, 195, 312], ban2: ['s5', 1214, 22, 195, 318],
+  fountain: ['s5', 100, 375, 312, 282], cryG: ['s5', 556, 365, 195, 293], cryB: ['s5', 938, 434, 131, 201], cryS: ['s5', 1258, 494, 88, 135],
+  lan1: ['s5', 194, 687, 167, 286], lan2: ['s5', 624, 690, 184, 287], chest: ['s5', 1020, 721, 302, 247],
+  crown1: ['s6', 41, 27, 411, 342], crown2: ['s6', 491, 31, 549, 333], crown3: ['s6', 1088, 28, 404, 340],
+  branch1: ['s6', 72, 393, 680, 244], branch2: ['s6', 859, 376, 535, 294],
+  fern1: ['s6', 43, 680, 521, 302], fern2: ['s6', 633, 642, 370, 339], vine: ['s6', 1071, 655, 418, 326],
+};
+
+// Свечение: [цвет, высота центра от верха спрайта (доля), радиус, мерцание]
+const GLOW = {
+  braz1: ['255,150,50', 0.16, 95, 1], braz2: ['255,150,50', 0.16, 95, 1],
+  lan1: ['255,215,110', 0.62, 55, 0.4], lan2: ['255,215,110', 0.55, 55, 0.4],
+  obelisk: ['90,255,130', 0.45, 150, 0.25],
+  cryG: ['120,255,90', 0.5, 80, 0.25], cryS: ['120,255,90', 0.5, 45, 0.25],
+  shrine: ['90,170,255', 0.42, 130, 0.25],
+};
+
+// Объект: s — вырезка, x/y — точка опоры на земле, k — масштаб, f — отразить,
+// ay — где на спрайте находится точка опоры (доля высоты), r — препятствие [rx, ry]
+// (эллипс вокруг опоры) или c — несколько эллипсов [dx, dy, rx, ry], red — команда красных.
+// Координаты задаются в пикселях исходной картинки земли и растягиваются на GS.
+function O(s, x, y, k, o) { return Object.assign({ s, x: x * GS, y: y * GS, k: k || 1, ay: 0.93, a: 1 }, o || {}); }
+const OBJ = [];
+// базы и всё, что зеркалится: слева синие, справа красные
+function both(s, x, y, k, o) {
+  OBJ.push(O(s, x, y, k, o));
+  OBJ.push(O(s, SRC_W - x, y, k, Object.assign({}, o, { f: true, red: true })));
+}
+both('shrine', 150, 790, 0.72, { ay: 0.7, r: [185, 92] });
+both('tower', 318, 440, 0.85, { ay: 0.9, r: [72, 38] });
+both('ban1', 300, 1045, 0.65, { r: [18, 10] });
+both('braz1', 560, 612, 0.5, { r: [36, 20] });
+both('braz2', 560, 912, 0.5, { r: [36, 20] });
+// центр
+OBJ.push(O('obelisk', 1024, 802, 0.8, { ay: 0.9, r: [76, 42] }));
+OBJ.push(O('column', 590, 548, 0.8, { r: [46, 26] }));
+OBJ.push(O('columnB', 1458, 548, 0.8, { r: [46, 26] }));
+OBJ.push(O('columnB', 590, 1040, 0.8, { r: [46, 26], f: true }));
+OBJ.push(O('column', 1458, 1040, 0.8, { r: [46, 26] }));
+OBJ.push(O('statue', 1024, 345, 0.8, { r: [78, 44] }));
+OBJ.push(O('arch', 1024, 1335, 0.85, { c: [[-152, 0, 50, 28], [152, 0, 50, 28]] }));
+OBJ.push(O('lan1', 842, 1082, 0.42, { r: [22, 13] }));
+OBJ.push(O('lan2', 1208, 1082, 0.42, { r: [22, 13] }));
+OBJ.push(O('lan2', 850, 498, 0.42, { r: [22, 13] }));
+OBJ.push(O('lan1', 1200, 498, 0.42, { r: [22, 13] }));
+// деревья — расставлены несимметрично, чтобы зеркальность земли не бросалась в глаза
+OBJ.push(O('tree1', 350, 330, 1, { r: [55, 30] }));
+OBJ.push(O('tree3', 730, 268, 1, { r: [55, 30] }));
+OBJ.push(O('tree2', 1340, 262, 1, { r: [50, 28] }));
+OBJ.push(O('tree1', 1730, 345, 1, { r: [55, 30], f: true }));
+OBJ.push(O('tree3', 560, 1352, 0.9, { r: [50, 28], f: true }));
+OBJ.push(O('tree2', 1565, 1345, 0.9, { r: [48, 26] }));
+// камни, руины, мелочь
+OBJ.push(O('rock1', 470, 470, 0.7, { r: [100, 45] }));
+OBJ.push(O('rock2', 1610, 500, 0.7, { r: [72, 34] }));
+OBJ.push(O('rock3', 820, 1292, 0.8, { r: [52, 24] }));
+OBJ.push(O('wall1', 760, 1152, 0.75, { r: [128, 40] }));
+OBJ.push(O('wall2', 1320, 455, 0.75, { r: [98, 40] }));
+OBJ.push(O('log', 1150, 1218, 0.7, { r: [92, 30] }));
+OBJ.push(O('stump1', 880, 440, 0.55, { r: [72, 36] }));
+OBJ.push(O('stump2', 1650, 1130, 0.6, { r: [52, 28] }));
+OBJ.push(O('fountain', 1425, 1195, 0.8, { ay: 0.85, r: [108, 50] }));
+OBJ.push(O('chest', 700, 420, 0.4, { r: [46, 24] }));
+OBJ.push(O('cryG', 640, 1232, 0.5, { r: [34, 20] }));
+OBJ.push(O('cryS', 700, 1258, 0.6, { r: [16, 10] }));
+OBJ.push(O('cryG', 1500, 335, 0.45, { r: [30, 18], f: true }));
+OBJ.push(O('bush1', 215, 1190, 0.7, { r: [62, 30] }));
+OBJ.push(O('bush2', 1850, 1205, 0.6, { r: [78, 30] }));
+OBJ.push(O('bush3', 1838, 400, 0.7, { r: [62, 30] }));
+OBJ.push(O('bush4', 1185, 325, 0.55, { r: [62, 28] }));
+OBJ.push(O('bush2', 862, 305, 0.5, { r: [62, 26], f: true }));
+OBJ.push(O('flW', 420, 1130, 0.45, { soft: true }));
+OBJ.push(O('flP', 1700, 985, 0.45, { soft: true }));
+OBJ.push(O('flY', 1160, 425, 0.45, { soft: true }));
+OBJ.push(O('flP', 330, 640, 0.4, { soft: true }));
+OBJ.push(O('flW', 1290, 1300, 0.45, { soft: true, f: true }));
+OBJ.push(O('flY', 950, 1215, 0.4, { soft: true }));
+// плоские плиты — лежат на земле, под всеми
+const FLAT = [O('slabs', 1024, 1262, 0.7, { ay: 0.5 }), O('slabs', 430, 965, 0.6, { ay: 0.5, f: true }), O('slabs', 1640, 640, 0.5, { ay: 0.5 })];
+// передний план — всегда поверх
+const FRONT = [
+  O('crown1', 120, 1500, 1.43, { ay: 0.5 }), O('crown3', 1930, 1500, 1.43, { ay: 0.5 }), O('crown2', 1024, 1575, 1.30, { ay: 0.5 }),
+  O('fern1', 520, 1500, 1.17, { ay: 0.5 }), O('fern2', 1490, 1495, 1.17, { ay: 0.5 }),
+  O('branch1', 560, 55, 1.17, { ay: 0.5 }), O('branch2', 1500, 65, 1.17, { ay: 0.5 }),
+  O('crown3', 60, 80, 1.17, { ay: 0.5 }), O('crown1', 1990, 70, 1.17, { ay: 0.5, f: true }),
+  O('vine', 1975, 1000, 1.04, { ay: 0.5 }),
+];
+
+// невидимые препятствия из объектов
+const SOLID = [];
+for (const o of OBJ) {
+  if (o.r) SOLID.push({ x: o.x, y: o.y, rx: o.r[0], ry: o.r[1] });
+  if (o.c) for (const c of o.c) SOLID.push({ x: o.x + c[0], y: o.y + c[1], rx: c[2], ry: c[3] });
+}
+
+// красная версия листов для правой базы: синие пиксели перекрашиваются в красные
+function makeRed(image) {
+  const c = document.createElement('canvas');
+  c.width = image.width; c.height = image.height;
+  const x = c.getContext('2d');
+  x.drawImage(image, 0, 0);
+  const d = x.getImageData(0, 0, c.width, c.height), p = d.data;
+  for (let i = 0; i < p.length; i += 4) {
+    const r = p[i], g = p[i + 1], b = p[i + 2];
+    if (b > r + 25 && b > g) { p[i] = b; p[i + 1] = g * 0.45; p[i + 2] = r * 0.5; }
+  }
+  x.putImageData(d, 0, 0);
+  return c;
+}
+
+// ---------- игрок ----------
 const P = {
-  x: 0, y: 0, speed: 170,
+  x: 440 * GS, y: 745 * GS,
   dir: 'front', flip: false, moving: false, running: false, row: 0,
   animT: 0, idleT: 0,
 };
-let inited = false;
+const cam = { x: 0, y: 0, ready: false };
 
-// --- управление: клавиатура ---
+// ---------- управление: клавиатура ----------
 const keys = {};
 addEventListener('keydown', e => { keys[e.code] = true; });
 addEventListener('keyup', e => { keys[e.code] = false; });
 
-// --- управление: виртуальный стик ---
+// ---------- управление: виртуальный стик ----------
 const stick = { active: false, id: null, x0: 0, y0: 0, dx: 0, dy: 0 };
 addEventListener('touchstart', e => {
   const t = e.changedTouches[0];
@@ -86,13 +225,15 @@ addEventListener('touchmove', e => {
     }
   }
 }, { passive: true });
-addEventListener('touchend', e => {
+function stickEnd(e) {
   for (const t of e.changedTouches) {
     if (t.identifier === stick.id) { stick.active = false; stick.dx = 0; stick.dy = 0; }
   }
-}, { passive: true });
+}
+addEventListener('touchend', stickEnd, { passive: true });
+addEventListener('touchcancel', stickEnd, { passive: true });
 
-// --- геймпад ---
+// ---------- геймпад ----------
 const padEl = document.getElementById('pad');
 function padAxes() {
   const gps = navigator.getGamepads ? navigator.getGamepads() : [];
@@ -125,110 +266,204 @@ function inputVector() {
   return { ax, ay, m: Math.min(1, m) };
 }
 
-// --- сцена ---
-function drawArena() {
-  const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, '#182134'); g.addColorStop(0.55, '#131a28'); g.addColorStop(1, '#0b0f16');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  const cx = W / 2, cy = H * 0.62;
-  const rg = ctx.createRadialGradient(cx, cy, 40, cx, cy, Math.max(W, H) * 0.55);
-  rg.addColorStop(0, 'rgba(66,96,150,0.20)'); rg.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
-  ctx.strokeStyle = 'rgba(120,150,200,0.07)';
-  ctx.lineWidth = 1;
-  for (let i = 1; i < 7; i++) {
-    const y = H * 0.35 + (H * 0.6 - H * 0.35) * (i / 7) ** 1.6;
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-  }
-  const vg = ctx.createRadialGradient(W/2, H*0.45, Math.min(W,H)*0.45, W/2, H*0.45, Math.max(W,H)*0.85);
-  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.5)');
-  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
-}
-
-function drawStickUI() {
-  if (!stick.active) return;
-  ctx.save();
-  ctx.globalAlpha = 0.35;
-  ctx.strokeStyle = '#9fb6d9'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.arc(stick.x0, stick.y0, 60, 0, 7); ctx.stroke();
-  ctx.fillStyle = '#9fb6d9';
-  ctx.beginPath(); ctx.arc(stick.x0 + stick.dx * 60, stick.y0 + stick.dy * 60, 22, 0, 7); ctx.fill();
-  ctx.restore();
-}
-
-let last = performance.now();
-function frame(now) {
-  requestAnimationFrame(frame);
-  const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  if (loaded < 3) { drawArena(); return; }
-  if (!inited) { P.x = W / 2; P.y = H * 0.62; inited = true; }
-
-  const { ax, ay, m } = inputVector();
-  P.moving = m > 0.12;
-  const charH = Math.min(300, H * 0.34);
-  // гистерезис, чтобы на границе шаг/бег анимация не дёргалась
-  P.running = P.moving && m > (P.running ? RUN_AT - 0.1 : RUN_AT);
-  if (P.running) {
-    const k = RUN_SPEED / m * dt * (charH / 300);
-    P.x += ax * k;
-    P.y += ay * 0.72 * k;
-    P.row = runRow(ax, ay);
-    P.animT += dt;
-    P.idleT = 0;
-  } else if (P.moving) {
-    P.x += ax * P.speed * dt * (charH / 300);
-    P.y += ay * P.speed * 0.72 * dt * (charH / 300);
-    if (Math.abs(ax) >= Math.abs(ay)) {
-      P.dir = 'side'; P.flip = ax > 0;
-    } else {
-      P.dir = 'front';
+// ---------- столкновения ----------
+const PR = [16, 11];   // «толщина» героини у земли
+function collide() {
+  for (let pass = 0; pass < 2; pass++) {
+    for (const s of SOLID) {
+      const rx = s.rx + PR[0], ry = s.ry + PR[1];
+      const dx = (P.x - s.x) / rx, dy = (P.y - s.y) / ry;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < 1) {
+        const d = Math.sqrt(d2) || 0.001;
+        P.x = s.x + dx / d * rx;
+        P.y = s.y + dy / d * ry;
+      }
     }
-    P.animT += dt * m;
-    P.idleT = 0;
+    const u = (P.x - BOUND.cx) / BOUND.a, v = (P.y - BOUND.cy) / BOUND.b;
+    const q = u * u * u * u + v * v * v * v;
+    if (q > 1) {
+      const k = Math.pow(q, -0.25);
+      P.x = BOUND.cx + u * k * BOUND.a;
+      P.y = BOUND.cy + v * k * BOUND.b;
+    }
+  }
+}
+
+// ---------- рисование ----------
+function sprRect(o) {
+  const s = SPR[o.s];
+  const w = s[3] * o.k, h = s[4] * o.k;
+  return { s, w, h, x: o.x - w / 2, y: o.y - h * o.ay };
+}
+function drawObj(o, red) {
+  const r = sprRect(o);
+  const sheet = (o.red && red[r.s[0]]) || img[r.s[0]];
+  ctx.globalAlpha = o.a;
+  if (o.f) {
+    ctx.save(); ctx.translate(o.x, 0); ctx.scale(-1, 1);
+    ctx.drawImage(sheet, r.s[1], r.s[2], r.s[3], r.s[4], -r.w / 2, r.y, r.w, r.h);
+    ctx.restore();
   } else {
-    P.idleT += dt;
+    ctx.drawImage(sheet, r.s[1], r.s[2], r.s[3], r.s[4], r.x, r.y, r.w, r.h);
   }
-  const mrg = charH * 0.25;
-  P.x = Math.max(mrg, Math.min(W - mrg, P.x));
-  P.y = Math.max(H * 0.34, Math.min(H * 0.88, P.y));
-
-  drawArena();
-
-  const spec = META[P.dir === 'side' ? 'side' : 'front'];
-  const image = img[P.dir === 'side' ? 'side' : 'front'];
-  let fi = 0;
-  if (P.moving) {
-    fi = Math.floor((P.animT % spec.cycle) / spec.cycle * spec.frames) % spec.frames;
-  }
-  const scale = charH / spec.h;
-  const dw = spec.w * scale, dh = charH;
-  const breath = P.moving ? 1 : 1 + 0.008 * Math.sin(P.idleT * 2.2);
-
-  // тень
-  ctx.save();
-  ctx.globalAlpha = 0.45;
-  const sg = ctx.createRadialGradient(P.x, P.y, 2, P.x, P.y, dw * 0.46);
-  sg.addColorStop(0, 'rgba(0,0,0,0.6)'); sg.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = sg;
-  ctx.beginPath(); ctx.ellipse(P.x, P.y, dw * 0.46, dh * 0.045, 0, 0, 7); ctx.fill();
+  ctx.globalAlpha = 1;
+}
+function shadow(x, y, rx, ry, a) {
+  const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+  g.addColorStop(0, 'rgba(8,20,6,' + a + ')'); g.addColorStop(0.6, 'rgba(8,20,6,' + a * 0.6 + ')'); g.addColorStop(1, 'rgba(8,20,6,0)');
+  ctx.save(); ctx.translate(x, y); ctx.scale(rx, ry);
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 1, 0, 7); ctx.fill();
   ctx.restore();
-
-  // спрайт
+}
+function drawPlayer() {
   if (P.running) {
-    const rs = charH * 0.95 / RUN.stand;
+    const rs = CH * 0.95 / RUN.stand;
     const rf = Math.floor((P.animT % RUN.cycle) / RUN.cycle * RUN.frames) % RUN.frames;
     ctx.drawImage(img.run, rf * RUN.w, P.row * RUN.h, RUN.w, RUN.h,
       P.x - RUN.ax * rs, P.y - RUN.ay * rs, RUN.w * rs, RUN.h * rs);
-    drawStickUI();
     return;
   }
+  const key = P.dir === 'side' ? 'side' : 'front';
+  const spec = META[key];
+  let fi = 0;
+  if (P.moving) fi = Math.floor((P.animT % spec.cycle) / spec.cycle * spec.frames) % spec.frames;
+  const dw = spec.w * CH / spec.h, dh = CH;
+  const breath = P.moving ? 1 : 1 + 0.008 * Math.sin(P.idleT * 2.2);
   ctx.save();
   ctx.translate(P.x, P.y);
   if (P.flip) ctx.scale(-1, 1);
   ctx.scale(1, breath);
-  ctx.drawImage(image, fi * spec.w, 0, spec.w, spec.h, -dw / 2, -dh + dh * 0.015, dw, dh);
+  ctx.drawImage(img[key], fi * spec.w, 0, spec.w, spec.h, -dw / 2, -dh + dh * 0.015, dw, dh);
   ctx.restore();
+}
+function drawStickUI() {
+  if (!stick.active) return;
+  ctx.save();
+  ctx.globalAlpha = 0.4;
+  ctx.strokeStyle = '#e6f0ff'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(stick.x0, stick.y0, 60, 0, 7); ctx.stroke();
+  ctx.fillStyle = '#e6f0ff';
+  ctx.beginPath(); ctx.arc(stick.x0 + stick.dx * 60, stick.y0 + stick.dy * 60, 22, 0, 7); ctx.fill();
+  ctx.restore();
+}
 
+// светлячки
+const FLIES = [];
+for (let i = 0; i < 70; i++) {
+  FLIES.push({ x: (120 + Math.random() * 1800) * GS, y: (160 + Math.random() * 1200) * GS, p: Math.random() * 7, s: 0.4 + Math.random() * 0.8 });
+}
+
+const red = {};
+let last = performance.now();
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  const t = now / 1000;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  if (loaded < TOTAL) {
+    ctx.fillStyle = '#0c1017'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#aab6c8'; ctx.font = '15px system-ui, sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('Загрузка арены… ' + loaded + ' / ' + TOTAL, W / 2, H / 2);
+    return;
+  }
+  if (!red.s4) { red.s4 = makeRed(img.s4); red.s5 = makeRed(img.s5); }
+
+  // --- движение ---
+  const { ax, ay, m } = inputVector();
+  P.moving = m > 0.12;
+  // гистерезис, чтобы на границе шаг/бег анимация не дёргалась
+  P.running = P.moving && m > (P.running ? RUN_AT - 0.1 : RUN_AT);
+  if (P.running) {
+    const k = RUN_SPEED / m * dt;
+    P.x += ax * k; P.y += ay * 0.72 * k;
+    P.row = runRow(ax, ay);
+    P.animT += dt; P.idleT = 0;
+  } else if (P.moving) {
+    P.x += ax * WALK_SPEED * 2 * dt; P.y += ay * WALK_SPEED * 2 * 0.72 * dt;
+    if (Math.abs(ax) >= Math.abs(ay)) { P.dir = 'side'; P.flip = ax > 0; } else { P.dir = 'front'; }
+    P.animT += dt * m * 2; P.idleT = 0;
+  } else {
+    P.idleT += dt;
+  }
+  collide();
+
+  // --- камера ---
+  const charScr = Math.max(90, Math.min(260, H * 0.28));
+  // адрес с #map показывает всю арену целиком (для проверки расстановки)
+  const Z = location.hash === '#map' ? Math.min(W / WORLD_W, H / WORLD_H) : charScr / CH;
+  const vw = W / Z, vh = H / Z;
+  let tx = P.x - vw / 2, ty = P.y - CH * 0.45 - vh / 2;
+  tx = vw >= WORLD_W ? (WORLD_W - vw) / 2 : Math.max(0, Math.min(WORLD_W - vw, tx));
+  ty = vh >= WORLD_H ? (WORLD_H - vh) / 2 : Math.max(0, Math.min(WORLD_H - vh, ty));
+  if (!cam.ready) { cam.x = tx; cam.y = ty; cam.ready = true; }
+  const f = 1 - Math.exp(-dt * 7);
+  cam.x += (tx - cam.x) * f; cam.y += (ty - cam.y) * f;
+
+  ctx.fillStyle = '#0d1a0c'; ctx.fillRect(0, 0, W, H);
+  ctx.setTransform(DPR * Z, 0, 0, DPR * Z, -cam.x * DPR * Z, -cam.y * DPR * Z);
+  ctx.imageSmoothingQuality = 'high';
+  const seen = o => {
+    const r = sprRect(o);
+    return r.x < cam.x + vw + 160 && r.x + r.w > cam.x - 160 && r.y < cam.y + vh + 160 && r.y + r.h > cam.y - 160;
+  };
+
+  ctx.drawImage(img.ground, 0, 0, WORLD_W, WORLD_H);
+  for (const o of FLAT) if (seen(o)) drawObj(o, red);
+
+  // тени
+  for (const o of OBJ) {
+    if (o.soft || !seen(o)) continue;
+    const s = SPR[o.s];
+    const rx = o.r ? o.r[0] * 1.35 : s[3] * o.k * 0.42;
+    shadow(o.x, o.y + 4, rx, rx * 0.38, 0.5);
+  }
+  shadow(P.x, P.y, CH * 0.26, CH * 0.075, 0.6);
+
+  // объекты и героиня по глубине; высокий объект становится прозрачнее, если героиня за ним
+  const list = [];
+  for (const o of OBJ) {
+    if (!seen(o)) continue;
+    const r = sprRect(o);
+    const hide = !o.soft && r.h > 150 && P.y < o.y && P.y > r.y + 30 && Math.abs(P.x - o.x) < r.w * 0.42;
+    o.a += ((hide ? 0.45 : 1) - o.a) * Math.min(1, dt * 9);
+    list.push(o);
+  }
+  list.push(P);
+  list.sort((a, b) => a.y - b.y);
+  for (const o of list) { if (o === P) drawPlayer(); else drawObj(o, red); }
+
+  // свечение огня, рун и кристаллов
+  ctx.globalCompositeOperation = 'lighter';
+  for (const o of OBJ) {
+    const gl = GLOW[o.s];
+    if (!gl || !seen(o)) continue;
+    const r = sprRect(o);
+    const col = (o.red && o.s === 'shrine') ? '255,90,60' : gl[0];
+    const fl = 1 + gl[3] * (0.12 * Math.sin(t * 9 + o.x) + 0.08 * Math.sin(t * 23 + o.y));
+    const rad = gl[2] * fl, gy = r.y + r.h * gl[1];
+    const g = ctx.createRadialGradient(o.x, gy, 0, o.x, gy, rad);
+    const pulse = gl[3] < 1 ? 0.75 + 0.25 * Math.sin(t * 1.6 + o.x * 0.01) : 1;
+    g.addColorStop(0, 'rgba(' + col + ',' + 0.42 * pulse + ')'); g.addColorStop(1, 'rgba(' + col + ',0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(o.x, gy, rad, 0, 7); ctx.fill();
+  }
+  for (const fl of FLIES) {
+    const x = fl.x + Math.sin(t * 0.5 * fl.s + fl.p) * 40, y = fl.y + Math.cos(t * 0.37 * fl.s + fl.p * 2) * 26;
+    if (x < cam.x - 20 || x > cam.x + vw + 20 || y < cam.y - 20 || y > cam.y + vh + 20) continue;
+    const a = 0.35 + 0.35 * Math.sin(t * 2.2 * fl.s + fl.p * 3);
+    const g = ctx.createRadialGradient(x, y, 0, x, y, 9);
+    g.addColorStop(0, 'rgba(230,255,150,' + a + ')'); g.addColorStop(1, 'rgba(230,255,150,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, 9, 0, 7); ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  for (const o of FRONT) if (seen(o)) drawObj(o, red);
+
+  // --- поверх мира: затемнение краёв и стик ---
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.5, W / 2, H / 2, Math.max(W, H) * 0.8);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.38)');
+  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
   drawStickUI();
 }
 requestAnimationFrame(frame);
