@@ -272,8 +272,8 @@ function shard(x, y, R, dmg, sk, st) {
 }
 
 // ---------- враги ----------
-// Спрайты отрендерены из 3D-моделей: 5 направлений в строках (вниз, вниз-влево, влево, вверх-влево, вверх),
-// остальные три получаются зеркалом. AN: [первая колонка, число кадров].
+// Спрайты отрендерены из 3D-моделей: 5 направлений в строках (вниз, вниз-вправо, вправо, вверх-вправо, вверх),
+// три левых получаются зеркалом. AN: [первая колонка, число кадров].
 const COS_EL = Math.cos(35 * Math.PI / 180);
 const AN = { run: [0, 8], atk: [8, 6], die: [14, 5], idle: [19, 1], cast: [20, 5] };
 const HERO_AN = { idle: [0, 4], run: [4, 8], atk: [12, 5], cast: [17, 6], die: [23, 5] };
@@ -287,12 +287,13 @@ const CHARS = {
   boss: { cell: 320, ortho: 4.0, zc: 1.15, U: 122, top: 1.95 },
 };
 for (const k in CHARS) { const im = CHARS[k].img = new Image(); im.onload = () => { CHARS[k].ok = true; }; im.src = 'chars/mx_' + k + '.webp' + V; }
-// один кадр персонажа: row — направление 0..7 (0 вниз, дальше по часовой), три правых получаются зеркалом
+// один кадр персонажа: row — направление 0..7 (0 вниз, 2 влево, 4 вверх, 6 вправо)
 function drawSprite(c, anim, fi, row, flash) {
   const a = (c.an || AN)[anim] || (c.an || AN).idle;
   fi = Math.max(0, Math.min(a[1] - 1, fi));
-  let flip = false;
-  if (row > 4) { row = 8 - row; flip = true; }
+  // в листах ряды 1–3 смотрят ВПРАВО (вниз-вправо, вправо, вверх-вправо); левые направления — их зеркало
+  const flip = row >= 1 && row <= 3;
+  if (row > 4) row = 8 - row;
   const size = c.ortho * c.U, ay = 0.5 + c.zc * COS_EL / c.ortho;
   ctx.save();
   if (flip) ctx.scale(-1, 1);
