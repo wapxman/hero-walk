@@ -35,14 +35,14 @@ window.addEventListener('resize', resize); resize();
 
 const META = {
   front: { frames: 19, w: 161, h: 300, cycle: 1.542 },
-  side:  { frames: 15, w: 185, h: 300, cycle: 1.208 },
+  side:  { frames: 15, w: 184, h: 300, cycle: 1.208 },
 };
 const img = {};
 let loaded = 0;
 for (const k of ['front', 'side']) {
   img[k] = new Image();
   img[k].onload = () => { loaded++; };
-  img[k].src = k + '.png';
+  img[k].src = k + '.png?v=3';
 }
 
 // --- игрок ---
