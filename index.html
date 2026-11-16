@@ -14,16 +14,15 @@
   }
   #hud b { color:#fff; }
   #pad { color:#9df0a6; display:none; }
+  #snd { color:#ffd28a; }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="hud"><b>Duel Arena</b> · лесная арена<br>
-ПК: стрелки / WASD — бег, с Shift — шаг · Телефон: палец по экрану — стик<br>
-Стик или геймпад: слабый наклон — шаг, до упора — бег в 8 сторон<br>
-<span id="pad">🎮 геймпад подключён</span></div>
+<div id="hud"><b>Duel Arena</b> · <span id="tip">стик — движение, кнопки справа — огонь и скилы (ПК: WASD, пробел, Q E F R)</span><br>
+<span id="snd">🔇 коснитесь экрана, чтобы включить звук</span> <span id="pad">🎮 геймпад подключён</span></div>
 <script>
-const V = '?v=5';
+const V = '?v=6';
 const cv = document.getElementById('c');
 const ctx = cv.getContext('2d');
 let DPR = 1, W = 0, H = 0;
@@ -212,9 +211,12 @@ addEventListener('keyup', e => { keys[e.code] = false; });
 // ---------- управление: виртуальный стик ----------
 const stick = { active: false, id: null, x0: 0, y0: 0, dx: 0, dy: 0 };
 addEventListener('touchstart', e => {
-  const t = e.changedTouches[0];
-  stick.active = true; stick.id = t.identifier;
-  stick.x0 = t.clientX; stick.y0 = t.clientY; stick.dx = 0; stick.dy = 0;
+  for (const t of e.changedTouches) {
+    if (window.COMBAT_READY && touchButtonDown(t)) continue;
+    if (stick.active) continue;
+    stick.active = true; stick.id = t.identifier;
+    stick.x0 = t.clientX; stick.y0 = t.clientY; stick.dx = 0; stick.dy = 0;
+  }
 }, { passive: true });
 addEventListener('touchmove', e => {
   for (const t of e.changedTouches) {
@@ -227,7 +229,8 @@ addEventListener('touchmove', e => {
 }, { passive: true });
 function stickEnd(e) {
   for (const t of e.changedTouches) {
-    if (t.identifier === stick.id) { stick.active = false; stick.dx = 0; stick.dy = 0; }
+    if (window.COMBAT_READY && touchButtonUp(t)) continue;
+    if (t.identifier === stick.id) { stick.active = false; stick.id = null; stick.dx = 0; stick.dy = 0; }
   }
 }
 addEventListener('touchend', stickEnd, { passive: true });
@@ -268,24 +271,25 @@ function inputVector() {
 
 // ---------- столкновения ----------
 const PR = [16, 11];   // «толщина» героини у земли
-function collide() {
+function collide(e) {
+  e = e || P;
   for (let pass = 0; pass < 2; pass++) {
     for (const s of SOLID) {
       const rx = s.rx + PR[0], ry = s.ry + PR[1];
-      const dx = (P.x - s.x) / rx, dy = (P.y - s.y) / ry;
+      const dx = (e.x - s.x) / rx, dy = (e.y - s.y) / ry;
       const d2 = dx * dx + dy * dy;
       if (d2 < 1) {
         const d = Math.sqrt(d2) || 0.001;
-        P.x = s.x + dx / d * rx;
-        P.y = s.y + dy / d * ry;
+        e.x = s.x + dx / d * rx;
+        e.y = s.y + dy / d * ry;
       }
     }
-    const u = (P.x - BOUND.cx) / BOUND.a, v = (P.y - BOUND.cy) / BOUND.b;
+    const u = (e.x - BOUND.cx) / BOUND.a, v = (e.y - BOUND.cy) / BOUND.b;
     const q = u * u * u * u + v * v * v * v;
     if (q > 1) {
       const k = Math.pow(q, -0.25);
-      P.x = BOUND.cx + u * k * BOUND.a;
-      P.y = BOUND.cy + v * k * BOUND.b;
+      e.x = BOUND.cx + u * k * BOUND.a;
+      e.y = BOUND.cy + v * k * BOUND.b;
     }
   }
 }
@@ -361,7 +365,7 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   const t = now / 1000;
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  if (loaded < TOTAL) {
+  if (loaded < TOTAL || !window.COMBAT_READY) {
     ctx.fillStyle = '#0c1017'; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = '#aab6c8'; ctx.font = '15px system-ui, sans-serif'; ctx.textAlign = 'center';
     ctx.fillText('Загрузка арены… ' + loaded + ' / ' + TOTAL, W / 2, H / 2);
@@ -370,12 +374,15 @@ function frame(now) {
   if (!red.s4) { red.s4 = makeRed(img.s4); red.s5 = makeRed(img.s5); }
 
   // --- движение ---
-  const { ax, ay, m } = inputVector();
+  let { ax, ay, m } = inputVector();
+  if (P.dead > 0) { ax = 0; ay = 0; m = 0; }
+  if (m > 0.12) P.face = { x: ax / m, y: ay / m };
+  const sp = P.ult > 0 ? 0.55 : 1;   // во время бури героиня идёт медленнее
   P.moving = m > 0.12;
   // гистерезис, чтобы на границе шаг/бег анимация не дёргалась
   P.running = P.moving && m > (P.running ? RUN_AT - 0.1 : RUN_AT);
   if (P.running) {
-    const k = RUN_SPEED / m * dt;
+    const k = RUN_SPEED * sp / m * dt;
     P.x += ax * k; P.y += ay * 0.72 * k;
     P.row = runRow(ax, ay);
     P.animT += dt; P.idleT = 0;
@@ -387,6 +394,7 @@ function frame(now) {
     P.idleT += dt;
   }
   collide();
+  combatUpdate(dt);
 
   // --- камера ---
   const charScr = Math.max(90, Math.min(260, H * 0.28));
@@ -410,6 +418,7 @@ function frame(now) {
 
   ctx.drawImage(img.ground, 0, 0, WORLD_W, WORLD_H);
   for (const o of FLAT) if (seen(o)) drawObj(o, red);
+  combatGround(t);
 
   // тени
   for (const o of OBJ) {
@@ -418,7 +427,7 @@ function frame(now) {
     const rx = o.r ? o.r[0] * 1.35 : s[3] * o.k * 0.42;
     shadow(o.x, o.y + 4, rx, rx * 0.38, 0.5);
   }
-  shadow(P.x, P.y, CH * 0.26, CH * 0.075, 0.6);
+  if (P.dead <= 0) shadow(P.x, P.y, CH * 0.26, CH * 0.075, 0.6);
 
   // объекты и героиня по глубине; высокий объект становится прозрачнее, если героиня за ним
   const list = [];
@@ -429,9 +438,10 @@ function frame(now) {
     o.a += ((hide ? 0.45 : 1) - o.a) * Math.min(1, dt * 9);
     list.push(o);
   }
-  list.push(P);
+  if (P.dead <= 0) list.push(P);
+  for (const e of combatEntities()) list.push(e);
   list.sort((a, b) => a.y - b.y);
-  for (const o of list) { if (o === P) drawPlayer(); else drawObj(o, red); }
+  for (const o of list) { if (o === P) drawPlayer(); else if (o.draw) o.draw(); else drawObj(o, red); }
 
   // свечение огня, рун и кристаллов
   ctx.globalCompositeOperation = 'lighter';
@@ -458,15 +468,18 @@ function frame(now) {
   ctx.globalCompositeOperation = 'source-over';
 
   for (const o of FRONT) if (seen(o)) drawObj(o, red);
+  combatOver(t);
 
   // --- поверх мира: затемнение краёв и стик ---
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.5, W / 2, H / 2, Math.max(W, H) * 0.8);
   vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.38)');
   ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  combatUI();
   drawStickUI();
 }
 requestAnimationFrame(frame);
 </script>
+<script src="combat.js?v=6"></script>
 </body>
 </html>
