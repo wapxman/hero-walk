@@ -214,11 +214,13 @@ function aimPoint(d) {
 }
 function hurtEnemy(e, dmg, col) {
   if (e.hp <= 0) return;
+  dmg *= P.dmgMul || 1;
   e.hp -= dmg; e.flash = 0.08;
   say(e.x + rnd(-14, 14), e.y - e.rad * 2.2, Math.round(dmg), col || '#bfe6ff');
   if (e.hp <= 0) {
     kills++;
     e.dieT = 0; e.anim = 'die'; e.act = null; corpses.push(e);
+    if (typeof SHOP !== 'undefined') SHOP.onKill(e);
     play('em_rockburst', e.boss ? 0.6 : 0.3, e.boss ? 0.8 : 1.4);
   }
 }
@@ -254,11 +256,12 @@ function cast(id) {
     P.ult = DOTA_ON ? 10 : 5; P.ultTick = 0;   // оригинальный звук поля длится дольше
     if (DOTA_ON) play('d_ff', 0.9); else { play('cm3_ult', 0.9); play('cm_ult_purga', 0.55); }
   }
-  P.cd[id] = CDMAX[id]; P.cast = 0.3;
+  P.cd[id] = CDMAX[id] * (P.cdMul || 1); P.cast = 0.3;
   P.act = { anim: 'cast', t: 0, dur: 0.7, row: null };
 }
 function hurtPlayer(d) {
   if (P.dead > 0) return;
+  d *= P.armMul || 1;
   P.hp -= d; P.hurt = 0.25;
   say(P.x + rnd(-12, 12), P.y - CH * 1.05, '-' + Math.round(d), '#ff8a7a');
   if (P.hp <= 0) { P.hp = 0; P.dead = 3; P.ult = 0; held.touch = held.mouse = false; play('d_death', 0.6); }
@@ -328,7 +331,7 @@ function spawnEnemy(type) {
   const e = {
     type, k, ch: CHARS[k.ch], boss: !!k.boss, mel: !!k.mel, rng: !!k.rng,
     x: (SRC_W - 430) * GS + rnd(-60, 60), y: 745 * GS + rnd(-150, 150),
-    hp: k.hp, rad: k.rad, speed: k.speed, col: k.col, eye: k.boss ? '#ffb347' : '#ffe27a',
+    hp: Math.round(k.hp * (1 + 0.1 * Math.max(0, wave - 1))), rad: k.rad, speed: k.speed, col: k.col, eye: k.boss ? '#ffb347' : '#ffe27a',
     slowT: 0, slowK: 1, root: 0, dot: 0, atkCd: rnd(0.3, 1.2), flash: 0, bob: rnd(0, 6), slamCd: 2, quakeCd: 7,
     anim: 'run', animT: rnd(0, 1), runPh: rnd(0, 1), row: 2, act: null,
   };
@@ -338,7 +341,6 @@ function spawnEnemy(type) {
 }
 function spawnWave() {
   wave++;
-  if (enemies.length >= 12) return;
   const nm = Math.min(2 + wave, 6);
   for (let i = 0; i < nm; i++) spawnEnemy(wave >= 2 && i % 3 === 2 ? 'war' : 'min');
   const nr = Math.min(1 + Math.floor(wave / 2), 3);
@@ -430,9 +432,8 @@ function combatUpdate(dt) {
       }
     }
   }
-  waveT -= dt;
-  if (waveT <= 0) { spawnWave(); waveT = 14; }
-  if (!enemies.length && waveT > 3) waveT = 3;
+  // волну запускает игрок кнопкой; магазин, золото и дроп живут в shop.js
+  if (typeof SHOP !== 'undefined') SHOP.tick(dt);
 
   for (const e of enemies) updateEnemy(e, dt);
   // враги не слипаются
@@ -612,6 +613,7 @@ function drawShot(s) {
 // то, что сортируется по глубине вместе с объектами арены
 function combatEntities() {
   const out = enemies.concat(corpses);
+  if (typeof SHOP !== 'undefined') for (const d of SHOP.drops) out.push(d);
   for (const s of shots) { if (!s.draw) s.draw = () => drawShot(s); out.push(s); }
   for (const f of fx) {
     if (f.type === 'nova' && FXS.nova.ok) {

@@ -19,10 +19,10 @@
 </head>
 <body>
 <canvas id="c"></canvas>
-<div id="hud"><b>Duel Arena</b> · <span id="tip">стик — движение, кнопки справа — огонь и скилы (ПК: WASD, пробел, Q E F R)</span><br>
+<div id="hud"><b>Duel Arena</b> · <span id="tip">стик — движение, кнопки справа — огонь и скилы (ПК: WASD, пробел, Q E F R, фласки 1–4, Enter — волна, B — магазин)</span><br>
 <span id="snd">🔇 коснитесь экрана, чтобы включить звук</span> <span id="pad">🎮 геймпад подключён</span></div>
 <script>
-const V = '?v=17';
+const V = '?v=18';
 const cv = document.getElementById('c');
 const ctx = cv.getContext('2d');
 let DPR = 1, W = 0, H = 0;
@@ -379,7 +379,7 @@ function frame(now) {
   let { ax, ay, m } = inputVector();
   if (P.dead > 0) { ax = 0; ay = 0; m = 0; }
   if (m > 0.12) P.face = { x: ax / m, y: ay / m };
-  const sp = P.ult > 0 ? 0.55 : 1;   // во время бури героиня идёт медленнее
+  const sp = (P.ult > 0 ? 0.55 : 1) * (P.spdMul || 1);   // во время бури героиня идёт медленнее
   P.moving = m > 0.12;
   // гистерезис, чтобы на границе шаг/бег анимация не дёргалась
   P.running = P.moving && m > (P.running ? RUN_AT - 0.1 : RUN_AT);
@@ -482,6 +482,7 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 </script>
-<script src="combat.js?v=17"></script>
+<script src="combat.js?v=18"></script>
+<script src="shop.js?v=18"></script>
 </body>
 </html>
