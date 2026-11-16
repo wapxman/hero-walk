@@ -237,13 +237,14 @@ function cast(id) {
   if (P.dead > 0 || P.cd[id] > 0) return;
   if (id === 'q') {
     const c = aimPoint(320), R = 215;
-    fx.push({ type: 'nova', x: c.x, y: c.y, t: 0, dur: 0.7, R });
+    fx.push({ type: 'nova', x: c.x, y: c.y, t: 0, dur: 0.95, R });
     for (const e of enemies) if (gdist(c, e) < R + e.rad) { hurtEnemy(e, 95); slow(e, 0.45, 3.5); }
     play(SND.gen_nova ? 'gen_nova' : DOTA_ON ? 'd_nova' : 'cm3_nova', 0.9);   // gen_nova — сгенерирован в Higgsfield
   } else if (id === 'e') {
     const t = nearestEnemy(RANGE);
     if (!t) { say(P.x, P.y - CH, 'нет цели', '#ffd28a'); return; }
     t.root = 2.8; t.dot = 45; hurtEnemy(t, 40);
+    fx.push({ type: 'chains', e: t, x: t.x, y: t.y, t: 0, dur: 3.25, h: t.ch.top * t.ch.U });
     play('cm3_frostbite', 0.9);
   } else if (id === 'f') {
     const c = aimPoint(340);
@@ -452,7 +453,7 @@ function combatUpdate(dt) {
       for (const e of enemies) {
         if (e.hp > 0 && gdist(s, e) < e.rad + 16) {
           hurtEnemy(e, s.dmg); slow(e, 0.8, 1); s.left = 0;
-          fx.push({ type: 'spark', x: e.x, y: e.y - e.rad, t: 0, dur: 0.25, R: 34 });
+          fx.push({ type: 'spark', hit: 1, x: e.x, y: e.y - e.ch.top * e.ch.U * 0.5, t: 0, dur: 0.4, R: 34 });
           play(pick(DOTA_ON ? D_HITS : HITS), 0.45, rnd(0.95, 1.1));
           break;
         }
@@ -477,7 +478,7 @@ function combatUpdate(dt) {
     if (f.type === 'shard') {
       let hit = false;
       for (const e of enemies) if (gdist(f, e) < f.R + e.rad) { hurtEnemy(e, f.dmg); slow(e, f.sk, f.st); hit = true; }
-      fx.push({ type: 'spark', x: f.x, y: f.y, t: 0, dur: 0.3, R: f.R * 0.6 });
+      fx.push({ type: 'spark', hail: 1, x: f.x, y: f.y, t: 0, dur: 0.5, R: f.R });
       if (hit || Math.random() < 0.18) {
         const set = !DOTA_ON ? HITS.concat(['cm_ice_hit_big']) : f.st === 2 ? D_FF : D_HITS;
         play(pick(set), hit ? 0.3 : 0.14, rnd(0.9, 1.15));
@@ -500,6 +501,19 @@ function combatUpdate(dt) {
   keep(texts, t => t.t < 0.9);
 }
 
+// ---------- графика скиллов ----------
+// Листы нарисованы в ChatGPT: сетка кадров, фон переведён в прозрачность. g — число кадров по стороне.
+const FXS = { nova: { g: 4 }, chains: { g: 4 }, hail: { g: 4 }, storm: { g: 4 }, bolt: { g: 2 }, hit: { g: 4 } };
+for (const k in FXS) { const im = FXS[k].img = new Image(); im.onload = () => { FXS[k].ok = true; }; im.src = 'fx/' + k + '.webp' + V; }
+// кадр fi листа k: прямоугольник w x h, точка (ax, ay) кадра (доли 0..1) ставится в (x, y)
+function fxDraw(k, fi, x, y, w, h, ax, ay, alpha) {
+  const F = FXS[k], n = F.g * F.g, c = F.img.width / F.g;
+  fi = Math.max(0, Math.min(n - 1, Math.floor(fi)));
+  if (alpha != null) ctx.globalAlpha = alpha;
+  ctx.drawImage(F.img, (fi % F.g) * c, Math.floor(fi / F.g) * c, c, c, x - w * ax, y - h * ay, w, h);
+  if (alpha != null) ctx.globalAlpha = 1;
+}
+
 // ---------- рисование ----------
 function disc(x, y, R, fill, stroke, lw) {
   ctx.beginPath(); ctx.ellipse(x, y, R, R * YK, 0, 0, 7);
@@ -511,17 +525,17 @@ function combatGround(t) {
   const tg = P.dead > 0 ? null : nearestEnemy(RANGE);
   if (tg) disc(tg.x, tg.y, tg.rad * 1.35, null, 'rgba(160,220,255,0.75)', 2.5);
   if (P.ult > 0) {
-    const a = Math.min(1, P.ult) * 0.22;
-    disc(P.x, P.y, 410, 'rgba(150,200,255,' + a + ')', 'rgba(210,235,255,' + a * 2.2 + ')', 4);
+    if (FXS.storm.ok) fxDraw('storm', (t * 12) % 16, P.x, P.y, 880, 1230, 0.5, 0.5, Math.min(1, P.ult) * 0.9);
+    else { const a = Math.min(1, P.ult) * 0.22; disc(P.x, P.y, 410, 'rgba(150,200,255,' + a + ')', 'rgba(210,235,255,' + a * 2.2 + ')', 4); }
   }
   for (const z of zones) {
-    const a = Math.min(1, z.t) * 0.2;
-    disc(z.x, z.y, z.R, 'rgba(130,180,255,' + a + ')', 'rgba(200,225,255,' + a * 2.5 + ')', 3);
+    if (FXS.storm.ok) fxDraw('storm', (t * 9 + 5) % 16, z.x, z.y, z.R * 2.15, z.R * 3.0, 0.5, 0.5, Math.min(1, z.t) * 0.7);
+    else { const a = Math.min(1, z.t) * 0.2; disc(z.x, z.y, z.R, 'rgba(130,180,255,' + a + ')', 'rgba(200,225,255,' + a * 2.5 + ')', 3); }
   }
   for (const f of fx) {
     const k = f.t / f.dur;
     if (f.type === 'nova') {
-      disc(f.x, f.y, f.R * Math.min(1, k * 2.2), 'rgba(140,215,255,' + 0.45 * (1 - k) + ')', 'rgba(230,248,255,' + (1 - k) + ')', 6);
+      if (!FXS.nova.ok) disc(f.x, f.y, f.R * Math.min(1, k * 2.2), 'rgba(140,215,255,' + 0.45 * (1 - k) + ')', 'rgba(230,248,255,' + (1 - k) + ')', 6);
     } else if (f.type === 'tele') {
       disc(f.x, f.y, f.R, 'rgba(255,90,40,' + (0.12 + 0.2 * k) + ')', 'rgba(255,170,90,0.9)', 3);
       disc(f.x, f.y, f.R * k, null, 'rgba(255,220,150,0.8)', 2);
@@ -578,6 +592,12 @@ function drawShot(s) {
     ctx.fillStyle = '#9aa3ad'; ctx.beginPath(); ctx.arc(s.x, y, 4, 0, 7); ctx.fill();
     return;
   }
+  if (s.own === 'p' && FXS.bolt.ok) {
+    ctx.save(); ctx.translate(s.x, y); ctx.rotate(Math.atan2(s.dy * YK, s.dx));
+    fxDraw('bolt', (s.left / 40) % 4, 0, 0, 175, 175, 0.9, 0.5);
+    ctx.restore();
+    return;
+  }
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   const col = s.own === 'p' ? '150,215,255' : '255,170,90';
   const g = ctx.createRadialGradient(s.x, y, 0, s.x, y, 26);
@@ -594,7 +614,29 @@ function combatEntities() {
   const out = enemies.concat(corpses);
   for (const s of shots) { if (!s.draw) s.draw = () => drawShot(s); out.push(s); }
   for (const f of fx) {
+    if (f.type === 'nova' && FXS.nova.ok) {
+      if (!f.draw) f.draw = () => fxDraw('nova', f.t / f.dur * 16, f.x, f.y, f.R * 2.25, f.R * 2.9, 0.5, 0.56);
+      out.push(f); continue;
+    }
+    if (f.type === 'chains' && FXS.chains.ok) {
+      if (!f.draw) f.draw = () => {
+        // рост, удержание по кругу, затем раскол; если враг погиб раньше — сразу раскол
+        if (f.e.hp <= 0 && f.t < f.dur - 0.45) f.t = f.dur - 0.45;
+        const left = f.dur - f.t, fi = f.t < 0.35 ? f.t / 0.35 * 5 : left < 0.45 ? 12 + (0.45 - left) / 0.45 * 4 : 5 + ((f.t - 0.35) * 7) % 7;
+        const sz = f.h * 1.75;
+        fxDraw('chains', fi, f.e.x, f.e.y + 2, sz, sz, 0.5, 0.86);
+      };
+      f.y = f.e.y + 2; out.push(f); continue;
+    }
+    if (f.type === 'spark' && f.hail && FXS.hail.ok) {
+      if (!f.draw) f.draw = () => fxDraw('hail', 6 + f.t / f.dur * 10, f.x, f.y, f.R * 3.4, f.R * 3.4, 0.5, 0.87);
+      out.push(f); continue;
+    }
     if (f.type !== 'shard') continue;
+    if (FXS.hail.ok) {
+      if (!f.draw) f.draw = () => fxDraw('hail', f.t / f.dur * 6, f.x, f.y, f.R * 3.4, f.R * 3.4, 0.5, 0.87);
+      out.push(f); continue;
+    }
     if (!f.draw) f.draw = () => {
       const k = f.t / f.dur, y = f.y - (1 - k) * 420;
       ctx.fillStyle = 'rgba(215,240,255,0.95)'; ctx.strokeStyle = 'rgba(120,180,255,0.9)'; ctx.lineWidth = 2;
@@ -611,6 +653,13 @@ function combatOver(t) {
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   for (const f of fx) {
     if (f.type !== 'spark' && f.type !== 'puff') continue;
+    if (f.hail && FXS.hail.ok) continue;
+    if (f.hit && FXS.hit.ok) {
+      ctx.globalCompositeOperation = 'source-over';
+      fxDraw('hit', f.t / f.dur * 16, f.x, f.y, 190, 190, 0.5, 0.5);
+      ctx.globalCompositeOperation = 'lighter';
+      continue;
+    }
     const k = f.t / f.dur, R = f.R * (0.5 + k), col = f.rock ? '255,190,120' : f.type === 'puff' ? '255,230,200' : '190,230,255';
     const g = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, R);
     g.addColorStop(0, 'rgba(' + col + ',' + 0.8 * (1 - k) + ')'); g.addColorStop(1, 'rgba(' + col + ',0)');
@@ -621,7 +670,7 @@ function combatOver(t) {
     g.addColorStop(0, 'rgba(170,225,255,' + Math.min(0.9, P.cast * 5) + ')'); g.addColorStop(1, 'rgba(170,225,255,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(P.x, y, 60, 0, 7); ctx.fill();
   }
-  if (P.ult > 0) {
+  if (P.ult > 0 && !FXS.storm.ok) {
     ctx.fillStyle = 'rgba(235,245,255,' + Math.min(1, P.ult) * 0.8 + ')';
     for (const s of SNOW) {
       const a = s.a + t * 1.6 * s.s, r = 60 + s.r * 360, hh = ((s.h + t * 0.5 * s.s) % 1) * 260;
