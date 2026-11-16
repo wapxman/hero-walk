@@ -276,10 +276,8 @@ function shard(x, y, R, dmg, sk, st) {
 // три левых получаются зеркалом. AN: [первая колонка, число кадров].
 const COS_EL = Math.cos(35 * Math.PI / 180);
 const AN = { run: [0, 8], atk: [8, 6], die: [14, 5], idle: [19, 1], cast: [20, 5] };
-const HERO_AN = { idle: [0, 4], run: [4, 8], atk: [12, 5], cast: [17, 6], die: [23, 5] };
 // U — сколько единиц мира приходится на метр модели; top — высота полоски здоровья в метрах
 const CHARS = {
-  hero: { cell: 288, ortho: 3.0, zc: 0.9, U: 118, top: 1.5, an: HERO_AN },
   zombie: { cell: 256, ortho: 3.0, zc: 0.9, U: 104, top: 1.5 },
   vampire: { cell: 256, ortho: 3.0, zc: 0.9, U: 114, top: 1.5 },
   mage: { cell: 256, ortho: 3.0, zc: 0.9, U: 108, top: 1.65 },
@@ -304,27 +302,50 @@ function drawSprite(c, anim, fi, row, flash) {
   }
   ctx.restore();
 }
-// героиня из Mixamo; адрес с #lira возвращает прежнюю Лиру
+// Герой: три листа по 400 px на кадр. s — лист, i — первый кадр в полосе направления, n — число кадров,
+// o — сколько метров модели охватывает кадр (стойка и бег сняты крупно, падение — шире).
+const HERO = { U: 118, zc: 0.9, cell: 400,
+  sheets: { a: { wrap: 6, rows: 2 }, b: { wrap: 6, rows: 2 }, d: { wrap: 5, rows: 1 } },
+  an: { idle: { s: 'a', i: 0, n: 4, o: 2.4 }, run: { s: 'a', i: 4, n: 8, o: 2.4 }, atk: { s: 'b', i: 0, n: 5, o: 2.4 },
+    cast: { s: 'b', i: 5, n: 6, o: 2.6 }, die: { s: 'd', i: 0, n: 5, o: 3.0 } } };
+for (const k in HERO.sheets) {
+  const S = HERO.sheets[k]; S.img = new Image();
+  S.img.onload = () => { S.ok = true; HERO.ok = Object.values(HERO.sheets).every(x => x.ok); };
+  S.img.src = 'chars/mx_hero_' + k + '.webp' + V;
+}
+function drawHeroSprite(anim, fi, row, flash) {
+  const a = HERO.an[anim] || HERO.an.idle, S = HERO.sheets[a.s], c = HERO.cell;
+  fi = a.i + Math.max(0, Math.min(a.n - 1, fi));
+  const flip = row >= 1 && row <= 3;            // ряды 1–3 листа смотрят вправо, левые — зеркало
+  if (row > 4) row = 8 - row;
+  const sx = (fi % S.wrap) * c, sy = (row * S.rows + Math.floor(fi / S.wrap)) * c;
+  const size = a.o * HERO.U, ay = 0.5 + HERO.zc * COS_EL / a.o;
+  ctx.save();
+  if (flip) ctx.scale(-1, 1);
+  ctx.drawImage(S.img, sx, sy, c, c, -size / 2, -ay * size, size, size);
+  if (flash) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.7; ctx.drawImage(S.img, sx, sy, c, c, -size / 2, -ay * size, size, size); }
+  ctx.restore();
+}
+// герой из Mixamo; адрес с #lira возвращает прежнюю Лиру
 function drawHero() {
-  const c = CHARS.hero;
-  if (!c.ok || location.hash.indexOf('lira') >= 0) return false;
+  if (!HERO.ok || location.hash.indexOf('lira') >= 0) return false;
   let anim = 'idle', fi = Math.floor(P.heroT * 3) % 4, row = runRow(P.face.x, P.face.y);
   if (P.dead > 0) { anim = 'die'; fi = Math.floor((3 - P.dead) / 0.6 * 5); }
-  else if (P.act) { anim = P.act.anim; fi = Math.floor(P.act.t / P.act.dur * c.an[anim][1]); if (P.act.row != null) row = P.act.row; }
-  else if (P.moving) { anim = 'run'; fi = Math.floor(P.heroT * (P.running ? 8.5 : 7)) % 8; }
+  else if (P.act) { anim = P.act.anim; fi = Math.floor(P.act.t / P.act.dur * HERO.an[anim].n); if (P.act.row != null) row = P.act.row; }
+  else if (P.moving) { anim = 'run'; fi = Math.floor(P.heroT * (P.running ? 9.5 : 7.5)) % 8; }
   ctx.save(); ctx.translate(P.x, P.y);
   if (P.dead > 0) ctx.globalAlpha = Math.min(1, P.dead / 0.8);
-  drawSprite(c, anim, fi, row, P.hurt > 0.17);
+  drawHeroSprite(anim, fi, row, P.hurt > 0.17);
   ctx.restore();
   return true;
 }
 // виды врагов: mel — ближний бой, rng — стрелок
 const KIND = {
-  min: { ch: 'zombie', mel: 1, hp: 120, rad: 20, speed: 150, dmg: [8, 11], cd: 0.9, reach: 62, col: '#8a4534' },
-  war: { ch: 'vampire', mel: 1, hp: 300, rad: 26, speed: 112, dmg: [17, 22], cd: 1.3, reach: 72, col: '#7a3a2c' },
-  mag: { ch: 'mage', rng: 1, hp: 150, rad: 22, speed: 100, dmg: [16, 21], cd: 2.0, want: 430, shot: 520, col: '#6a4590' },
-  rog: { ch: 'archer', rng: 1, hp: 120, rad: 21, speed: 125, dmg: [11, 14], cd: 1.4, want: 500, shot: 820, bolt: 1, col: '#3f6a55' },
-  boss: { ch: 'boss', boss: 1, hp: 1000, rad: 46, speed: 85, col: '#565a66' },
+  min: { ch: 'zombie', mel: 1, hp: 120, rad: 20, speed: 150, dmg: [9, 13], cd: 0.9, reach: 62, col: '#8a4534' },
+  war: { ch: 'vampire', mel: 1, hp: 300, rad: 26, speed: 112, dmg: [20, 26], cd: 1.25, reach: 72, col: '#7a3a2c' },
+  mag: { ch: 'mage', rng: 1, hp: 150, rad: 22, speed: 100, dmg: [18, 24], cd: 1.9, want: 430, shot: 520, col: '#6a4590' },
+  rog: { ch: 'archer', rng: 1, hp: 120, rad: 21, speed: 125, dmg: [13, 16], cd: 1.35, want: 500, shot: 820, bolt: 1, col: '#3f6a55' },
+  boss: { ch: 'boss', boss: 1, hp: 1500, rad: 46, speed: 92, col: '#565a66' },
 };
 const corpses = [];
 function spawnEnemy(type) {
@@ -332,8 +353,10 @@ function spawnEnemy(type) {
   const e = {
     type, k, ch: CHARS[k.ch], boss: !!k.boss, mel: !!k.mel, rng: !!k.rng,
     x: (SRC_W - 430) * GS + rnd(-60, 60), y: 745 * GS + rnd(-150, 150),
-    hp: Math.round(k.hp * (1 + 0.1 * Math.max(0, wave - 1))), rad: k.rad, speed: k.speed, col: k.col, eye: k.boss ? '#ffb347' : '#ffe27a',
-    slowT: 0, slowK: 1, root: 0, dot: 0, atkCd: rnd(0.3, 1.2), flash: 0, bob: rnd(0, 6), slamCd: 2, quakeCd: 7,
+    // рост от волны к волне: здоровье +14%, урон +8%, скорость +2% (не больше +25%)
+    hp: Math.round(k.hp * (1 + 0.14 * Math.max(0, wave - 1))), dm: 1 + 0.08 * Math.max(0, wave - 1),
+    rad: k.rad, speed: k.speed * (1 + Math.min(0.25, 0.02 * Math.max(0, wave - 1))), col: k.col, eye: k.boss ? '#ffb347' : '#ffe27a',
+    slowT: 0, slowK: 1, root: 0, dot: 0, atkCd: rnd(0.3, 1.2), flash: 0, bob: rnd(0, 6), slamCd: 2, quakeCd: 7, leapCd: 4, summonCd: 9, jump: 0,
     anim: 'run', animT: rnd(0, 1), runPh: rnd(0, 1), row: 2, act: null,
   };
   e.max = e.hp;
@@ -342,24 +365,32 @@ function spawnEnemy(type) {
 }
 function spawnWave() {
   wave++;
-  const nm = Math.min(2 + wave, 6);
+  const bossWave = wave % 3 === 0;
+  // на волне босса свиты меньше: главный противник — он сам
+  const nm = Math.round(Math.min(3 + wave, 9) * (bossWave ? 0.5 : 1));
   for (let i = 0; i < nm; i++) spawnEnemy(wave >= 2 && i % 3 === 2 ? 'war' : 'min');
-  const nr = Math.min(1 + Math.floor(wave / 2), 3);
+  const nr = Math.round(Math.min(1 + Math.floor(wave / 2), 4) * (bossWave ? 0.5 : 1));
   for (let i = 0; i < nr; i++) spawnEnemy((i + wave) % 2 ? 'mag' : 'rog');
-  if (wave % 3 === 0) spawnEnemy('boss');
-  say(P.x, P.y - CH * 1.3, 'Волна ' + wave, '#ffe9a8');
+  if (bossWave) spawnEnemy('boss');
+  say(P.x, P.y - CH * 1.3, bossWave ? 'Волна ' + wave + ' — БОСС' : 'Волна ' + wave, bossWave ? '#ff9a6a' : '#ffe9a8');
 }
 // действие с замахом: анимация длится dur, удар срабатывает в момент at (доля от dur)
 function startAct(e, anim, dur, at, fn) { e.act = { anim, dur, at, fn, t: 0, hit: false }; e.anim = anim; e.animT = 0; }
 function updateEnemy(e, dt) {
-  e.bob += dt * 7; e.flash -= dt; e.atkCd -= dt; e.slamCd -= dt; e.quakeCd -= dt; e.animT += dt;
+  e.bob += dt * 7; e.flash -= dt; e.atkCd -= dt; e.slamCd -= dt; e.quakeCd -= dt; e.leapCd -= dt; e.summonCd -= dt; e.animT += dt;
   if (e.slowT > 0) e.slowT -= dt;
-  if (e.root > 0) { e.root -= dt; e.act = null; e.anim = 'idle'; hurtTick(e, e.dot * dt); return; }
+  if (e.root > 0) { e.root -= dt; e.act = null; e.leap = null; e.jump = 0; e.anim = 'idle'; hurtTick(e, e.dot * dt); return; }
   const k = e.k, sk = e.slowT > 0 ? e.slowK : 1;
   let dx = (P.x - e.x), dy = (P.y - e.y) / YK; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m;
   if (e.act) {
     const a = e.act; a.t += dt * (0.5 + 0.5 * sk);
     if (!a.hit && a.t >= a.dur * a.at) { a.hit = true; a.fn(dx, dy); }
+    if (e.leap) {
+      // прыжок босса: летит по дуге в отмеченную точку
+      const L = e.leap; L.t += dt; const q = Math.min(1, L.t / L.dur);
+      e.x = L.x0 + (L.x1 - L.x0) * q; e.y = L.y0 + (L.y1 - L.y0) * q; e.jump = Math.sin(Math.PI * q) * 150;
+      if (q >= 1) { e.leap = null; e.jump = 0; collide(e); }
+    }
     if (a.t >= a.dur) { e.act = null; e.anim = 'idle'; }
     return;
   }
@@ -379,29 +410,53 @@ function updateEnemy(e, dt) {
     e.atkCd = k.cd;
     startAct(e, 'atk', 0.5, 0.55, () => {
       play(pick(ESHOTS), 0.22, 1.5);
-      if (gdist(P, e) < k.reach + 34) hurtPlayer(rnd(k.dmg[0], k.dmg[1]));
+      if (gdist(P, e) < k.reach + 34) hurtPlayer(rnd(k.dmg[0], k.dmg[1]) * e.dm);
     });
   }
   if (e.rng && d < k.want + 40 && e.atkCd <= 0) {
     e.atkCd = k.cd;
     startAct(e, 'atk', 0.55, 0.5, (ax, ay) => {
       shots.push({ own: 'e', bolt: k.bolt, x: e.x + ax * 20, y: e.y + ay * 20 * YK, dx: ax, dy: ay, sp: k.shot, left: k.want + 150,
-        dmg: rnd(k.dmg[0], k.dmg[1]), h: e.ch.U * 0.75 });
+        dmg: rnd(k.dmg[0], k.dmg[1]) * e.dm, h: e.ch.U * 0.75 });
       play(pick(ESHOTS), k.bolt ? 0.3 : 0.4, k.bolt ? 1.5 : rnd(0.95, 1.05));
     });
   }
-  if (e.boss) {
-    if (e.quakeCd <= 0) {
-      e.quakeCd = 13;
-      startAct(e, 'cast', 1.3, 0.25, () => {
-        fx.push({ type: 'tele', x: P.x, y: P.y, t: 0, dur: 1.7, R: 290, dmg: 130, big: true });
-        play('em_quake_ult', 0.8);
-      });
-    } else if (d < 150 && e.slamCd <= 0) {
-      e.slamCd = 2.8;
-      fx.push({ type: 'tele', x: e.x, y: e.y, t: 0, dur: 0.75, R: 150, dmg: 50, snd: 'em_slam' });
-      startAct(e, 'atk', 1.0, 2, () => {});
-    }
+  if (e.boss) bossSkills(e, d);
+}
+// Скиллы босса: удар по земле вблизи, прыжок на героя издалека, землетрясение под героем, призыв свиты.
+// Ниже 40% здоровья впадает в ярость: быстрее двигается и чаще применяет скиллы.
+function bossSkills(e, d) {
+  if (!e.rage && e.hp < e.max * 0.4) {
+    e.rage = true; e.speed *= 1.35;
+    say(e.x, e.y - e.ch.top * e.ch.U - 30, 'ЯРОСТЬ!', '#ff5a3a'); play('em_quake_ult', 0.6, 1.3);
+  }
+  const cdk = e.rage ? 0.65 : 1;
+  if (e.summonCd <= 0 && enemies.length < 14) {
+    e.summonCd = 17 * cdk;
+    startAct(e, 'cast', 1.2, 0.55, () => {
+      for (let i = 0; i < 3; i++) {
+        spawnEnemy('min'); const m = enemies[enemies.length - 1], a = rnd(0, 6.283);
+        m.x = e.x + Math.cos(a) * 110; m.y = e.y + Math.sin(a) * 110 * YK; collide(m);
+        fx.push({ type: 'quake', x: m.x, y: m.y, t: 0, dur: 0.6, R: 60 });
+      }
+      say(e.x, e.y - e.ch.top * e.ch.U - 30, 'Ко мне!', '#ffb36a'); play('em_slam', 0.5, 1.2);
+    });
+  } else if (e.quakeCd <= 0) {
+    e.quakeCd = 12 * cdk;
+    startAct(e, 'cast', 1.3, 0.25, () => {
+      fx.push({ type: 'tele', x: P.x, y: P.y, t: 0, dur: 1.6, R: 290, dmg: 120 * e.dm, big: true });
+      play('em_quake_ult', 0.8);
+    });
+  } else if (d > 300 && d < 900 && e.leapCd <= 0) {
+    e.leapCd = 8 * cdk;
+    const tx = P.x, ty = P.y;
+    fx.push({ type: 'tele', x: tx, y: ty, t: 0, dur: 0.95, R: 175, dmg: 70 * e.dm, snd: 'em_slam' });
+    e.leap = { x0: e.x, y0: e.y, x1: tx, y1: ty, t: 0, dur: 0.95 };
+    startAct(e, 'atk', 1.0, 2, () => {});
+  } else if (d < 150 && e.slamCd <= 0) {
+    e.slamCd = 2.6 * cdk;
+    fx.push({ type: 'tele', x: e.x, y: e.y, t: 0, dur: 0.75, R: 155, dmg: 55 * e.dm, snd: 'em_slam' });
+    startAct(e, 'atk', 1.0, 2, () => {});
   }
 }
 // урон «по времени» без цифры на каждый кадр
@@ -488,7 +543,7 @@ function combatUpdate(dt) {
     }
     if (f.type === 'tele') {
       if (P.dead <= 0 && gdist(f, P) < f.R) hurtPlayer(f.dmg);
-      fx.push({ type: 'quake', x: f.x, y: f.y, t: 0, dur: 0.4, R: f.R });
+      fx.push({ type: 'quake', x: f.x, y: f.y, t: 0, dur: 0.75, R: f.R });
       if (f.snd) play(f.snd, 0.7);
     }
   }
@@ -505,7 +560,7 @@ function combatUpdate(dt) {
 
 // ---------- графика скиллов ----------
 // Листы нарисованы в ChatGPT: сетка кадров, фон переведён в прозрачность. g — число кадров по стороне.
-const FXS = { nova: { g: 4 }, chains: { g: 4 }, hail: { g: 4 }, storm: { g: 4 }, bolt: { g: 2 }, hit: { g: 4 } };
+const FXS = { nova: { g: 4 }, chains: { g: 4 }, hail: { g: 4 }, storm: { g: 4 }, bolt: { g: 2 }, hit: { g: 4 }, bwarn: { g: 4 }, bslam: { g: 4 } };
 for (const k in FXS) { const im = FXS[k].img = new Image(); im.onload = () => { FXS[k].ok = true; }; im.src = 'fx/' + k + '.webp' + V; }
 // кадр fi листа k: прямоугольник w x h, точка (ax, ay) кадра (доли 0..1) ставится в (x, y)
 function fxDraw(k, fi, x, y, w, h, ax, ay, alpha) {
@@ -538,6 +593,10 @@ function combatGround(t) {
     const k = f.t / f.dur;
     if (f.type === 'nova') {
       if (!FXS.nova.ok) disc(f.x, f.y, f.R * Math.min(1, k * 2.2), 'rgba(140,215,255,' + 0.45 * (1 - k) + ')', 'rgba(230,248,255,' + (1 - k) + ')', 6);
+    } else if (f.type === 'tele' && FXS.bwarn.ok) {
+      fxDraw('bwarn', (f.t * 14) % 16, f.x, f.y, f.R * 2.2, f.R * 2.6, 0.5, 0.52, 0.55 + 0.45 * k);
+    } else if (f.type === 'quake' && FXS.bslam.ok) {
+      /* рисуется вместе с объектами по глубине */
     } else if (f.type === 'tele') {
       disc(f.x, f.y, f.R, 'rgba(255,90,40,' + (0.12 + 0.2 * k) + ')', 'rgba(255,170,90,0.9)', 3);
       disc(f.x, f.y, f.R * k, null, 'rgba(255,220,150,0.8)', 2);
@@ -570,7 +629,9 @@ function drawEnemy(e) {
     if (dead) fi = Math.floor(e.dieT / 0.6 * n);
     else if (e.act) fi = Math.floor(e.act.t / e.act.dur * n);
     else if (e.anim === 'run') fi = Math.floor(e.runPh * n) % n;
+    if (e.jump) ctx.translate(0, -e.jump);
     drawSprite(c, e.anim, fi, e.row, e.flash > 0 && !dead);
+    if (e.jump) ctx.translate(0, e.jump);
   } else if (!dead) drawEnemyOval(e);
   if (dead) { ctx.restore(); return; }
   if (e.root > 0) {
@@ -619,6 +680,10 @@ function combatEntities() {
   for (const f of fx) {
     if (f.type === 'nova' && FXS.nova.ok) {
       if (!f.draw) f.draw = () => fxDraw('nova', f.t / f.dur * 16, f.x, f.y, f.R * 2.25, f.R * 2.9, 0.5, 0.56);
+      out.push(f); continue;
+    }
+    if (f.type === 'quake' && FXS.bslam.ok) {
+      if (!f.draw) f.draw = () => fxDraw('bslam', f.t / f.dur * 16, f.x, f.y, f.R * 2.35, f.R * 3.3, 0.5, 0.6);
       out.push(f); continue;
     }
     if (f.type === 'chains' && FXS.chains.ok) {
@@ -695,6 +760,7 @@ function combatOver(t) {
     ctx.fillStyle = P.hurt > 0 ? '#ffffff' : '#57d46a'; ctx.fillRect(P.x - bw / 2, by, bw * P.hp / P.maxHp, 8);
   }
 }
+const BOSS_PLATE = new Image(); BOSS_PLATE.src = 'ui/plate.webp' + V;
 // интерфейс в координатах экрана
 function combatUI() {
   layoutButtons();
@@ -723,6 +789,17 @@ function combatUI() {
   ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.fillStyle = '#fff';
   const info = 'Волна ' + wave + ' · Побеждено ' + kills;
   ctx.strokeText(info, W - 14, 26); ctx.fillText(info, W - 14, 26);
+  const boss = enemies.find(e => e.boss);
+  if (boss && BOSS_PLATE.complete && BOSS_PLATE.naturalWidth) {
+    const bw = Math.min(460, W * 0.5), bh = bw * 136 / 728, bx = W / 2 - bw / 2, by = 8;
+    ctx.fillStyle = boss.rage ? '#ff5a2a' : '#c8372c';
+    ctx.fillRect(bx + bw * 0.085, by + bh * 0.3, bw * 0.83 * Math.max(0, boss.hp / boss.max), bh * 0.4);
+    ctx.drawImage(BOSS_PLATE, bx, by, bw, bh);
+    ctx.textAlign = 'center'; ctx.font = 'bold 14px system-ui, sans-serif'; ctx.fillStyle = '#fff';
+    ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 3;
+    const nm = boss.rage ? 'Варрок в ярости' : 'Варрок, вожак орды';
+    ctx.strokeText(nm, W / 2, by + bh * 0.62); ctx.fillText(nm, W / 2, by + bh * 0.62);
+  }
   if (P.dead > 0) {
     ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = 'bold 26px system-ui, sans-serif';
