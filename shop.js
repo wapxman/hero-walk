@@ -162,11 +162,11 @@ const SHOP = {
   .slot.off .ic { opacity: .3; filter: grayscale(1); }
   .slot.buff { filter: drop-shadow(0 0 6px #7fe0ff); }
   .slot.item { width: 40px; height: 43px; }
-  #shWave { left: 50%; top: 56px; transform: translateX(-50%); display: none; flex-direction: column; align-items: center; }
+  #shWave { left: 50%; top: max(34px, 5vh); transform: translateX(-50%); display: none; flex-direction: column; align-items: center; }
   #shWave .row { display: flex; gap: 14px; align-items: center; }
-  #shWave .wb { width: 92px; height: 105px; background-image: ${U('wave')}; animation: shPulse 1.6s ease-in-out infinite; }
-  #shWave .sb { width: 62px; height: 68px; background-image: ${U('shop')}; }
-  #shWave span { font: bold 16px system-ui; margin-top: 2px; }
+  #shWave .wb { height: min(105px, 19vh); aspect-ratio: 325 / 371; background-image: ${U('wave')}; animation: shPulse 1.6s ease-in-out infinite; }
+  #shWave .sb { height: min(68px, 13vh); aspect-ratio: 329 / 363; background-image: ${U('shop')}; }
+  #shWave span { font: bold min(16px, 3.6vh) system-ui; margin-top: 1px; }
   @keyframes shPulse { 50% { transform: scale(1.07); } }
   #shBack { inset: 0; z-index: 8; display: none; align-items: center; justify-content: center; }
   #shPanel { position: relative; width: min(96vw, 138vh); aspect-ratio: 3 / 2; background-image: ${U('panel')}; font-size: calc(min(96vw, 138vh) / 62); }
