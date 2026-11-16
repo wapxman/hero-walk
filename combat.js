@@ -10,7 +10,7 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 // ---------- звук ----------
 const SFX = ['cm5_shot_v1', 'cm5_shot_v2', 'cm5_shot_v3', 'cm_ice_hit_small', 'cm_ice_hit_mid', 'cm_ice_hit_big',
   'cm3_nova', 'cm3_frostbite', 'cm_ice_hail', 'cm3_ult', 'cm_ult_purga',
-  'em_shot_v1', 'em_shot_v2', 'em_shot_v3', 'em_slam', 'em_rockburst', 'em_quake_ult'];
+  'em_shot_v1', 'em_shot_v2', 'em_shot_v3', 'em_slam', 'em_rockburst', 'em_quake_ult', 'gen_nova'];
 const SND = {};
 let AC = null;
 function audioInit() {
@@ -18,18 +18,104 @@ function audioInit() {
   const C = window.AudioContext || window.webkitAudioContext;
   if (!C) return;
   AC = new C();
-  for (const n of SFX) {
-    fetch('sfx/' + n + '.mp3' + V).then(r => r.arrayBuffer())
-      .then(b => AC.decodeAudioData(b, buf => { SND[n] = buf; }, () => {})).catch(() => {});
-  }
+  const load = (path, n) => fetch(path + V).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
+    .then(b => AC.decodeAudioData(b, buf => { SND[n] = buf; }, () => {})).catch(() => {});
+  for (const n of SFX) load('sfx/' + n + '.mp3', n);
+  // Локальный набор (папка sfx_dota есть только на компьютере разработчика, в репозиторий не входит).
+  // Если он найден, игра берёт звуки героини из него.
+  fetch('sfx_dota/shot1.mp3' + V, { method: 'HEAD' }).then(r => {
+    if (!r.ok) return;
+    DOTA_ON = true;
+    for (const n of DOTA) load('sfx_dota/' + n + '.mp3', 'd_' + n);
+  }).catch(() => {});
+  musicStart();
 }
-for (const ev of ['touchstart', 'touchend', 'mousedown', 'keydown']) addEventListener(ev, audioInit, { passive: true });
+let DOTA_ON = false;
+const DOTA = ['pre1', 'pre2', 'shot1', 'shot2', 'hit1', 'hit2', 'hit3', 'nova', 'ff', 'ff1', 'ff2', 'ff3', 'death',
+  'step1', 'step2', 'step3', 'step4', 'step5', 'step6', 'step7'];
+const D_HITS = ['d_hit1', 'd_hit2', 'd_hit3'], D_FF = ['d_ff1', 'd_ff2', 'd_ff3'];
+const D_STEPS = ['d_step1', 'd_step2', 'd_step3', 'd_step4', 'd_step5', 'd_step6', 'd_step7'];
+let stepT = 0;
+for (const ev of ['touchstart', 'touchend', 'pointerup', 'click', 'mousedown', 'keydown']) addEventListener(ev, audioInit, { passive: true });
 function play(n, vol, rate) {
   if (!AC || AC.state !== 'running' || !SND[n]) return;
   const s = AC.createBufferSource(); s.buffer = SND[n]; s.playbackRate.value = rate || 1;
   const g = AC.createGain(); g.gain.value = vol == null ? 1 : vol;
   s.connect(g); g.connect(AC.destination); s.start();
 }
+
+// ---------- музыка ----------
+// Длинные треки не декодируются в память целиком (5 минут стерео — около 100 МБ), а идут потоком
+// через один <audio>, подключённый к своему регулятору громкости. Один элемент, а не два:
+// на iPhone играть разрешено только тому элементу, который запущен касанием.
+// Файлы заранее выровнены по громкости (−16 LUFS), поэтому треки не скачут друг относительно друга.
+const MUSIC = [['m1', 'Ertaga bor izimiz'], ['m2', 'Ton nom dans le mien'], ['m3', "Jusqu'au dernier feu"],
+  ['m4', 'Un seul serment'], ['m5', 'The Final Stand'], ['m6', 'Ton nom dans le mien II'], ['m7', "Jusqu'au dernier feu II"]];
+const MUS_VOL = 0.3, MUS_FADE = 2.5;   // музыка тише эффектов; плавный вход и выход, сек
+const mus = { el: null, g: null, i: 0, on: true, fails: 0, btn: null, nextBtn: null };
+function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) {} return null; }
+function musicStart() {
+  if (mus.el || !AC) return;
+  mus.on = store('hw_mus_on') !== '0';
+  mus.i = (parseInt(store('hw_mus_i'), 10) || 0) % MUSIC.length;
+  const el = mus.el = new Audio();
+  el.preload = 'auto';
+  mus.g = AC.createGain(); mus.g.gain.value = 0;
+  AC.createMediaElementSource(el).connect(mus.g); mus.g.connect(AC.destination);
+  el.addEventListener('ended', () => musicNext());
+  el.addEventListener('playing', () => { mus.fails = 0; });
+  el.addEventListener('error', () => { if (++mus.fails < MUSIC.length) musicNext(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) el.pause(); else if (mus.on) el.play().catch(() => {});
+  });
+  const mk = (txt, right, fn) => {
+    const b = document.createElement('button');
+    b.textContent = txt;
+    b.style.cssText = 'position:fixed;top:36px;right:' + right + 'px;z-index:5;font:13px system-ui,sans-serif;color:#fff;' +
+      'background:rgba(12,22,36,.6);border:1px solid rgba(255,255,255,.35);border-radius:14px;padding:5px 10px;max-width:60vw;' +
+      'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;touch-action:manipulation';
+    for (const ev of ['touchstart', 'mousedown']) b.addEventListener(ev, e => e.stopPropagation(), { passive: true });
+    b.addEventListener('pointerdown', e => { e.stopPropagation(); fn(); b.blur(); });
+    document.body.appendChild(b);
+    return b;
+  };
+  mus.nextBtn = mk('⏭', 12, () => musicNext());
+  mus.btn = mk('', 54, () => musicToggle());
+  musicLoad();
+}
+function musicLabel() {
+  if (mus.btn) mus.btn.textContent = mus.on ? '♪ ' + MUSIC[mus.i][1] : '♪ музыка выкл';
+  if (mus.nextBtn) mus.nextBtn.style.display = mus.on ? '' : 'none';
+}
+function musicLoad() {
+  mus.el.src = 'music/' + MUSIC[mus.i][0] + '.mp3' + V;
+  mus.g.gain.cancelScheduledValues(AC.currentTime); mus.g.gain.value = 0;
+  if (mus.on) mus.el.play().catch(() => {});
+  store('hw_mus_i', mus.i);
+  musicLabel();
+}
+function musicNext() { if (!mus.el) return; mus.i = (mus.i + 1) % MUSIC.length; musicLoad(); }
+function musicToggle() {
+  if (!mus.el) return;
+  mus.on = !mus.on; store('hw_mus_on', mus.on ? '1' : '0');
+  if (mus.on) mus.el.play().catch(() => {}); else mus.el.pause();
+  musicLabel();
+}
+// каждый кадр: плавный вход/выход трека и приглушение под бурю и гибель
+function musicUpdate() {
+  if (!mus.el || !mus.on || AC.state !== 'running') return;
+  const el = mus.el, t = el.currentTime, d = el.duration;
+  let k = Math.min(1, t / MUS_FADE);
+  if (d > 0 && isFinite(d)) k = Math.min(k, Math.max(0, (d - t) / MUS_FADE));
+  const duck = P.dead > 0 ? 0.35 : P.ult > 0 ? 0.55 : 1;
+  mus.g.gain.setTargetAtTime(MUS_VOL * k * duck, AC.currentTime, 0.12);
+}
+addEventListener('keydown', e => {
+  if (e.repeat) return;
+  if (e.code === 'KeyM') musicToggle();
+  if (e.code === 'KeyN' && mus.on) musicNext();
+});
+
 const SHOTS = ['cm5_shot_v1', 'cm5_shot_v2', 'cm5_shot_v3'];
 const HITS = ['cm_ice_hit_small', 'cm_ice_hit_mid'];
 const ESHOTS = ['em_shot_v1', 'em_shot_v2', 'em_shot_v3'];
@@ -143,7 +229,8 @@ function shoot() {
   if (t) { dx = t.x - P.x; dy = (t.y - P.y) / YK; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m; }
   shots.push({ own: 'p', x: P.x + dx * 26, y: P.y + dy * 26 * YK, dx, dy, sp: 980, tgt: t, left: 700, dmg: rnd(44, 56), h: CH * 0.55 });
   P.atkCd = 0.62; P.cast = 0.16;
-  play(pick(SHOTS), 0.7, rnd(0.94, 1.06));
+  if (DOTA_ON) { play(pick(['d_pre1', 'd_pre2']), 0.45); play(pick(['d_shot1', 'd_shot2']), 0.8); }
+  else play(pick(SHOTS), 0.7, rnd(0.94, 1.06));
 }
 function cast(id) {
   if (P.dead > 0 || P.cd[id] > 0) return;
@@ -151,7 +238,7 @@ function cast(id) {
     const c = aimPoint(320), R = 215;
     fx.push({ type: 'nova', x: c.x, y: c.y, t: 0, dur: 0.7, R });
     for (const e of enemies) if (gdist(c, e) < R + e.rad) { hurtEnemy(e, 95); slow(e, 0.45, 3.5); }
-    play('cm3_nova', 0.9);
+    play(SND.gen_nova ? 'gen_nova' : DOTA_ON ? 'd_nova' : 'cm3_nova', 0.9);   // gen_nova — сгенерирован в Higgsfield
   } else if (id === 'e') {
     const t = nearestEnemy(RANGE);
     if (!t) { say(P.x, P.y - CH, 'нет цели', '#ffd28a'); return; }
@@ -162,8 +249,8 @@ function cast(id) {
     zones.push({ type: 'hail', x: c.x, y: c.y, R: 250, t: 3.2, tick: 0 });
     play('cm_ice_hail', 0.9);
   } else if (id === 'r') {
-    P.ult = 5; P.ultTick = 0;
-    play('cm3_ult', 0.9); play('cm_ult_purga', 0.55);
+    P.ult = DOTA_ON ? 10 : 5; P.ultTick = 0;   // оригинальный звук поля длится дольше
+    if (DOTA_ON) play('d_ff', 0.9); else { play('cm3_ult', 0.9); play('cm_ult_purga', 0.55); }
   }
   P.cd[id] = CDMAX[id]; P.cast = 0.3;
 }
@@ -171,7 +258,7 @@ function hurtPlayer(d) {
   if (P.dead > 0) return;
   P.hp -= d; P.hurt = 0.25;
   say(P.x + rnd(-12, 12), P.y - CH * 1.05, '-' + Math.round(d), '#ff8a7a');
-  if (P.hp <= 0) { P.hp = 0; P.dead = 3; P.ult = 0; held.touch = held.mouse = false; }
+  if (P.hp <= 0) { P.hp = 0; P.dead = 3; P.ult = 0; held.touch = held.mouse = false; play('d_death', 0.6); }
 }
 // ледяной осколок, падающий с неба: через delay бьёт по кругу
 function shard(x, y, R, dmg, sk, st) {
@@ -241,6 +328,8 @@ function combatUpdate(dt) {
     if (P.dead <= 0) { P.dead = 0; P.hp = P.maxHp; P.x = SPAWN.x; P.y = SPAWN.y; }
   } else {
     P.hp = Math.min(P.maxHp, P.hp + 5 * dt);
+    stepT -= dt;
+    if (P.moving && stepT <= 0) { play(pick(D_STEPS), P.running ? 0.3 : 0.18); stepT = P.running ? 0.33 : 0.55; }
     if ((held.key || held.touch || held.mouse || held.pad) && P.atkCd <= 0) shoot();
     if (P.ult > 0) {
       P.ult -= dt; P.ultTick -= dt;
@@ -275,7 +364,7 @@ function combatUpdate(dt) {
         if (e.hp > 0 && gdist(s, e) < e.rad + 16) {
           hurtEnemy(e, s.dmg); slow(e, 0.8, 1); s.left = 0;
           fx.push({ type: 'spark', x: e.x, y: e.y - e.rad, t: 0, dur: 0.25, R: 34 });
-          play(pick(HITS), 0.45, rnd(0.95, 1.1));
+          play(pick(DOTA_ON ? D_HITS : HITS), 0.45, rnd(0.95, 1.1));
           break;
         }
       }
@@ -300,7 +389,10 @@ function combatUpdate(dt) {
       let hit = false;
       for (const e of enemies) if (gdist(f, e) < f.R + e.rad) { hurtEnemy(e, f.dmg); slow(e, f.sk, f.st); hit = true; }
       fx.push({ type: 'spark', x: f.x, y: f.y, t: 0, dur: 0.3, R: f.R * 0.6 });
-      if (hit || Math.random() < 0.18) play(pick(HITS.concat(['cm_ice_hit_big'])), hit ? 0.3 : 0.14, rnd(0.9, 1.15));
+      if (hit || Math.random() < 0.18) {
+        const set = !DOTA_ON ? HITS.concat(['cm_ice_hit_big']) : f.st === 2 ? D_FF : D_HITS;
+        play(pick(set), hit ? 0.3 : 0.14, rnd(0.9, 1.15));
+      }
     }
     if (f.type === 'tele') {
       if (P.dead <= 0 && gdist(f, P) < f.R) hurtPlayer(f.dmg);
@@ -472,7 +564,13 @@ function combatUI() {
     ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = 'bold 26px system-ui, sans-serif';
     ctx.fillText('Возрождение через ' + Math.ceil(P.dead), W / 2, H / 2);
   }
+  musicUpdate();
   const el = document.getElementById('snd');
-  if (el) el.style.display = (AC && AC.state === 'running') ? 'none' : 'inline';
+  if (el) {
+    const n = Object.keys(SND).length, on = AC && AC.state === 'running';
+    const txt = !on ? '🔇 коснитесь экрана, чтобы включить звук'
+      : '🔊 звук: ' + (DOTA_ON ? 'Дота' : 'синтез') + ', загружено ' + n;
+    if (el.textContent !== txt) { el.textContent = txt; el.style.color = on ? '#9df0a6' : '#ffd28a'; }
+  }
 }
 var COMBAT_READY = true;
