@@ -42,6 +42,7 @@ const SHOP = {
   startWave() {
     if (SHOP.phase !== 'rest' || P.dead > 0) return;
     SHOP.closeShop(); spawnWave(); SHOP.phase = 'fight'; SHOP.refresh();
+    snd('wave_horn', 0.8);
   },
   tick(dt) {
     for (const k in SHOP.buffs) if (SHOP.buffs[k] > 0) { SHOP.buffs[k] -= dt; if (SHOP.buffs[k] <= 0) { SHOP.buffs[k] = 0; SHOP.recompute(); } }
@@ -87,9 +88,13 @@ const SHOP = {
     ctx.globalAlpha = 1;
   },
   pick(d) {
-    if (d.kind === 'coin') { SHOP.addGold(d.amount); say(P.x + rnd(-10, 10), P.y - CH * HS() * 0.9, '+' + d.amount, '#ffd95e'); }
+    if (d.kind === 'coin') {
+      SHOP.addGold(d.amount); say(P.x + rnd(-10, 10), P.y - CH * HS() * 0.9, '+' + d.amount, '#ffd95e');
+      snd('coins', 0.25, 1.3);   // тихий звон, когда монеты долетели до героя
+    }
     else if (d.kind === 'flask') { SHOP.flasks[d.id]++; say(P.x, P.y - CH * HS() * 1.1, FLASKS.find(f => f.id === d.id).name, '#bfe6ff'); }
     else {
+      snd('coins', 0.6, 0.85);
       const free = ITEMS.filter(it => (SHOP.items[it.id] || 0) < MAXLVL);
       if (!free.length) { SHOP.addGold(80); say(P.x, P.y - CH * HS() * 1.1, 'Сундук: +80 золота', '#ffd95e'); }
       else { const it = pick(free); SHOP.items[it.id] = (SHOP.items[it.id] || 0) + 1; SHOP.recompute(); say(P.x, P.y - CH * HS() * 1.1, 'Сундук: ' + it.name, '#c9a8ff'); }
@@ -106,6 +111,7 @@ const SHOP = {
     else if (id === 'swift') { SHOP.buffs.swift = 8; say(P.x, P.y - CH * HS() * 1.1, 'Скорость!', '#a8ffb5'); }
     else if (id === 'power') { SHOP.buffs.power = 10; say(P.x, P.y - CH * HS() * 1.1, 'Сила!', '#ffd95e'); }
     SHOP.flasks[id]--; SHOP.recompute(); SHOP.refresh();
+    snd('flask', 0.7);
   },
 
   // ----- покупки -----
@@ -119,6 +125,7 @@ const SHOP = {
       if (lvl >= MAXLVL || SHOP.gold < pr) return;
       SHOP.gold -= pr; SHOP.items[id] = lvl + 1; SHOP.recompute();
     }
+    snd('coins', 0.45, 0.9);
     SHOP.refresh();
   },
   openShop() { if (SHOP.phase !== 'rest') return; SHOP.open = true; SHOP.refresh(); },

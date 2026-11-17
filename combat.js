@@ -8,49 +8,29 @@ function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
 const rnd = (a, b) => a + Math.random() * (b - a);
 
 // ---------- звук ----------
-// В репозитории (и на сайте) только звуки атаки героя, сделанные в Higgsfield. Остальные места пока молчат.
-const SFX = ['hero_shot1', 'hero_shot2'];
-const SND = {};
-let AC = null;
-// Оригинальные звуки Доты (Valve) — только для локальной проверки: их отдаёт локальный сервер разработчика
-// по адресу dota/ из папки вне репозитория. На сайте и в APK этого адреса нет — там тишина.
-const DOTA_FILES = {
-  hit1: '01_Атака/05_Попадание снаряда 1_Crystal_Maiden_projectile_impact1.mp3',
-  hit2: '01_Атака/06_Попадание снаряда 2_Crystal_Maiden_projectile_impact2.mp3',
-  hit3: '01_Атака/07_Попадание снаряда 3_Crystal_Maiden_projectile_impact3.mp3',
-  step1: '02_Передвижение/01_Шаг 1_Shared_footstep_hero_general1.mp3',
-  step2: '02_Передвижение/02_Шаг 2_Shared_footstep_hero_general2.mp3',
-  step3: '02_Передвижение/03_Шаг 3_Shared_footstep_hero_general3.mp3',
-  step4: '02_Передвижение/04_Шаг 4_Shared_footstep_hero_general4.mp3',
-  step5: '02_Передвижение/05_Шаг 5_Shared_footstep_hero_general5.mp3',
-  step6: '02_Передвижение/06_Шаг 6_Shared_footstep_hero_general6.mp3',
-  step7: '02_Передвижение/07_Шаг 7_Shared_footstep_hero_general7.mp3',
-  nova: '03_Crystal Nova/02_Звук полностью_Crystal_Nova.mp3',
-  ff: '04_Freezing Field/05_Звук полностью_Freezing_Field.mp3',
-  ff1: '04_Freezing Field/02_Цель 1_Freezing_Field_target1.mp3',
-  ff2: '04_Freezing Field/03_Цель 2_Freezing_Field_target2.mp3',
-  ff3: '04_Freezing Field/04_Цель 3_Freezing_Field_target3.mp3',
-  death: '05_Остальные/01_Звук смерти 50-60 громкости_Crystal_Maiden_death2.mp3',
-  coins: '06_Золото/03_Монеты за добивание крипа_Ui_coins.mp3',
+// Все звуки свои, сделаны в Higgsfield: выстрел — shot 1/2 Бахтиёра, остальное — Seed Audio по референсам.
+// Набор = имя и число вариантов: sfx/hit_1.mp3, sfx/hit_2.mp3 …; snd('hit') играет случайный вариант.
+const SFX_SETS = {
+  hero_shot: 2, hit: 2, step: 7, nova: 2, chains: 1, hail: 2, storm: 1, hero_death: 2, coins: 2,
+  enemy_melee: 2, enemy_arrow: 2, enemy_fireball: 2, enemy_death: 2, boss_slam: 2, boss_roar: 2,
+  wave_horn: 1, flask: 1,
 };
+// минимальный промежуток между повторами, сек: частые звуки в гуще боя не сливаются в кашу
+const SND_GAP = { hit: 0.05, step: 0.1, coins: 0.08, enemy_melee: 0.06, enemy_arrow: 0.05, enemy_fireball: 0.05, enemy_death: 0.05 };
+const SND = {}, sndLast = {}, sndAt = {};
+let AC = null;
 function audioInit() {
   if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
   const C = window.AudioContext || window.webkitAudioContext;
   if (!C) return;
   AC = new C();
-  const load = (path, n) => fetch(path).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
-    .then(b => AC.decodeAudioData(b, buf => { SND[n] = buf; }, () => {})).catch(() => {});
-  for (const n of SFX) load('sfx/' + n + '.mp3' + V, n);
-  fetch('dota/MANIFEST.txt', { method: 'HEAD' }).then(r => {
-    if (!r.ok) return;
-    DOTA_ON = true;
-    for (const n in DOTA_FILES) load('dota/' + DOTA_FILES[n].split('/').map(encodeURIComponent).join('/'), 'd_' + n);
-  }).catch(() => {});
+  for (const name in SFX_SETS) for (let i = 1; i <= SFX_SETS[name]; i++) {
+    const n = name + '_' + i;
+    fetch('sfx/' + n + '.mp3' + V).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
+      .then(b => AC.decodeAudioData(b, buf => { SND[n] = buf; }, () => {})).catch(() => {});
+  }
   musicStart();
 }
-let DOTA_ON = false;
-const D_HITS = ['d_hit1', 'd_hit2', 'd_hit3'], D_FF = ['d_ff1', 'd_ff2', 'd_ff3'];
-const D_STEPS = ['d_step1', 'd_step2', 'd_step3', 'd_step4', 'd_step5', 'd_step6', 'd_step7'];
 let stepT = 0;
 for (const ev of ['touchstart', 'touchend', 'pointerup', 'click', 'mousedown', 'keydown']) addEventListener(ev, audioInit, { passive: true });
 function play(n, vol, rate) {
@@ -58,6 +38,17 @@ function play(n, vol, rate) {
   const s = AC.createBufferSource(); s.buffer = SND[n]; s.playbackRate.value = rate || 1;
   const g = AC.createGain(); g.gain.value = vol == null ? 1 : vol;
   s.connect(g); g.connect(AC.destination); s.start();
+}
+// случайный вариант из набора, не повторяя предыдущий
+function snd(name, vol, rate) {
+  if (!AC || AC.state !== 'running') return;
+  const gap = SND_GAP[name];
+  if (gap && AC.currentTime - (sndAt[name] || -1) < gap) return;
+  const k = SFX_SETS[name];
+  let i = 1 + Math.floor(Math.random() * k);
+  if (k > 1 && i === sndLast[name]) i = i % k + 1;
+  sndLast[name] = i; sndAt[name] = AC.currentTime;
+  play(name + '_' + i, vol, rate);
 }
 
 // ---------- музыка ----------
@@ -234,7 +225,8 @@ function hurtEnemy(e, dmg, col) {
     kills++;
     e.dieT = 0; e.anim = 'die'; e.act = null; corpses.push(e);
     if (typeof SHOP !== 'undefined') SHOP.onKill(e);
-    play('d_coins', e.boss ? 0.9 : 0.6);   // звон монет за добивание (Дота, только локально)
+    snd('enemy_death', e.boss ? 1 : 0.45, e.boss ? 0.75 : rnd(0.92, 1.1));
+    snd('coins', e.boss ? 0.85 : 0.55);   // звон золота, выпавшего с врага
   }
 }
 function slow(e, k, t) { e.slowK = Math.min(e.slowT > 0 ? e.slowK : 1, k); e.slowT = Math.max(e.slowT, t); }
@@ -245,7 +237,7 @@ function shoot() {
   shots.push({ own: 'p', x: P.x + dx * 26 * HS(), y: P.y + dy * 26 * YK * HS(), dx, dy, sp: 980, tgt: t, left: 700, dmg: rnd(44, 56), h: CH * 0.55 * HS(), sc: HS() });
   P.atkCd = 0.62; P.cast = 0.16;
   P.act = { anim: 'atk', t: 0, dur: 0.36, row: t ? runRow(t.x - P.x, t.y - P.y) : null };
-  play(pick(['hero_shot1', 'hero_shot2']), 0.8);
+  snd('hero_shot', 0.8);
 }
 // размер героя из редактора: скиллы и выстрелы растут вместе с ним (и картинка, и зона поражения)
 const HS = () => (CFG.units.hero.scale || 1);
@@ -255,18 +247,20 @@ function cast(id) {
     const c = aimPoint(320 * HS()), R = 215 * HS();
     fx.push({ type: 'nova', x: c.x, y: c.y, t: 0, dur: 0.95, R });
     for (const e of enemies) if (gdist(c, e) < R + e.rad) { hurtEnemy(e, 95); slow(e, 0.45, 3.5); }
-    play('d_nova', 0.9);
+    snd('nova', 0.9);
   } else if (id === 'e') {
     const t = nearestEnemy(RANGE);
     if (!t) { say(P.x, P.y - CH * HS(), 'нет цели', '#ffd28a'); return; }
     t.root = 2.8; t.dot = 45; hurtEnemy(t, 40);
     fx.push({ type: 'chains', e: t, x: t.x, y: t.y, t: 0, dur: 3.25, h: t.ch.top * t.ch.U });
+    snd('chains', 0.85);
   } else if (id === 'f') {
     const c = aimPoint(340 * HS());
     zones.push({ type: 'hail', x: c.x, y: c.y, R: 250 * HS(), t: 3.2, tick: 0 });
+    snd('hail', 0.8);
   } else if (id === 'r') {
-    P.ult = DOTA_ON ? 10 : 5; P.ultTick = 0;   // оригинальный звук поля длится дольше
-    play('d_ff', 0.9);
+    P.ult = 5; P.ultTick = 0;   // звук бури длится те же 5 секунд
+    snd('storm', 0.85);
   }
   P.cd[id] = CDMAX[id] * (P.cdMul || 1); P.cast = 0.3;
   P.act = { anim: 'cast', t: 0, dur: 0.7, row: null };
@@ -276,7 +270,7 @@ function hurtPlayer(d) {
   d *= P.armMul || 1;
   P.hp -= d; P.hurt = 0.25;
   say(P.x + rnd(-12, 12), P.y - CH * 1.05 * HS(), '-' + Math.round(d), '#ff8a7a');
-  if (P.hp <= 0) { P.hp = 0; P.dead = 3; P.ult = 0; held.touch = held.mouse = false; play('d_death', 0.6); }
+  if (P.hp <= 0) { P.hp = 0; P.dead = 3; P.ult = 0; held.touch = held.mouse = false; snd('hero_death', 0.75); }
 }
 // ледяной осколок, падающий с неба: через delay бьёт по кругу
 function shard(x, y, R, dmg, sk, st) {
@@ -442,7 +436,10 @@ function updateEnemy(e, dt) {
   if (e.mel && d < k.reach + 12 && e.atkCd <= 0) {
     e.atkCd = k.cd;
     startAct(e, 'atk', 0.5, 0.55, () => {
-      if (gdist(P, e) < k.reach + 34) hurtPlayer(rnd(k.dmg[0], k.dmg[1]) * e.dm);
+      if (gdist(P, e) < k.reach + 34 && P.dead <= 0) {
+        hurtPlayer(rnd(k.dmg[0], k.dmg[1]) * e.dm);
+        snd('enemy_melee', 0.5, rnd(0.9, 1.1));
+      }
     });
   }
   if (e.rng && d < k.want + 40 && e.atkCd <= 0) {
@@ -450,6 +447,7 @@ function updateEnemy(e, dt) {
     startAct(e, 'atk', 0.55, 0.5, (ax, ay) => {
       shots.push({ own: 'e', bolt: k.bolt, x: e.x + ax * 20, y: e.y + ay * 20 * YK, dx: ax, dy: ay, sp: k.shot, left: k.want + 150,
         dmg: rnd(k.dmg[0], k.dmg[1]) * e.dm, h: e.ch.U * 0.75 });
+      snd(k.bolt ? 'enemy_arrow' : 'enemy_fireball', 0.45, rnd(0.95, 1.05));
     });
   }
   if (e.boss) bossSkills(e, d);
@@ -460,6 +458,7 @@ function bossSkills(e, d) {
   if (!e.rage && e.hp < e.max * 0.4) {
     e.rage = true; e.speed *= 1.35;
     say(e.x, e.y - e.ch.top * e.ch.U - 30, 'ЯРОСТЬ!', '#ff5a3a');
+    snd('boss_roar', 1);
   }
   const cdk = e.rage ? 0.65 : 1;
   if (e.summonCd <= 0 && enemies.length < 14) {
@@ -471,6 +470,7 @@ function bossSkills(e, d) {
         fx.push({ type: 'quake', x: m.x, y: m.y, t: 0, dur: 0.6, R: 60 });
       }
       say(e.x, e.y - e.ch.top * e.ch.U - 30, 'Ко мне!', '#ffb36a');
+      snd('boss_roar', 0.8, 1.12);
     });
   } else if (e.quakeCd <= 0) {
     e.quakeCd = 12 * cdk;
@@ -507,7 +507,7 @@ function combatUpdate(dt) {
   } else {
     P.hp = Math.min(P.maxHp, P.hp + 5 * dt);
     stepT -= dt;
-    if (P.moving && stepT <= 0) { play(pick(D_STEPS), P.running ? 0.3 : 0.18); stepT = P.running ? 0.33 : 0.55; }
+    if (P.moving && stepT <= 0) { snd('step', P.running ? 0.22 : 0.14, rnd(0.94, 1.06)); stepT = P.running ? 0.33 : 0.55; }
     if ((held.key || held.touch || held.mouse || held.pad) && P.atkCd <= 0) shoot();
     if (P.ult > 0) {
       P.ult -= dt; P.ultTick -= dt;
@@ -541,12 +541,13 @@ function combatUpdate(dt) {
         if (e.hp > 0 && gdist(s, e) < e.rad + 16 * (s.sc || 1)) {
           hurtEnemy(e, s.dmg); slow(e, 0.8, 1); s.left = 0;
           fx.push({ type: 'spark', hit: 1, x: e.x, y: e.y - e.ch.top * e.ch.U * 0.5, t: 0, dur: 0.4, R: 34 * (s.sc || 1), sc: s.sc || 1 });
-          play(pick(D_HITS), 0.45, rnd(0.95, 1.1));
+          snd('hit', 0.45, rnd(0.95, 1.1));
           break;
         }
       }
     } else if (P.dead <= 0 && gdist(s, P) < 30 * HS()) {
       hurtPlayer(s.dmg); s.left = 0;
+      snd('enemy_melee', 0.3, 1.2);
       fx.push({ type: 'spark', x: P.x, y: P.y - CH * 0.5 * HS(), t: 0, dur: 0.25, R: 30, rock: true });
     }
   }
@@ -566,15 +567,12 @@ function combatUpdate(dt) {
       let hit = false;
       for (const e of enemies) if (gdist(f, e) < f.R + e.rad) { hurtEnemy(e, f.dmg); slow(e, f.sk, f.st); hit = true; }
       fx.push({ type: 'spark', hail: 1, x: f.x, y: f.y, t: 0, dur: 0.5, R: f.R, sc: f.sc });
-      if (hit || Math.random() < 0.18) {
-        const set = f.st === 2 ? D_FF : D_HITS;
-        play(pick(set), hit ? 0.3 : 0.14, rnd(0.9, 1.15));
-      }
+      if (hit || Math.random() < 0.18) snd('hit', hit ? 0.22 : 0.1, rnd(0.85, 1.2));
     }
     if (f.type === 'tele') {
       if (P.dead <= 0 && gdist(f, P) < f.R) hurtPlayer(f.dmg);
       fx.push({ type: 'quake', x: f.x, y: f.y, t: 0, dur: 0.75, R: f.R });
-      if (f.snd) play(f.snd, 0.7);
+      snd('boss_slam', f.big ? 0.95 : 0.75, f.big ? 0.85 : 1);
     }
   }
   for (const t of texts) { t.t += dt; t.y -= 46 * dt; }
@@ -940,7 +938,7 @@ function combatUI() {
   if (el) {
     const n = Object.keys(SND).length, on = AC && AC.state === 'running';
     const txt = !on ? '🔇 коснитесь экрана, чтобы включить звук'
-      : '🔊 звук' + (DOTA_ON ? ' (+ Дота, локально)' : '') + ', загружено ' + n;
+      : '🔊 звук, загружено ' + n;
     if (el.textContent !== txt) { el.textContent = txt; el.style.color = on ? '#9df0a6' : '#ffd28a'; }
   }
 }
