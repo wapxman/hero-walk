@@ -285,8 +285,21 @@ const CHARS = {
   boss: { cell: 320, ortho: 4.0, zc: 1.15, U: 122, top: 1.95 },
 };
 for (const k in CHARS) { const im = CHARS[k].img = new Image(); im.onload = () => { CHARS[k].ok = true; }; im.src = 'chars/mx_' + k + '.webp' + V; }
+// Ganfaul в общей таблице: рисуется своими листами (HERO), размеры — как у остальных
+CHARS.ganfaul = { hero: true, U: 118, top: 1.5, get ok() { return HERO.ok; } };
+// сколько кадров в анимации у данного персонажа (у обычных листов каста нет — вместо него атака)
+function animOf(c, anim) {
+  if (c.hero) return anim;
+  return anim === 'cast' && c !== CHARS.boss ? 'atk' : anim;
+}
+function frames(c, anim) {
+  if (c.hero) return (HERO.an[anim] || HERO.an.idle).n;
+  return (AN[animOf(c, anim)] || AN.idle)[1];
+}
 // один кадр персонажа: row — направление 0..7 (0 вниз, 2 влево, 4 вверх, 6 вправо)
 function drawSprite(c, anim, fi, row, flash) {
+  if (c.hero) return drawHeroSprite(anim, fi, row, flash);
+  anim = animOf(c, anim);
   const a = (c.an || AN)[anim] || (c.an || AN).idle;
   fi = Math.max(0, Math.min(a[1] - 1, fi));
   // в листах ряды 1–3 смотрят ВПРАВО (вниз-вправо, вправо, вверх-вправо); левые направления — их зеркало
@@ -326,16 +339,17 @@ function drawHeroSprite(anim, fi, row, flash) {
   if (flash) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.7; ctx.drawImage(S.img, sx, sy, c, c, -size / 2, -ay * size, size, size); }
   ctx.restore();
 }
-// герой из Mixamo; адрес с #lira возвращает прежнюю Лиру
+// герой: персонаж и размер берутся из настроек редактора; адрес с #lira возвращает прежнюю Лиру
 function drawHero() {
-  if (!HERO.ok || location.hash.indexOf('lira') >= 0) return false;
-  let anim = 'idle', fi = Math.floor(P.heroT * 3) % 4, row = runRow(P.face.x, P.face.y);
-  if (P.dead > 0) { anim = 'die'; fi = Math.floor((3 - P.dead) / 0.6 * 5); }
-  else if (P.act) { anim = P.act.anim; fi = Math.floor(P.act.t / P.act.dur * HERO.an[anim].n); if (P.act.row != null) row = P.act.row; }
+  const u = CFG.units.hero, c = CHARS[u.char] || CHARS.ganfaul;
+  if (!c.ok || location.hash.indexOf('lira') >= 0) return false;
+  let anim = 'idle', fi = Math.floor(P.heroT * 3) % frames(c, 'idle'), row = runRow(P.face.x, P.face.y);
+  if (P.dead > 0) { anim = 'die'; fi = Math.floor((3 - P.dead) / 0.6 * frames(c, 'die')); }
+  else if (P.act) { anim = P.act.anim; fi = Math.floor(P.act.t / P.act.dur * frames(c, anim)); if (P.act.row != null) row = P.act.row; }
   else if (P.moving) { anim = 'run'; fi = Math.floor(P.heroT * (P.running ? 9.5 : 7.5)) % 8; }
-  ctx.save(); ctx.translate(P.x, P.y);
+  ctx.save(); ctx.translate(P.x, P.y); ctx.scale(u.scale, u.scale);
   if (P.dead > 0) ctx.globalAlpha = Math.min(1, P.dead / 0.8);
-  drawHeroSprite(anim, fi, row, P.hurt > 0.17);
+  drawSprite(c, anim, fi, row, P.hurt > 0.17);
   ctx.restore();
   return true;
 }
@@ -347,6 +361,13 @@ const KIND = {
   rog: { ch: 'archer', rng: 1, hp: 120, rad: 21, speed: 125, dmg: [13, 16], cd: 1.35, want: 500, shot: 820, bolt: 1, col: '#3f6a55' },
   boss: { ch: 'boss', boss: 1, hp: 1500, rad: 46, speed: 92, col: '#565a66' },
 };
+// настройки редактора: персонаж, размер и множители скорости, силы, здоровья
+for (const id in KIND) {
+  const u = CFG.units[id], k = KIND[id];
+  if (!u) continue;
+  if (CHARS[u.char]) k.ch = u.char;
+  k.sc = u.scale; k.pw = u.power; k.hp *= u.hp; k.speed *= u.speed; k.rad *= Math.sqrt(u.scale);
+}
 const corpses = [];
 function spawnEnemy(type) {
   const k = KIND[type];
@@ -354,7 +375,7 @@ function spawnEnemy(type) {
     type, k, ch: CHARS[k.ch], boss: !!k.boss, mel: !!k.mel, rng: !!k.rng,
     x: (SRC_W - 430) * GS + rnd(-60, 60), y: 745 * GS + rnd(-150, 150),
     // рост от волны к волне: здоровье +14%, урон +8%, скорость +2% (не больше +25%)
-    hp: Math.round(k.hp * (1 + 0.14 * Math.max(0, wave - 1))), dm: 1 + 0.08 * Math.max(0, wave - 1),
+    hp: Math.round(k.hp * (1 + 0.14 * Math.max(0, wave - 1))), dm: (1 + 0.08 * Math.max(0, wave - 1)) * k.pw, sc: k.sc,
     rad: k.rad, speed: k.speed * (1 + Math.min(0.25, 0.02 * Math.max(0, wave - 1))), col: k.col, eye: k.boss ? '#ffb347' : '#ffe27a',
     slowT: 0, slowK: 1, root: 0, dot: 0, atkCd: rnd(0.3, 1.2), flash: 0, bob: rnd(0, 6), slamCd: 2, quakeCd: 7, leapCd: 4, summonCd: 9, jump: 0,
     anim: 'run', animT: rnd(0, 1), runPh: rnd(0, 1), row: 2, act: null,
@@ -618,20 +639,20 @@ function drawEnemyOval(e) {
 }
 function drawEnemy(e) {
   const r = e.rad, c = e.ch, dead = e.dieT != null;
-  const h = c.ok ? c.top * c.U : r * 2.2;
+  const h = c.ok ? c.top * c.U * e.sc : r * 2.2;
   ctx.save(); ctx.translate(e.x, e.y);
   if (dead) ctx.globalAlpha = Math.max(0, Math.min(1, (2.2 - e.dieT) / 0.9));
   ctx.beginPath(); ctx.ellipse(0, 0, r * 1.05, r * 0.4, 0, 0, 7); ctx.fillStyle = 'rgba(8,20,6,0.45)'; ctx.fill();
   if (!dead && e.slowT > 0) { ctx.beginPath(); ctx.ellipse(0, 0, r * 1.25, r * 0.5, 0, 0, 7); ctx.fillStyle = 'rgba(140,210,255,0.35)'; ctx.fill(); }
   if (c.ok) {
-    const n = ((c.an || AN)[e.anim] || AN.idle)[1];
+    const n = frames(c, e.anim);
     let fi = 0;
     if (dead) fi = Math.floor(e.dieT / 0.6 * n);
     else if (e.act) fi = Math.floor(e.act.t / e.act.dur * n);
     else if (e.anim === 'run') fi = Math.floor(e.runPh * n) % n;
-    if (e.jump) ctx.translate(0, -e.jump);
+    ctx.save(); ctx.translate(0, -(e.jump || 0)); ctx.scale(e.sc, e.sc);
     drawSprite(c, e.anim, fi, e.row, e.flash > 0 && !dead);
-    if (e.jump) ctx.translate(0, e.jump);
+    ctx.restore();
   } else if (!dead) drawEnemyOval(e);
   if (dead) { ctx.restore(); return; }
   if (e.root > 0) {

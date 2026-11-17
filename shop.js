@@ -29,12 +29,12 @@ const SHOP = {
   // ----- модификаторы героя от предметов и фласок -----
   recompute() {
     const L = id => SHOP.items[id] || 0, b = SHOP.buffs;
-    P.dmgMul = (1 + 0.2 * L('orb')) * (b.power > 0 ? 1.5 : 1);
+    P.dmgMul = (1 + 0.2 * L('orb')) * (b.power > 0 ? 1.5 : 1) * CFG.units.hero.power;
     P.spdMul = (1 + 0.1 * L('boots')) * (b.swift > 0 ? 1.45 : 1);
     P.cdMul = Math.pow(0.88, L('ring'));
     P.armMul = Math.pow(0.88, L('shield'));
-    const mh = BASE_HP + 150 * L('heart');
-    if (mh !== P.maxHp) { P.hp += Math.max(0, mh - P.maxHp); P.maxHp = mh; }
+    const mh = Math.round(BASE_HP * CFG.units.hero.hp) + 150 * L('heart');
+    if (mh !== P.maxHp) { P.hp = Math.min(mh, P.hp + Math.max(0, mh - P.maxHp)); P.maxHp = mh; }
   },
   itemPrice(it) { return Math.round(it.price * (1 + 0.6 * (SHOP.items[it.id] || 0))); },
 

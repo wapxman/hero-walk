@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Duel Arena · редактор</title>
+<style>
+  /* Кнопки, ячейки и плашки — картинки из набора интерфейса игры (папка ui). */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0d1a0c; color: #e9f0ff; font: 14px system-ui, sans-serif; }
+  #map { position: fixed; left: 0; top: 0; width: calc(100% - 340px); height: 100%; touch-action: none; cursor: grab; }
+  #side { position: fixed; right: 0; top: 0; width: 340px; height: 100%; background: #0f1b33; border-left: 2px solid #2d4470; display: flex; flex-direction: column; }
+  #tabs { display: flex; gap: 6px; padding: 8px; }
+  .btn { background-size: 100% 100%; background-repeat: no-repeat; color: #fff; font: bold 14px system-ui; text-shadow: 0 1px 3px #000;
+    display: flex; align-items: center; justify-content: center; height: 40px; padding: 0 14px; cursor: pointer; user-select: none; border: 0; text-decoration: none; }
+  .blue { background-image: url(../ui/btn_blue.webp); }
+  .green { background-image: url(../ui/btn_green.webp); }
+  .btn.off { filter: grayscale(.8) brightness(.75); }
+  #tabs .btn { flex: 1; }
+  .pane { flex: 1; overflow-y: auto; padding: 4px 10px 10px; display: none; }
+  .pane.on { display: block; }
+  h3 { margin: 12px 0 6px; font-size: 14px; color: #ffe27a; }
+  .hint { opacity: .75; font-size: 12.5px; line-height: 1.35; margin: 4px 0 8px; }
+  #pal { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+  .cell { position: relative; aspect-ratio: 295 / 317; background: url(../ui/slot.webp) center / 100% 100% no-repeat; cursor: pointer; }
+  .cell canvas { position: absolute; left: 14%; top: 14%; width: 72%; height: 72%; }
+  .row { display: grid; grid-template-columns: 92px 1fr 44px; align-items: center; gap: 6px; margin: 5px 0; }
+  .row input[type=range] { width: 100%; }
+  .row output { text-align: right; font-variant-numeric: tabular-nums; }
+  label.chk { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+  .unit { background: #14264a; border: 1px solid #2d4470; border-radius: 8px; padding: 8px; margin: 8px 0; }
+  .unit .top { display: flex; gap: 8px; align-items: center; }
+  .unit canvas { width: 84px; height: 84px; flex: none; background: url(../ui/slot.webp) center / 100% 100% no-repeat; }
+  .unit b { display: block; margin-bottom: 4px; }
+  select { width: 100%; background: #0f1b33; color: #e9f0ff; border: 1px solid #3a5690; border-radius: 6px; padding: 5px; font: 13px system-ui; }
+  #foot { padding: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; border-top: 2px solid #2d4470; }
+  #msg { grid-column: 1 / 3; text-align: center; font-size: 12.5px; min-height: 16px; color: #9df0a6; }
+  #sel { display: none; }
+  @media (max-width: 760px) {
+    #map { width: 100%; height: 50%; }
+    #side { width: 100%; height: 50%; top: 50%; border-left: 0; border-top: 2px solid #2d4470; }
+  }
+</style>
+</head>
+<body>
+<canvas id="map"></canvas>
+<div id="side">
+  <div id="tabs">
+    <div class="btn blue" data-tab="pMap">Карта</div>
+    <div class="btn blue off" data-tab="pUnits">Персонажи</div>
+  </div>
+
+  <div class="pane on" id="pMap">
+    <div class="hint">Вид как в игре. Тяните объект, чтобы передвинуть; пустое место — чтобы сдвинуть карту; колесо или щипок — масштаб. Клик по картинке ниже добавляет объект в центр экрана.</div>
+    <div id="sel">
+      <h3>Выбранный объект: <span id="selName"></span></h3>
+      <div class="row"><span>Размер</span><input type="range" id="oK" min="0.2" max="2" step="0.01"><output id="oKv"></output></div>
+      <label class="chk"><input type="checkbox" id="oF"> отразить по горизонтали</label>
+      <label class="chk"><input type="checkbox" id="oRed"> цвета красной команды</label>
+      <label class="chk"><input type="checkbox" id="oSolid"> препятствие (через него нельзя пройти)</label>
+      <div class="row" id="oRrow"><span>Ширина преграды</span><input type="range" id="oR" min="8" max="260" step="1"><output id="oRv"></output></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px">
+        <div class="btn blue" id="oDup">Копия</div>
+        <div class="btn blue" id="oDel">Удалить</div>
+      </div>
+    </div>
+    <h3>Добавить объект</h3>
+    <div id="pal"></div>
+    <h3>Карта целиком</h3>
+    <label class="chk"><input type="checkbox" id="showSolid" checked> показывать преграды</label>
+    <label class="chk"><input type="checkbox" id="showFront"> показывать передний план (ветки, кроны)</label>
+    <div class="btn blue" id="mapReset" style="margin-top:6px">Вернуть карту по умолчанию</div>
+  </div>
+
+  <div class="pane" id="pUnits">
+    <div class="hint">Числа — множители: 1 означает «как сейчас в игре», 2 — вдвое больше. «Сила» — урон, «Здоровье» — запас жизней.</div>
+    <div id="units"></div>
+    <div class="btn blue" id="unitsReset" style="margin-top:6px">Вернуть персонажей по умолчанию</div>
+  </div>
+
+  <div id="foot">
+    <div id="msg"></div>
+    <div class="btn green" id="save">Сохранить</div>
+    <a class="btn green" id="play" href="../">Играть</a>
+    <div class="btn blue" id="exp">Экспорт в файл</div>
+    <div class="btn blue" id="imp">Импорт из файла</div>
+    <input type="file" id="file" accept=".json,application/json" style="display:none">
+  </div>
+</div>
+
+<script src="../data.js?v=22"></script>
+<script>
+'use strict';
+const V = '?v=22';
+let cfg = loadCfg();
+// рабочая копия карты: объекты в координатах мира
+let objs = (cfg.map || DEFAULT_OBJ).map(o => JSON.parse(JSON.stringify(o)));
+let sel = null, dirty = false;
+
+// ---------- картинки ----------
+const img = {};
+for (const k of ['ground', 's2', 's3', 's4', 's5', 's6']) { img[k] = new Image(); img[k].src = '../arena/' + k + '.webp' + V; img[k].onload = () => { need = true; buildPalette(); }; }
+const chr = {};
+function charImg(id) {
+  if (!chr[id]) { chr[id] = new Image(); chr[id].src = '../chars/mx_' + (id === 'ganfaul' ? 'hero_a' : id) + '.webp' + V; }
+  return chr[id];
+}
+
+// ---------- сообщения и сохранение ----------
+const $ = id => document.getElementById(id);
+function say(t, bad) { $('msg').textContent = t; $('msg').style.color = bad ? '#ffb0a0' : '#9df0a6'; }
+function mapChanged() {
+  // карта считается изменённой, если отличается от набора по умолчанию
+  const a = JSON.stringify(normCfg({ map: objs }).map), b = JSON.stringify(normCfg({ map: DEFAULT_OBJ }).map);
+  return a !== b;
+}
+function collect() {
+  cfg.map = mapChanged() ? objs : null;
+  return normCfg(cfg);
+}
+function save(quiet) {
+  const ok = saveCfg(collect());
+  dirty = false;
+  if (!quiet || !ok) say(ok ? 'Сохранено. Игра подхватит изменения при следующем открытии.' : 'Не удалось сохранить: браузер запретил хранилище.', !ok);
+}
+let saveT = 0;
+function touch() { dirty = true; need = true; clearTimeout(saveT); saveT = setTimeout(() => { save(true); say('Сохранено автоматически.'); }, 700); }
+
+// ---------- вкладки ----------
+for (const t of document.querySelectorAll('#tabs .btn')) t.onclick = () => {
+  for (const x of document.querySelectorAll('#tabs .btn')) x.classList.toggle('off', x !== t);
+  for (const p of document.querySelectorAll('.pane')) p.classList.toggle('on', p.id === t.dataset.tab);
+};
+
+// ---------- карта ----------
+const cv = $('map'), ctx = cv.getContext('2d');
+let DPR = 1, W = 0, H = 0, need = true;
+const view = { x: 0, y: 0, z: 0.3 };
+function resize() {
+  DPR = Math.min(2, devicePixelRatio || 1);
+  const r = cv.getBoundingClientRect(); W = r.width; H = r.height;
+  cv.width = W * DPR; cv.height = H * DPR;
+  // пока карту не двигали, она целиком вписана в окно
+  if (!view.user && W > 0 && H > 0) { view.z = Math.min(W / WORLD_W, H / WORLD_H); view.x = (WORLD_W - W / view.z) / 2; view.y = (WORLD_H - H / view.z) / 2; }
+  need = true;
+}
+addEventListener('resize', resize);
+function rectOf(o) {
+  const s = SPR[o.s], w = s[3] * o.k, h = s[4] * o.k;
+  return { s, w, h, x: o.x - w / 2, y: o.y - h * o.ay };
+}
+function drawObj(o, alpha) {
+  const r = rectOf(o), sh = img[r.s[0]];
+  if (!sh.complete || !sh.naturalWidth) return;
+  ctx.globalAlpha = alpha == null ? 1 : alpha;
+  if (o.f) { ctx.save(); ctx.translate(o.x, 0); ctx.scale(-1, 1); ctx.drawImage(sh, r.s[1], r.s[2], r.s[3], r.s[4], -r.w / 2, r.y, r.w, r.h); ctx.restore(); }
+  else ctx.drawImage(sh, r.s[1], r.s[2], r.s[3], r.s[4], r.x, r.y, r.w, r.h);
+  ctx.globalAlpha = 1;
+}
+function render() {
+  requestAnimationFrame(render);
+  drawPreviews();
+  if (!need) return;
+  need = false;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.fillStyle = '#0d1a0c'; ctx.fillRect(0, 0, W, H);
+  ctx.setTransform(DPR * view.z, 0, 0, DPR * view.z, -view.x * DPR * view.z, -view.y * DPR * view.z);
+  if (img.ground.complete && img.ground.naturalWidth) ctx.drawImage(img.ground, 0, 0, WORLD_W, WORLD_H);
+  for (const o of FLAT) drawObj(o);
+  const list = objs.slice().sort((a, b) => a.y - b.y);
+  // служебные пометки редактора: зона преграды и рамка выбранного объекта
+  if ($('showSolid').checked) {
+    ctx.lineWidth = 2 / view.z;
+    for (const o of list) {
+      const el = o.r ? [[0, 0, o.r[0], o.r[1]]] : o.c || [];
+      for (const e of el) {
+        ctx.beginPath(); ctx.ellipse(o.x + e[0], o.y + e[1], e[2], e[3], 0, 0, 7);
+        ctx.fillStyle = 'rgba(255,90,60,0.22)'; ctx.fill(); ctx.strokeStyle = 'rgba(255,150,110,0.8)'; ctx.stroke();
+      }
+    }
+  }
+  for (const o of list) drawObj(o);
+  if ($('showFront').checked) for (const o of FRONT) drawObj(o, 0.6);
+  if (sel) {
+    const r = rectOf(sel);
+    ctx.lineWidth = 2.5 / view.z; ctx.strokeStyle = '#ffe27a'; ctx.setLineDash([10 / view.z, 6 / view.z]);
+    ctx.strokeRect(r.x, r.y, r.w, r.h); ctx.setLineDash([]);
+  }
+}
+function toWorld(px, py) { return { x: view.x + px / view.z, y: view.y + py / view.z }; }
+function hit(wx, wy) {
+  const list = objs.slice().sort((a, b) => b.y - a.y);     // ближние к зрителю проверяются первыми
+  for (const o of list) { const r = rectOf(o); if (wx >= r.x && wx <= r.x + r.w && wy >= r.y && wy <= r.y + r.h) return o; }
+  return null;
+}
+// управление: мышь, касание, щипок
+const ptr = new Map();
+let drag = null, pinch = null;
+cv.addEventListener('pointerdown', e => {
+  cv.setPointerCapture(e.pointerId);
+  const b = cv.getBoundingClientRect(), px = e.clientX - b.left, py = e.clientY - b.top;
+  ptr.set(e.pointerId, { x: px, y: py });
+  if (ptr.size === 2) {
+    const [a, c] = [...ptr.values()];
+    pinch = { d: Math.hypot(a.x - c.x, a.y - c.y), z: view.z }; drag = null; return;
+  }
+  const w = toWorld(px, py), o = e.button === 0 ? hit(w.x, w.y) : null;
+  if (o) { select(o); drag = { obj: o, dx: o.x - w.x, dy: o.y - w.y }; }
+  else { if (e.button === 0) select(null); drag = { pan: true, px, py, vx: view.x, vy: view.y }; }
+  cv.style.cursor = 'grabbing';
+});
+cv.addEventListener('pointermove', e => {
+  if (!ptr.has(e.pointerId)) return;
+  const b = cv.getBoundingClientRect(), px = e.clientX - b.left, py = e.clientY - b.top;
+  ptr.set(e.pointerId, { x: px, y: py });
+  if (pinch && ptr.size === 2) {
+    const [a, c] = [...ptr.values()], d = Math.hypot(a.x - c.x, a.y - c.y);
+    zoomAt((a.x + c.x) / 2, (a.y + c.y) / 2, pinch.z * d / pinch.d); return;
+  }
+  if (!drag) return;
+  if (drag.pan) { view.user = true; view.x = drag.vx - (px - drag.px) / view.z; view.y = drag.vy - (py - drag.py) / view.z; need = true; }
+  else {
+    const w = toWorld(px, py);
+    drag.obj.x = Math.max(0, Math.min(WORLD_W, w.x + drag.dx)); drag.obj.y = Math.max(0, Math.min(WORLD_H, w.y + drag.dy));
+    drag.moved = true; need = true;
+  }
+});
+function ptrEnd(e) {
+  ptr.delete(e.pointerId);
+  if (ptr.size < 2) pinch = null;
+  if (drag && drag.moved) touch();
+  drag = null; cv.style.cursor = 'grab';
+}
+cv.addEventListener('pointerup', ptrEnd); cv.addEventListener('pointercancel', ptrEnd);
+cv.addEventListener('contextmenu', e => e.preventDefault());
+function zoomAt(px, py, z) {
+  z = Math.max(0.12, Math.min(2.5, z)); view.user = true;
+  const w = toWorld(px, py);
+  view.z = z; view.x = w.x - px / z; view.y = w.y - py / z; need = true;
+}
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  const b = cv.getBoundingClientRect();
+  zoomAt(e.clientX - b.left, e.clientY - b.top, view.z * (e.deltaY < 0 ? 1.15 : 1 / 1.15));
+}, { passive: false });
+addEventListener('keydown', e => {
+  if (!sel || /INPUT|SELECT/.test(document.activeElement.tagName)) return;
+  if (e.code === 'Delete' || e.code === 'Backspace') { $('oDel').onclick(); e.preventDefault(); }
+});
+
+// ---------- выбранный объект ----------
+function baseOf(s) { return DEFAULT_OBJ.find(o => o.s === s); }
+function select(o) {
+  sel = o; need = true;
+  $('sel').style.display = o ? 'block' : 'none';
+  if (!o) return;
+  $('selName').textContent = o.s;
+  $('oK').value = o.k; $('oKv').textContent = (+o.k).toFixed(2);
+  $('oF').checked = !!o.f; $('oRed').checked = !!o.red;
+  const solid = !!(o.r || o.c);
+  $('oSolid').checked = solid; $('oSolid').disabled = !!o.c;
+  $('oRrow').style.display = o.r ? 'grid' : 'none';
+  if (o.r) { $('oR').value = o.r[0]; $('oRv').textContent = Math.round(o.r[0]); }
+}
+$('oK').oninput = () => {
+  const k = +$('oK').value, q = k / sel.k;
+  sel.k = k; $('oKv').textContent = k.toFixed(2);
+  // преграда растёт вместе с объектом
+  if (sel.r) { sel.r = [sel.r[0] * q, sel.r[1] * q]; $('oR').value = sel.r[0]; $('oRv').textContent = Math.round(sel.r[0]); }
+  if (sel.c) sel.c = sel.c.map(e => e.map(v => v * q));
+  touch();
+};
+$('oF').onchange = () => { sel.f = $('oF').checked; touch(); };
+$('oRed').onchange = () => { sel.red = $('oRed').checked; touch(); };
+$('oSolid').onchange = () => {
+  if ($('oSolid').checked) { const w = SPR[sel.s][3] * sel.k; sel.r = [w * 0.24, w * 0.12]; delete sel.soft; }
+  else { delete sel.r; sel.soft = true; }
+  select(sel); touch();
+};
+$('oR').oninput = () => { const v = +$('oR').value; sel.r = [v, v * 0.52]; $('oRv').textContent = v; touch(); };
+$('oDel').onclick = () => { if (!sel) return; objs.splice(objs.indexOf(sel), 1); select(null); touch(); };
+$('oDup').onclick = () => {
+  if (!sel) return;
+  const c = JSON.parse(JSON.stringify(sel)); c.x += 70; c.y += 40; objs.push(c); select(c); touch();
+};
+$('showSolid').onchange = $('showFront').onchange = () => { need = true; };
+$('mapReset').onclick = () => {
+  if (!confirm('Вернуть карту по умолчанию? Все перестановки пропадут.')) return;
+  objs = DEFAULT_OBJ.map(o => JSON.parse(JSON.stringify(o))); select(null); touch();
+};
+
+// ---------- палитра объектов ----------
+let palDone = false;
+function buildPalette() {
+  if (palDone || !['s2', 's3', 's4', 's5', 's6'].every(k => img[k].complete && img[k].naturalWidth)) return;
+  palDone = true;
+  const skip = new Set(FRONT.map(o => o.s));          // кроны и ветки переднего плана в палитру не идут
+  for (const s in SPR) {
+    if (skip.has(s)) continue;
+    const d = document.createElement('div'); d.className = 'cell'; d.title = s;
+    const c = document.createElement('canvas'); c.width = c.height = 96; d.appendChild(c);
+    const r = SPR[s], k = Math.min(96 / r[3], 96 / r[4]), g = c.getContext('2d');
+    g.drawImage(img[r[0]], r[1], r[2], r[3], r[4], (96 - r[3] * k) / 2, (96 - r[4] * k) / 2, r[3] * k, r[4] * k);
+    d.onclick = () => {
+      const b = baseOf(s), w = toWorld(W / 2, H / 2), k0 = b ? b.k : 0.6;
+      const o = { s, x: w.x, y: w.y, k: k0, ay: b ? b.ay : 0.93 };
+      if (b && b.r) o.r = b.r.slice(); else if (b && b.c) o.c = b.c.map(e => e.slice()); else if (b && b.soft) o.soft = true;
+      else o.r = [r[3] * k0 * 0.24, r[3] * k0 * 0.12];
+      objs.push(o); select(o); touch();
+    };
+    $('pal').appendChild(d);
+  }
+}
+
+// ---------- персонажи ----------
+const SL = [['scale', 'Размер', 0.5, 1.8], ['speed', 'Скорость', 0.4, 2.5], ['power', 'Сила', 0.3, 4], ['hp', 'Здоровье', 0.3, 4]];
+const previews = [];
+function buildUnits() {
+  $('units').innerHTML = ''; previews.length = 0;
+  for (const u of UNIT_LIST) {
+    const c = cfg.units[u.id], box = document.createElement('div'); box.className = 'unit';
+    const top = document.createElement('div'); top.className = 'top'; box.appendChild(top);
+    const pv = document.createElement('canvas'); pv.width = pv.height = 168; top.appendChild(pv);
+    const right = document.createElement('div'); right.style.flex = '1'; top.appendChild(right);
+    right.innerHTML = '<b>' + u.name + '</b>';
+    const sl = document.createElement('select');
+    for (const ch of CHAR_LIST) { const o = document.createElement('option'); o.value = ch.id; o.textContent = ch.name; sl.appendChild(o); }
+    sl.value = c.char; sl.onchange = () => { c.char = sl.value; touch(); };
+    right.appendChild(sl);
+    for (const [key, name, mn, mx] of SL) {
+      const row = document.createElement('div'); row.className = 'row';
+      row.innerHTML = '<span>' + name + '</span><input type="range" min="' + mn + '" max="' + mx + '" step="0.05"><output></output>';
+      const inp = row.querySelector('input'), out = row.querySelector('output');
+      inp.value = c[key]; out.textContent = '×' + (+c[key]).toFixed(2);
+      inp.oninput = () => { c[key] = +inp.value; out.textContent = '×' + c[key].toFixed(2); touch(); };
+      box.appendChild(row);
+    }
+    previews.push({ pv, c });
+    $('units').appendChild(box);
+  }
+}
+// живое превью: кадры бега из листа персонажа, размер — по ползунку
+function drawPreviews() {
+  const t = performance.now() / 1000;
+  for (const { pv, c } of previews) {
+    if (!pv.offsetParent) continue;
+    const g = pv.getContext('2d'), im = charImg(c.char);
+    g.clearRect(0, 0, 168, 168);
+    if (!im.complete || !im.naturalWidth) continue;
+    const fi = Math.floor(t * 9) % 8;
+    let sx, sy, cell;
+    if (c.char === 'ganfaul') { cell = 400; const k = 4 + fi; sx = (k % 6) * cell; sy = (2 + Math.floor(k / 6)) * cell; }   // ряд «вниз-вправо»
+    else { cell = c.char === 'boss' ? 320 : 256; sx = fi * cell; sy = cell; }
+    const s = 150 * Math.min(1.25, Math.max(0.55, c.scale));
+    g.drawImage(im, sx, sy, cell, cell, 84 - s / 2, 96 - s / 2, s, s);
+  }
+}
+$('unitsReset').onclick = () => { cfg.units = defaultCfg().units; buildUnits(); touch(); };
+
+// ---------- сохранение, экспорт, импорт ----------
+$('save').onclick = () => save(false);
+$('play').onclick = () => { save(true); };
+$('exp').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(collect(), null, 1)], { type: 'application/json' }));
+  a.download = 'duel-arena-config.json'; a.click();
+  say('Файл настроек скачан.');
+};
+$('imp').onclick = () => $('file').click();
+$('file').onchange = () => {
+  const f = $('file').files[0]; if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try {
+      cfg = normCfg(JSON.parse(rd.result));
+      objs = (cfg.map || DEFAULT_OBJ).map(o => JSON.parse(JSON.stringify(o)));
+      select(null); buildUnits(); save(true); need = true; say('Настройки загружены из файла и сохранены.');
+    } catch (e) { say('Это не файл настроек Duel Arena.', true); }
+    $('file').value = '';
+  };
+  rd.readAsText(f);
+};
+addEventListener('beforeunload', () => { if (dirty) save(true); });
+
+buildUnits(); resize(); render();
+</script>
+</body>
+</html>
