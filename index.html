@@ -8,7 +8,8 @@
   * { margin:0; padding:0; }
   html, body { height:100%; overflow:hidden; background:#0c1017; touch-action:none; }
   canvas { display:block; width:100vw; height:100dvh; }
-  #hud {
+  #hud { display:none; }
+  #hud0 {
     position:fixed; top:12px; left:14px; color:#d5dfd0; z-index:5;
     font:13px/1.5 system-ui, sans-serif; text-shadow:0 1px 4px #000, 0 0 8px #000; pointer-events:none;
   }
@@ -21,10 +22,10 @@
 <canvas id="c"></canvas>
 <div id="hud"><b>Duel Arena</b> · <span id="tip">стик — движение, кнопки справа — огонь и скилы (ПК: WASD, пробел, Q E F R, фласки 1–4, Enter — волна, B — магазин)</span><br>
 <span id="snd">🔇 коснитесь экрана, чтобы включить звук</span> <span id="pad">🎮 геймпад подключён</span></div>
-<script src="data.js?v=29"></script>
-<script src="chars/atlas.js?v=29"></script>
+<script src="data.js?v=30"></script>
+<script src="chars/atlas.js?v=30"></script>
 <script>
-const V = '?v=29';
+const V = '?v=30';
 const cv = document.getElementById('c');
 const ctx = cv.getContext('2d');
 // Чёткость: холст рисуется не больше чем в 2 точки на точку экрана. Если телефон не успевает
@@ -48,8 +49,6 @@ function perfTick(dt) {
 
 // ---------- мир ----------
 const CH = 170;                          // рост героини в единицах мира
-// граница, за которую нельзя выйти: «скруглённый прямоугольник» по кромке камней
-const BOUND = { cx: 1024 * GS, cy: 778 * GS, a: 930 * GS, b: 595 * GS };
 
 // ---------- героиня ----------
 const META = {
@@ -68,12 +67,26 @@ function runRow(ax, ay) {
   return ((Math.round((deg - 90) / 45) % 8) + 8) % 8;
 }
 
+
+// Свечение: [цвет, высота центра от верха спрайта (доля), радиус, мерцание]
+const GLOW = {
+  braz1: ['255,150,50', 0.16, 95, 1], braz2: ['255,150,50', 0.16, 95, 1],
+  lan1: ['255,215,110', 0.62, 55, 0.4], lan2: ['255,215,110', 0.55, 55, 0.4],
+  obelisk: ['90,255,130', 0.45, 150, 0.25], obelisk2: ['90,255,130', 0.39, 170, 0.25], portal2: ['255,80,40', 0.52, 190, 0.3],
+  cryG: ['120,255,90', 0.5, 80, 0.25], cryS: ['120,255,90', 0.5, 45, 0.25],
+  shrine: ['90,170,255', 0.42, 130, 0.25],
+};
+
+// Объекты карты: набор по умолчанию лежит в data.js; карта, сохранённая в редакторе, его заменяет
+const CFG = loadCfg();
+const OBJ = (CFG.map || DEFAULT_OBJ).map(o => Object.assign({ k: 1, ay: 0.93, a: 1 }, o));
+
 // ---------- картинки ----------
+// земля и только те листы предметов, которые есть на карте
 const img = {};
 let loaded = 0;
-const FILES = {
-  ground: 'arena/ground.webp', s2: 'arena/s2.webp', s3: 'arena/s3.webp', s4: 'arena/s4.webp', s5: 'arena/s5.webp', s6: 'arena/s6.webp',
-};
+const FILES = { ground: GROUND };
+for (const o of OBJ.concat(FLAT, FRONT)) { const sh = SPR[o.s][0]; FILES[sh] = SHEET_FILES[sh]; }
 // листы прежней героини Лиры (около 24 МБ в памяти) нужны только по адресу с #lira
 const LIRA = location.hash.indexOf('lira') >= 0;
 if (LIRA) Object.assign(FILES, { front: 'front.png', side: 'side.png', run: 'run.webp' });
@@ -83,19 +96,6 @@ for (const k in FILES) {
   img[k].onload = () => { loaded++; };
   img[k].src = FILES[k] + V;
 }
-
-// Свечение: [цвет, высота центра от верха спрайта (доля), радиус, мерцание]
-const GLOW = {
-  braz1: ['255,150,50', 0.16, 95, 1], braz2: ['255,150,50', 0.16, 95, 1],
-  lan1: ['255,215,110', 0.62, 55, 0.4], lan2: ['255,215,110', 0.55, 55, 0.4],
-  obelisk: ['90,255,130', 0.45, 150, 0.25],
-  cryG: ['120,255,90', 0.5, 80, 0.25], cryS: ['120,255,90', 0.5, 45, 0.25],
-  shrine: ['90,170,255', 0.42, 130, 0.25],
-};
-
-// Объекты карты: набор по умолчанию лежит в data.js; карта, сохранённая в редакторе, его заменяет
-const CFG = loadCfg();
-const OBJ = (CFG.map || DEFAULT_OBJ).map(o => Object.assign({ k: 1, ay: 0.93, a: 1 }, o));
 
 // невидимые препятствия из объектов
 const SOLID = [];
@@ -121,7 +121,7 @@ function makeRed(image) {
 
 // ---------- игрок ----------
 const P = {
-  x: 440 * GS, y: 745 * GS,
+  x: HERO_SPAWN.x, y: HERO_SPAWN.y,
   dir: 'front', flip: false, moving: false, running: false, row: 0,
   animT: 0, idleT: 0,
 };
@@ -134,10 +134,13 @@ addEventListener('keyup', e => { keys[e.code] = false; });
 
 // ---------- управление: виртуальный стик ----------
 const stick = { active: false, id: null, x0: 0, y0: 0, dx: 0, dy: 0 };
+// стик как в референсе: резное кольцо слева внизу; касание в любом свободном месте переносит его под палец
+const stickR = () => Math.min(H, W * 0.56) * 0.135;          // радиус кольца на экране
+const stickHome = () => ({ x: Math.min(H, W * 0.56) * 0.25 + stickR() * 0.1, y: H - Math.min(H, W * 0.56) * 0.2 });
 addEventListener('touchstart', e => {
   for (const t of e.changedTouches) {
     if (window.COMBAT_READY && touchButtonDown(t)) continue;
-    if (stick.active) continue;
+    if (stick.active || (typeof SHOP !== 'undefined' && SHOP.paused)) continue;
     stick.active = true; stick.id = t.identifier;
     stick.x0 = t.clientX; stick.y0 = t.clientY; stick.dx = 0; stick.dy = 0;
   }
@@ -145,7 +148,7 @@ addEventListener('touchstart', e => {
 addEventListener('touchmove', e => {
   for (const t of e.changedTouches) {
     if (t.identifier === stick.id) {
-      const R = 60;
+      const R = stickR() * 0.62;
       stick.dx = Math.max(-R, Math.min(R, t.clientX - stick.x0)) / R;
       stick.dy = Math.max(-R, Math.min(R, t.clientY - stick.y0)) / R;
     }
@@ -196,6 +199,27 @@ function inputVector() {
 }
 
 // ---------- столкновения ----------
+// граница поляны — многоугольник WALK из data.js
+function inWalk(x, y) {
+  let ins = false;
+  for (let i = 0, j = WALK.length - 1; i < WALK.length; j = i++) {
+    const a = WALK[i], b = WALK[j];
+    if ((a[1] > y) !== (b[1] > y) && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]) ins = !ins;
+  }
+  return ins;
+}
+// вышедшего за край ставим на ближайшую точку края, чуть внутрь
+function toWalk(e) {
+  let bx = e.x, by = e.y, bd = 1e18, nx = 0, ny = 0;
+  for (let i = 0, j = WALK.length - 1; i < WALK.length; j = i++) {
+    const a = WALK[j], b = WALK[i], dx = b[0] - a[0], dy = b[1] - a[1];
+    const t = Math.max(0, Math.min(1, ((e.x - a[0]) * dx + (e.y - a[1]) * dy) / (dx * dx + dy * dy)));
+    const px = a[0] + dx * t, py = a[1] + dy * t, d = (e.x - px) ** 2 + (e.y - py) ** 2;
+    if (d < bd) { bd = d; bx = px; by = py; nx = px - e.x; ny = py - e.y; }
+  }
+  const m = Math.hypot(nx, ny) || 1;
+  e.x = bx + nx / m * 0.5; e.y = by + ny / m * 0.5;
+}
 const PR = [16, 11];   // «толщина» героини у земли
 function collide(e) {
   e = e || P;
@@ -210,13 +234,7 @@ function collide(e) {
         e.y = s.y + dy / d * ry;
       }
     }
-    const u = (e.x - BOUND.cx) / BOUND.a, v = (e.y - BOUND.cy) / BOUND.b;
-    const q = u * u * u * u + v * v * v * v;
-    if (q > 1) {
-      const k = Math.pow(q, -0.25);
-      e.x = BOUND.cx + u * k * BOUND.a;
-      e.y = BOUND.cy + v * k * BOUND.b;
-    }
+    if (!inWalk(e.x, e.y)) toWalk(e);
   }
 }
 
@@ -273,15 +291,17 @@ function drawPlayer() {
   ctx.drawImage(img[key], fi * spec.w, 0, spec.w, spec.h, -dw / 2, -dh + dh * 0.015, dw, dh);
   ctx.restore();
 }
+const STICK_IMG = { joy: new Image(), knob: new Image() };
+STICK_IMG.joy.src = 'ui/h_joy.webp' + V; STICK_IMG.knob.src = 'ui/h_knob.webp' + V;
 function drawStickUI() {
-  if (!stick.active) return;
-  ctx.save();
-  ctx.globalAlpha = 0.4;
-  ctx.strokeStyle = '#e6f0ff'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.arc(stick.x0, stick.y0, 60, 0, 7); ctx.stroke();
-  ctx.fillStyle = '#e6f0ff';
-  ctx.beginPath(); ctx.arc(stick.x0 + stick.dx * 60, stick.y0 + stick.dy * 60, 22, 0, 7); ctx.fill();
-  ctx.restore();
+  if (!('ontouchstart' in window) || !STICK_IMG.joy.complete || !STICK_IMG.knob.complete) return;
+  const R = stickR(), h = stickHome(), x = stick.active ? stick.x0 : h.x, y = stick.active ? stick.y0 : h.y, m = R * 0.62;
+  ctx.globalAlpha = stick.active ? 0.85 : 0.6;
+  ctx.drawImage(STICK_IMG.joy, x - R, y - R, R * 2, R * 2);
+  const k = R * 0.42, kx = x + stick.dx * m, ky = y + stick.dy * m;
+  ctx.globalAlpha = stick.active ? 1 : 0.8;
+  ctx.drawImage(STICK_IMG.knob, kx - k, ky - k, k * 2, k * 2);
+  ctx.globalAlpha = 1;
 }
 
 // круглое пятно света цвета col (r,g,b): рисуется один раз, потом только масштабируется
@@ -297,7 +317,7 @@ function glowImg(col) {
 // светлячки
 const FLIES = [];
 for (let i = 0; i < 70; i++) {
-  FLIES.push({ x: (120 + Math.random() * 1800) * GS, y: (160 + Math.random() * 1200) * GS, p: Math.random() * 7, s: 0.4 + Math.random() * 0.8 });
+  FLIES.push({ x: WORLD_W * (0.05 + Math.random() * 0.9), y: WORLD_H * (0.1 + Math.random() * 0.75), p: Math.random() * 7, s: 0.4 + Math.random() * 0.8 });
 }
 
 const red = {};
@@ -313,12 +333,14 @@ function frame(now) {
     ctx.fillText('Загрузка арены… ' + loaded + ' / ' + TOTAL, W / 2, H / 2);
     return;
   }
-  if (!red.s4) { red.s4 = makeRed(img.s4); red.s5 = makeRed(img.s5); }
+  // красные копии старых листов нужны, только если они есть на карте
+  if (!red.done) { red.done = true; for (const k of ['s4', 's5']) if (img[k]) red[k] = makeRed(img[k]); }
   perfTick(dt);
   padPoll();
 
   // --- движение ---
-  let { ax, ay, m } = inputVector();
+  const paused = SHOP.paused;
+  let { ax, ay, m } = paused ? { ax: 0, ay: 0, m: 0 } : inputVector();
   if (P.dead > 0) { ax = 0; ay = 0; m = 0; }
   if (m > 0.12) P.face = { x: ax / m, y: ay / m };
   const sp = (P.ult > 0 ? 0.55 : 1) * (P.spdMul || 1) * CFG.units.hero.speed;   // во время бури героиня идёт медленнее
@@ -338,12 +360,13 @@ function frame(now) {
     P.idleT += dt;
   }
   collide();
-  combatUpdate(dt);
+  if (!paused) combatUpdate(dt); else SHOP.hud();
 
   // --- камера ---
   const charScr = Math.max(90, Math.min(260, H * 0.28)) / CFG.cam;   // CFG.cam — отдаление из редактора
   // адрес с #map показывает всю арену целиком (для проверки расстановки)
-  const Z = location.hash === '#map' ? Math.min(W / WORLD_W, H / WORLD_H) : charScr / CH;
+  // камера не показывает больше арены, чем есть (на низких экранах иначе по бокам видны чёрные поля)
+  const Z = location.hash === '#map' ? Math.min(W / WORLD_W, H / WORLD_H) : Math.max(charScr / CH, W / WORLD_W, H / WORLD_H);
   const vw = W / Z, vh = H / Z;
   let tx = P.x - vw / 2, ty = P.y - CH * 0.45 * CFG.units.hero.scale - vh / 2;
   tx = vw >= WORLD_W ? (WORLD_W - vw) / 2 : Math.max(0, Math.min(WORLD_W - vw, tx));
@@ -366,7 +389,7 @@ function frame(now) {
 
   // тени
   for (const o of OBJ) {
-    if (o.soft || !seen(o)) continue;
+    if (o.soft || o.baked || !seen(o)) continue;
     const s = SPR[o.s];
     const rx = o.r ? o.r[0] * 1.35 : s[3] * o.k * 0.42;
     shadow(o.x, o.y + 4, rx, rx * 0.38, 0.5);
@@ -426,17 +449,8 @@ function frame(now) {
   drawStickUI();
 }
 requestAnimationFrame(frame);
-// ссылка на редактор (в APK редактора нет, там её не показываем)
-if (location.host !== 'duelarena.app') {
-  const a = document.createElement('a');
-  a.href = 'editor/'; a.textContent = 'редактор'; a.style.cssText = 'color:#ffe27a;margin-left:8px;pointer-events:auto';
-  for (const ev of ['touchstart', 'mousedown']) a.addEventListener(ev, e => e.stopPropagation(), { passive: true });
-  document.getElementById('tip').after(a);
-}
-// на сенсорном экране подсказка короче, чтобы не наезжать на счётчик волн
-if ('ontouchstart' in window) document.getElementById('tip').textContent = 'стик — движение, кнопки справа — огонь и скиллы';
 </script>
-<script src="combat.js?v=29"></script>
-<script src="shop.js?v=29"></script>
+<script src="combat.js?v=30"></script>
+<script src="shop.js?v=30"></script>
 </body>
 </html>

@@ -29,11 +29,12 @@ const SHOP = {
   // ----- модификаторы героя от предметов и фласок -----
   recompute() {
     const L = id => SHOP.items[id] || 0, b = SHOP.buffs;
-    P.dmgMul = (1 + 0.2 * L('orb')) * (b.power > 0 ? 1.5 : 1) * CFG.units.hero.power;
+    // уровень героя: +4% урона и +30 здоровья за каждый
+    P.dmgMul = (1 + 0.2 * L('orb')) * (b.power > 0 ? 1.5 : 1) * CFG.units.hero.power * (1 + 0.04 * (P.lvl - 1));
     P.spdMul = (1 + 0.1 * L('boots')) * (b.swift > 0 ? 1.45 : 1);
     P.cdMul = Math.pow(0.88, L('ring'));
     P.armMul = Math.pow(0.88, L('shield'));
-    const mh = Math.round(BASE_HP * CFG.units.hero.hp) + 150 * L('heart');
+    const mh = Math.round(BASE_HP * CFG.units.hero.hp) + 150 * L('heart') + 30 * (P.lvl - 1);
     if (mh !== P.maxHp) { P.hp = Math.min(mh, P.hp + Math.max(0, mh - P.maxHp)); P.maxHp = mh; }
   },
   itemPrice(it) { return Math.round(it.price * (1 + 0.6 * (SHOP.items[it.id] || 0))); },
@@ -128,7 +129,10 @@ const SHOP = {
     snd('coins', 0.45, 0.9);
     SHOP.refresh();
   },
-  openShop() { if (SHOP.phase !== 'rest') return; SHOP.open = true; SHOP.refresh(); },
+  openShop() {
+    if (SHOP.phase !== 'rest') { say(P.x, P.y - CH * HS() * 1.3, 'Магазин — между волнами', '#ffd28a'); return; }
+    SHOP.open = true; SHOP.refresh();
+  },
   closeShop() { SHOP.open = false; SHOP.refresh(); },
 
   // ----- геймпад: Start — волна, Select — магазин, крестовина — фласки -----
@@ -151,7 +155,8 @@ const SHOP = {
   const U = n => 'url(ui/' + n + '.webp' + V + ')';
   SHOP.icons = new Image(); SHOP.icons.src = 'ui/icons.webp' + V;
   // заранее подгружаем фоны магазина, чтобы при первом открытии он не появлялся по частям
-  for (const n of ['panel', 'btn_green', 'btn_blue', 'close', 'slot', 'plate', 'wave', 'shop']) { const im = new Image(); im.src = 'ui/' + n + '.webp' + V; (SHOP.pre = SHOP.pre || []).push(im); }
+  for (const n of ['panel', 'btn_green', 'btn_blue', 'close', 'slot', 'plate', 'h_portrait', 'h_badge', 'h_barframe', 'h_hp', 'h_mp',
+    'h_plaque', 'h_button', 'h_gold', 'h_bag', 'h_pause', 'h_slot', 'h_round']) { const im = new Image(); im.src = 'ui/' + n + '.webp' + V; (SHOP.pre = SHOP.pre || []).push(im); }
   const css = document.createElement('style');
   css.textContent = `
   .sh, .sh * { box-sizing: border-box; font-family: system-ui, sans-serif; user-select: none; -webkit-user-select: none; }
@@ -159,22 +164,40 @@ const SHOP = {
   .ic { background-image: ${U('icons')}; background-size: 400% 400%; background-repeat: no-repeat; }
   .bg { background-size: 100% 100%; background-repeat: no-repeat; background-position: center; }
   .tap { cursor: pointer; touch-action: manipulation; }
-  #shGold { top: 44px; left: 8px; width: 150px; height: 30px; background-image: ${U('plate')}; display: flex; align-items: center; justify-content: center; gap: 6px; font: bold 15px system-ui; color: #ffe27a; }
-  #shGold .ic { width: 20px; height: 20px; }
-  #shBar { left: 50%; bottom: 8px; transform: translateX(-50%); display: flex; gap: 4px; align-items: flex-end; }
+  /* HUD v3 по референсу: все рамки и кнопки — картинки ui/h_*.webp из ChatGPT; размеры — в долях высоты экрана */
+  #hHero { top: calc(1.2vh + env(safe-area-inset-top)); left: calc(1.5vh + env(safe-area-inset-left)); width: 52vh; height: 15vh; pointer-events: none; }
+  #hHero .pt { position: absolute; left: 0; top: 0; width: 14vh; height: 14vh; background-image: ${U('h_portrait')}; }
+  #hHero .lv { position: absolute; left: 9.6vh; top: 9.4vh; width: 5.2vh; height: 5.2vh; background-image: ${U('h_badge')}; display: flex; align-items: center; justify-content: center; font: bold 2.5vh system-ui; }
+  #hHero .bar { position: absolute; left: 13.2vh; width: 37vh; height: 4.6vh; background-image: ${U('h_barframe')}; }
+  #hHero .bar.hp { top: 1.6vh; } #hHero .bar.mp { top: 6.6vh; }
+  #hHero .bar .f { position: absolute; left: 9%; right: 9%; top: 31%; bottom: 25%; }
+  #hHero .bar.hp .f { background-image: ${U('h_hp')}; } #hHero .bar.mp .f { background-image: ${U('h_mp')}; }
+  #hHero .bar span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: bold 2.1vh system-ui; }
+  #hWave { top: calc(1vh + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: .4vh; }
+  #hWave .pl { width: 30vh; height: 7.9vh; background-image: ${U('h_plaque')}; display: flex; align-items: center; justify-content: center; font: bold 3.1vh system-ui; letter-spacing: .08em; }
+  #hWave .go { width: 33vh; height: 8.8vh; background-image: ${U('h_button')}; display: flex; align-items: center; justify-content: center; font: bold 2.9vh system-ui; color: #ffe9a8; letter-spacing: .05em; animation: shPulse 1.6s ease-in-out infinite; }
+  @keyframes shPulse { 50% { transform: scale(1.05); } }
+  #hTopR { top: calc(1.4vh + env(safe-area-inset-top)); right: calc(1.5vh + env(safe-area-inset-right)); display: flex; gap: 1.2vh; align-items: center; }
+  #hTopR .gd { position: relative; width: 24vh; height: 8.3vh; background-image: ${U('h_gold')}; }
+  #hTopR .gd span { position: absolute; left: 34%; right: 8%; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font: bold 3vh system-ui; color: #ffe9a8; }
+  #hTopR .sq { width: 8.4vh; height: 8.9vh; }
+  #hInv { bottom: calc(2.4vh + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-60%); display: flex; gap: 1vh; align-items: center; }
+  .hs { position: relative; width: 9.4vh; height: 9.2vh; background-image: ${U('h_slot')}; }
+  .hs .ic { position: absolute; left: 17%; top: 17%; width: 66%; height: 66%; }
+  .hs b { position: absolute; right: .7vh; bottom: .4vh; font: bold 2.2vh system-ui; }
+  .hs.buff { filter: drop-shadow(0 0 .9vh #7fe0ff); }
+  #hFlask { position: relative; width: 10.4vh; height: 10.4vh; margin-left: 1.6vh; background-image: ${U('h_round')}; }
+  #hFlask .ic { position: absolute; left: 18%; top: 16%; width: 64%; height: 64%; }
+  #hFlask.off .ic { opacity: .35; filter: grayscale(1); }
+  #hFlask b { position: absolute; right: -1vh; bottom: -.6vh; width: 4.6vh; height: 4.6vh; background-image: ${U('h_badge')}; display: flex; align-items: center; justify-content: center; font: bold 2.2vh system-ui; }
+  #hPause { inset: 0; z-index: 9; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 1.6vh; background: rgba(4, 8, 16, .55); }
+  #hPause .pl { width: 40vh; height: 10.5vh; background-image: ${U('h_plaque')}; display: flex; align-items: center; justify-content: center; font: bold 4vh system-ui; letter-spacing: .1em; }
+  #hPause .mb { width: 46vh; height: 12vh; background-image: ${U('h_button')}; display: flex; align-items: center; justify-content: center; font: bold 3.2vh system-ui; color: #ffe9a8; }
+  #hPause .tip { font: 2.2vh system-ui; opacity: .85; max-width: 90vw; text-align: center; }
+  /* ячейки товаров в магазине */
   .slot { position: relative; width: 50px; height: 54px; background-image: ${U('slot')}; }
   .slot .ic { position: absolute; left: 17%; top: 17%; width: 66%; height: 66%; }
   .slot b { position: absolute; right: 7px; bottom: 5px; font: bold 13px system-ui; }
-  .slot i { position: absolute; left: 7px; top: 4px; font: 11px system-ui; font-style: normal; opacity: .85; }
-  .slot.off .ic { opacity: .3; filter: grayscale(1); }
-  .slot.buff { filter: drop-shadow(0 0 6px #7fe0ff); }
-  .slot.item { width: 40px; height: 43px; }
-  #shWave { left: 50%; top: max(34px, 5vh); transform: translateX(-50%); display: none; flex-direction: column; align-items: center; }
-  #shWave .row { display: flex; gap: 14px; align-items: center; }
-  #shWave .wb { height: min(105px, 19vh); aspect-ratio: 325 / 371; background-image: ${U('wave')}; animation: shPulse 1.6s ease-in-out infinite; }
-  #shWave .sb { height: min(68px, 13vh); aspect-ratio: 329 / 363; background-image: ${U('shop')}; }
-  #shWave span { font: bold min(16px, 3.6vh) system-ui; margin-top: 1px; }
-  @keyframes shPulse { 50% { transform: scale(1.07); } }
   #shBack { inset: 0; z-index: 8; display: none; align-items: center; justify-content: center; }
   #shPanel { position: relative; width: min(96vw, 138vh); aspect-ratio: 3 / 2; background-image: ${U('panel')}; font-size: calc(min(96vw, 138vh) / 62); }
   #shTitle { position: absolute; left: 28%; top: 5.5%; width: 44%; height: 10.5%; display: flex; align-items: center; justify-content: center; gap: .6em; font-weight: bold; font-size: 1.5em; }
@@ -202,19 +225,38 @@ const SHOP = {
     e.addEventListener('pointerdown', x => { x.stopPropagation(); fn(); });
   };
   const E = SHOP.el;
-  E.gold = mk('div', 'sh bg', null, icon(ICON.coin) + '<span>0</span>'); E.gold.id = 'shGold';
-  E.bar = mk('div', 'sh'); E.bar.id = 'shBar';
-  E.fl = {};
-  for (const f of FLASKS) {
-    const s = mk('div', 'slot bg', E.bar, icon(ICON[f.id]) + '<i>' + f.key + '</i><b>0</b>');
-    s.title = f.name + ': ' + f.desc; tap(s, () => SHOP.use(f.id)); E.fl[f.id] = s;
-  }
-  E.items = mk('div', '', E.bar); E.items.style.cssText = 'display:flex;gap:3px;margin-left:8px';
-  E.wave = mk('div', 'sh'); E.wave.id = 'shWave';
-  const row = mk('div', 'row', E.wave);
-  tap(mk('div', 'wb bg', row), () => SHOP.startWave());
-  tap(mk('div', 'sb bg', row), () => SHOP.openShop());
-  E.waveTxt = mk('span', '', E.wave);
+  // герой: портрет, уровень, здоровье и мана
+  E.hero = mk('div', 'sh'); E.hero.id = 'hHero';
+  mk('div', 'pt bg', E.hero);
+  E.hpBar = mk('div', 'bar hp bg', E.hero, '<div class="f bg"></div><span></span>');
+  E.mpBar = mk('div', 'bar mp bg', E.hero, '<div class="f bg"></div><span></span>');
+  E.lv = mk('div', 'lv bg', E.hero);
+  // волна: табличка и кнопка «Начать волну»
+  E.wave = mk('div', 'sh'); E.wave.id = 'hWave';
+  E.waveTxt = mk('div', 'pl bg', E.wave);
+  E.waveGo = mk('div', 'go bg', E.wave, 'НАЧАТЬ ВОЛНУ'); tap(E.waveGo, () => SHOP.startWave());
+  // справа сверху: золото, сумка (магазин), пауза
+  const tr = mk('div', 'sh'); tr.id = 'hTopR';
+  E.gold = mk('div', 'gd bg', tr, '<span>0</span>');
+  tap(mk('div', 'sq bg', tr), () => SHOP.open ? SHOP.closeShop() : SHOP.openShop());
+  tr.lastChild.style.backgroundImage = U('h_bag');
+  tap(mk('div', 'sq bg', tr), () => SHOP.togglePause());
+  tr.lastChild.style.backgroundImage = U('h_pause');
+  // снизу: 6 ячеек сумки (фласки холода, скорости, силы и предметы) и фласка лечения
+  E.inv = mk('div', 'sh'); E.inv.id = 'hInv';
+  E.slots = [];
+  for (let i = 0; i < 6; i++) { const c = mk('div', 'hs bg', E.inv); tap(c, () => { if (c.use) SHOP.use(c.use); }); E.slots.push(c); }
+  E.flask = mk('div', 'bg', E.inv, icon(ICON.heal) + '<b class="bg">0</b>'); E.flask.id = 'hFlask';
+  E.flask.title = 'Фласка лечения: +280 здоровья (клавиша 1)'; tap(E.flask, () => SHOP.use('heal'));
+  // пауза: продолжить, музыка, редактор
+  E.pause = mk('div', 'sh'); E.pause.id = 'hPause';
+  for (const ev of ['touchstart', 'mousedown', 'pointerdown']) E.pause.addEventListener(ev, x => x.stopPropagation(), { passive: true });
+  mk('div', 'pl bg', E.pause, 'ПАУЗА');
+  tap(mk('div', 'mb bg', E.pause, 'Продолжить'), () => SHOP.togglePause());
+  E.musBtn = mk('div', 'mb bg', E.pause); tap(E.musBtn, () => { musicToggle(); SHOP.pauseLabels(); });
+  E.musNext = mk('div', 'mb bg', E.pause, 'Следующий трек'); tap(E.musNext, () => { musicNext(); SHOP.pauseLabels(); });
+  if (location.host !== 'duelarena.app') tap(mk('div', 'mb bg', E.pause, 'Редактор'), () => { location.href = 'editor/'; });
+  E.tip = mk('div', 'tip', E.pause, 'ontouchstart' in window ? '' : 'WASD — движение, пробел — огонь, Q E F R — скиллы, 1–4 — фласки, Enter — волна, B — магазин, P — пауза, M — музыка');
   E.back = mk('div', 'sh'); E.back.id = 'shBack';
   for (const ev of ['touchstart', 'mousedown', 'pointerdown']) E.back.addEventListener(ev, x => x.stopPropagation(), { passive: true });
   const p = mk('div', 'bg', E.back); p.id = 'shPanel';
@@ -235,13 +277,20 @@ const SHOP = {
   SHOP.refresh = () => {
     E.gold.lastChild.textContent = SHOP.gold;
     E.title.querySelector('em').textContent = SHOP.gold;
-    for (const f of FLASKS) { const s = E.fl[f.id], n = SHOP.flasks[f.id]; s.querySelector('b').textContent = n; s.classList.toggle('off', !n); }
-    // ячейки предметов перестраиваем, только когда набор поменялся (refresh зовётся на каждую монету)
-    const ih = ITEMS.filter(it => SHOP.items[it.id]).map(it => '<div class="slot item bg" title="' + it.name + ': ' + it.desc + '">' + icon(ICON[it.id]) + '<b>' + ROM[SHOP.items[it.id]] + '</b></div>').join('');
-    if (ih !== E.itemsHtml) { E.items.innerHTML = ih; E.itemsHtml = ih; }
+    const nh = SHOP.flasks.heal;
+    E.flask.lastChild.textContent = nh; E.flask.classList.toggle('off', !nh);
+    // сумка: сначала фласки (кроме лечения), потом предметы; ячейку перерисовываем, только если она поменялась
+    const inv = [];
+    for (const f of FLASKS) if (f.id !== 'heal' && SHOP.flasks[f.id]) inv.push({ ic: ICON[f.id], n: SHOP.flasks[f.id], use: f.id, t: f.name + ': ' + f.desc + ' (клавиша ' + f.key + ')' });
+    for (const it of ITEMS) if (SHOP.items[it.id]) inv.push({ ic: ICON[it.id], n: ROM[SHOP.items[it.id]], t: it.name + ': ' + it.desc });
+    E.slots.forEach((c, i) => {
+      const x = inv[i], h = x ? icon(x.ic) + '<b>' + x.n + '</b>' : '';
+      if (c.h !== h) { c.innerHTML = h; c.h = h; }
+      c.use = x && x.use; c.title = x ? x.t : '';
+    });
     const rest = SHOP.phase === 'rest';
-    E.wave.style.display = rest && !SHOP.open ? 'flex' : 'none';
-    E.waveTxt.textContent = 'Начать волну ' + (wave + 1);
+    E.waveGo.style.display = rest && !SHOP.open ? 'flex' : 'none';
+    E.waveTxt.textContent = 'ВОЛНА ' + (rest ? wave + 1 : wave);
     E.go.textContent = 'В бой — волна ' + (wave + 1);
     E.back.style.display = SHOP.open ? 'flex' : 'none';
     for (const { d, kind, o } of E.offers) {
@@ -253,15 +302,38 @@ const SHOP = {
     }
   };
   // подсветка действующих фласок обновляется каждый кадр
+  // каждый кадр: полоски, уровень и подсветка действующих фласок; DOM трогаем, только если число поменялось
+  const hud = {};
+  const setBar = (bar, k, v, max) => {
+    const key = Math.round(v) + '/' + Math.round(max);
+    if (hud[k] === key) return;
+    hud[k] = key;
+    bar.firstChild.style.clipPath = 'inset(0 ' + (100 - 100 * Math.max(0, v) / max).toFixed(1) + '% 0 0)';
+    bar.lastChild.textContent = Math.round(Math.max(0, v)) + ' / ' + Math.round(max);
+  };
   SHOP.hud = () => {
-    E.fl.swift.classList.toggle('buff', SHOP.buffs.swift > 0);
-    E.fl.power.classList.toggle('buff', SHOP.buffs.power > 0);
+    setBar(E.hpBar, 'hp', P.hp, P.maxHp);
+    setBar(E.mpBar, 'mp', P.mp, P.maxMp);
+    if (hud.lv !== P.lvl) { hud.lv = P.lvl; E.lv.textContent = P.lvl; }
+    for (const c of E.slots) c.classList.toggle('buff', !!(c.use && SHOP.buffs[c.use] > 0));
+  };
+  SHOP.paused = false;
+  SHOP.pauseLabels = () => {
+    E.musBtn.textContent = 'Музыка: ' + (typeof mus === 'undefined' || mus.on ? 'вкл' : 'выкл');
+    E.musNext.style.display = typeof mus !== 'undefined' && mus.on ? 'flex' : 'none';
+  };
+  SHOP.togglePause = () => {
+    SHOP.paused = !SHOP.paused;
+    held.touch = held.mouse = held.key = false;
+    SHOP.pauseLabels();
+    E.pause.style.display = SHOP.paused ? 'flex' : 'none';
   };
   addEventListener('keydown', e => {
     if (e.repeat) return;
     if (e.code === 'Enter' || e.code === 'KeyG') SHOP.startWave();
     if (e.code === 'KeyB') SHOP.open ? SHOP.closeShop() : SHOP.openShop();
-    if (e.code === 'Escape') SHOP.closeShop();
+    if (e.code === 'Escape') { if (SHOP.open) SHOP.closeShop(); else SHOP.togglePause(); }
+    if (e.code === 'KeyP') SHOP.togglePause();
     const f = FLASKS.find(x => 'Digit' + x.key === e.code);
     if (f) SHOP.use(f.id);
   });

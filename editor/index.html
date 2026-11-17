@@ -89,11 +89,11 @@
   </div>
 </div>
 
-<script src="../data.js?v=29"></script>
-<script src="../chars/atlas.js?v=29"></script>
+<script src="../data.js?v=30"></script>
+<script src="../chars/atlas.js?v=30"></script>
 <script>
 'use strict';
-const V = '?v=29';
+const V = '?v=30';
 let cfg = loadCfg();
 // рабочая копия карты: объекты в координатах мира
 let objs = (cfg.map || DEFAULT_OBJ).map(o => JSON.parse(JSON.stringify(o)));
@@ -101,7 +101,8 @@ let sel = null, dirty = false;
 
 // ---------- картинки ----------
 const img = {};
-for (const k of ['ground', 's2', 's3', 's4', 's5', 's6']) { img[k] = new Image(); img[k].src = '../arena/' + k + '.webp' + V; img[k].onload = () => { need = true; buildPalette(); }; }
+const EFILES = Object.assign({ ground: GROUND }, SHEET_FILES);
+for (const k in EFILES) { img[k] = new Image(); img[k].src = '../' + EFILES[k] + V; img[k].onload = () => { need = true; buildPalette(); }; }
 const chr = {};
 function charImg(id) {
   if (!chr[id]) { chr[id] = new Image(); chr[id].src = '../chars/at_' + (id === 'ganfaul' ? 'hero_a' : id) + '.webp' + V; }
@@ -173,6 +174,9 @@ function render() {
   // служебные пометки редактора: зона преграды и рамка выбранного объекта
   if ($('showSolid').checked) {
     ctx.lineWidth = 2 / view.z;
+    // край поляны, за который нельзя выйти (WALK в data.js)
+    ctx.beginPath(); WALK.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath();
+    ctx.strokeStyle = 'rgba(120,220,255,0.9)'; ctx.setLineDash([12 / view.z, 8 / view.z]); ctx.stroke(); ctx.setLineDash([]);
     for (const o of list) {
       const el = o.r ? [[0, 0, o.r[0], o.r[1]]] : o.c || [];
       for (const e of el) {
@@ -294,7 +298,7 @@ $('mapReset').onclick = () => {
 // ---------- палитра объектов ----------
 let palDone = false;
 function buildPalette() {
-  if (palDone || !['s2', 's3', 's4', 's5', 's6'].every(k => img[k].complete && img[k].naturalWidth)) return;
+  if (palDone || !['s2', 's3', 's4', 's5', 's6', 'c2'].every(k => img[k].complete && img[k].naturalWidth)) return;
   palDone = true;
   const skip = new Set(FRONT.map(o => o.s));          // кроны и ветки переднего плана в палитру не идут
   for (const s in SPR) {

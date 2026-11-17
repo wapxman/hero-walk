@@ -1,5 +1,5 @@
 // Бой: выстрелы, скилы, враги, звук. Графика намеренно простая, без спрайтов.
-// Использует из index.html: ctx, W, H, P, CH, GS, SRC_W, OBJ, collide, V.
+// Использует из index.html: ctx, W, H, P, CH, OBJ, collide, V; из data.js: HERO_SPAWN, ENEMY_SPAWN.
 'use strict';
 
 const YK = 0.72;                       // сжатие по вертикали из-за наклона камеры
@@ -75,25 +75,9 @@ function musicStart() {
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) el.pause(); else if (mus.on) el.play().catch(() => {});
   });
-  const mk = (txt, right, fn) => {
-    const b = document.createElement('button');
-    b.textContent = txt;
-    b.style.cssText = 'position:fixed;top:36px;right:' + right + 'px;z-index:5;font:13px system-ui,sans-serif;color:#fff;' +
-      'background:rgba(12,22,36,.6);border:1px solid rgba(255,255,255,.35);border-radius:14px;padding:5px 10px;max-width:60vw;' +
-      'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;touch-action:manipulation';
-    for (const ev of ['touchstart', 'mousedown']) b.addEventListener(ev, e => e.stopPropagation(), { passive: true });
-    b.addEventListener('pointerdown', e => { e.stopPropagation(); fn(); b.blur(); });
-    document.body.appendChild(b);
-    return b;
-  };
-  mus.nextBtn = mk('⏭', 12, () => musicNext());
-  mus.btn = mk('', 54, () => musicToggle());
   musicLoad();
 }
-function musicLabel() {
-  if (mus.btn) mus.btn.textContent = mus.on ? '♪ ' + MUSIC[mus.i][1] : '♪ музыка выкл';
-  if (mus.nextBtn) mus.nextBtn.style.display = mus.on ? '' : 'none';
-}
+function musicLabel() { if (typeof SHOP !== 'undefined' && SHOP.pauseLabels) SHOP.pauseLabels(); }
 function musicLoad() {
   mus.el.src = 'music/' + MUSIC[mus.i][0] + '.mp3' + V;
   mus.g.gain.cancelScheduledValues(AC.currentTime); mus.g.gain.value = 0; mus.v = 0;
@@ -127,7 +111,21 @@ addEventListener('keydown', e => {
 
 
 // ---------- состояние героини ----------
-const SPAWN = { x: 440 * GS, y: 745 * GS };
+const SPAWN = HERO_SPAWN;
+// мана: скиллы стоят маны, она сама восстанавливается; уровень растёт от опыта за победы
+Object.assign(P, { mp: 420, maxMp: 420, lvl: 1, xp: 0 });
+const MANA = { q: 60, e: 50, f: 80, r: 150 }, MP_REGEN = 11;
+const KILL_XP = { min: 8, war: 18, mag: 14, rog: 14, boss: 120 };
+const xpNeed = l => 40 + 35 * l;
+function gainXp(n) {
+  P.xp += n;
+  while (P.xp >= xpNeed(P.lvl)) {
+    P.xp -= xpNeed(P.lvl); P.lvl++;
+    if (typeof SHOP !== 'undefined') SHOP.recompute();
+    P.hp = P.maxHp; P.mp = P.maxMp;
+    say(P.x, P.y - CH * 1.45 * HS(), 'Уровень ' + P.lvl + '!', '#ffe27a');
+  }
+}
 Object.assign(P, { hp: 600, maxHp: 600, dead: 0, face: { x: 1, y: 0 }, atkCd: 0, cast: 0, ult: 0, ultTick: 0, hurt: 0,
   cd: { q: 0, e: 0, f: 0, r: 0 } });
 const CDMAX = { q: 6, e: 9, f: 12, r: 28 };
@@ -145,12 +143,11 @@ const BTN = [
   { id: 'f', label: 'Град', key: 'F', col: '140,180,255' },
   { id: 'r', label: 'Буря', key: 'R', col: '200,160,255' },
 ];
+// места кнопок сняты с референса (экран высотой 576): отступ от правого нижнего угла и радиус
+const BTN_POS = { atk: [140, 101, 66], q: [287, 88, 41], e: [267, 180, 41], r: [192, 240, 39], f: [102, 222, 39] };
 function layoutButtons() {
-  const R = Math.max(30, Math.min(48, H * 0.115));
-  const cx = W - R * 1.7, cy = H - R * 1.7, D = R * 2.35;
-  const at = (a, d) => ({ x: cx + Math.cos(a) * d, y: cy + Math.sin(a) * d });
-  const pos = { atk: { x: cx, y: cy, r: R }, q: at(Math.PI, D), e: at(Math.PI * 1.25, D), f: at(Math.PI * 1.5, D), r: at(Math.PI * 1.25, D * 1.95) };
-  for (const b of BTN) { const p = pos[b.id]; b.x = p.x; b.y = p.y; b.r = p.r || R * 0.72; }
+  const u = Math.min(H, W * 0.56) / 576;
+  for (const b of BTN) { const p = BTN_POS[b.id]; b.x = W - p[0] * u; b.y = H - p[1] * u; b.r = p[2] * u; }
 }
 function buttonAt(x, y) {
   layoutButtons();
@@ -223,7 +220,7 @@ function hurtEnemy(e, dmg, col) {
   e.hp -= dmg; e.flash = 0.08;
   say(e.x + rnd(-14, 14), e.y - (e.ch.ok ? e.ch.top * e.ch.U * e.sc * 0.8 : e.rad * 2.2), Math.round(dmg), col || '#bfe6ff');
   if (e.hp <= 0) {
-    kills++;
+    kills++; gainXp(KILL_XP[e.type] || 8);
     e.dieT = 0; e.anim = 'die'; e.act = null; corpses.push(e);
     if (typeof SHOP !== 'undefined') SHOP.onKill(e);
     snd('enemy_death', e.boss ? 1 : 0.45, e.boss ? 0.75 : rnd(0.92, 1.1));
@@ -243,7 +240,8 @@ function shoot() {
 // размер героя из редактора: скиллы и выстрелы растут вместе с ним (и картинка, и зона поражения)
 const HS = () => (CFG.units.hero.scale || 1);
 function cast(id) {
-  if (P.dead > 0 || P.cd[id] > 0) return;
+  if (P.dead > 0 || P.cd[id] > 0 || (typeof SHOP !== 'undefined' && SHOP.paused)) return;
+  if (P.mp < MANA[id]) { if (!P.noMana || P.noMana < performance.now()) { say(P.x, P.y - CH * HS(), 'мало маны', '#8ab8ff'); P.noMana = performance.now() + 700; } return; }
   if (id === 'q') {
     const c = aimPoint(320 * HS()), R = 215 * HS();
     fx.push({ type: 'nova', x: c.x, y: c.y, t: 0, dur: 0.95, R });
@@ -263,7 +261,7 @@ function cast(id) {
     P.ult = 5; P.ultTick = 0;   // звук бури длится те же 5 секунд
     snd('storm', 0.85);
   }
-  P.cd[id] = CDMAX[id] * (P.cdMul || 1); P.cast = 0.3;
+  P.cd[id] = CDMAX[id] * (P.cdMul || 1); P.cast = 0.3; P.mp -= MANA[id];
   P.act = { anim: 'cast', t: 0, dur: 0.7, row: null };
 }
 function hurtPlayer(d) {
@@ -380,7 +378,7 @@ function spawnEnemy(type) {
   const k = KIND[type];
   const e = {
     type, k, ch: CHARS[k.ch], boss: !!k.boss, mel: !!k.mel, rng: !!k.rng,
-    x: (SRC_W - 430) * GS + rnd(-60, 60), y: 745 * GS + rnd(-150, 150),
+    x: ENEMY_SPAWN.x + rnd(-90, 90), y: ENEMY_SPAWN.y + rnd(-30, 90),   // выходят из красного портала
     // рост от волны к волне: здоровье +14%, урон +8%, скорость +2% (не больше +25%)
     hp: Math.round(k.hp * (1 + 0.14 * Math.max(0, wave - 1))), dm: (1 + 0.08 * Math.max(0, wave - 1)) * k.pw, sc: k.sc,
     rad: k.rad, speed: k.speed * (1 + Math.min(0.25, 0.02 * Math.max(0, wave - 1))), col: k.col, eye: k.boss ? '#ffb347' : '#ffe27a',
@@ -507,9 +505,10 @@ function combatUpdate(dt) {
   if (P.act) { P.act.t += dt; if (P.act.t >= P.act.dur || P.dead > 0) P.act = null; }
   if (P.dead > 0) {
     P.dead -= dt;
-    if (P.dead <= 0) { P.dead = 0; P.hp = P.maxHp; P.x = SPAWN.x; P.y = SPAWN.y; }
+    if (P.dead <= 0) { P.dead = 0; P.hp = P.maxHp; P.mp = P.maxMp; P.x = SPAWN.x; P.y = SPAWN.y; }
   } else {
     P.hp = Math.min(P.maxHp, P.hp + 5 * dt);
+    P.mp = Math.min(P.maxMp, P.mp + MP_REGEN * (SHOP.phase === 'rest' ? 3 : 1) * dt);   // между волнами мана копится втрое быстрее
     stepT -= dt;
     if (P.moving && stepT <= 0) { snd('step', P.running ? 0.22 : 0.14, rnd(0.94, 1.06)); stepT = P.running ? 0.33 : 0.55; }
     if ((held.key || held.touch || held.mouse || held.pad) && P.atkCd <= 0) shoot();
@@ -845,6 +844,9 @@ function combatUI() {
       if (on) { ctx.save(); ctx.shadowColor = 'rgba(150,220,255,0.95)'; ctx.shadowBlur = 24; }
       ctx.drawImage(SK_ICONS, (i % 3) * c, Math.floor(i / 3) * c, c, c, b.x - d / 2, b.y - d / 2, d, d);
       if (on) ctx.restore();
+      if (cd <= 0 && b.id !== 'atk' && P.mp < MANA[b.id]) {
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.r * 0.8, 0, 7); ctx.fillStyle = 'rgba(10,30,90,0.55)'; ctx.fill();
+      }
       if (cd > 0) {
         ctx.beginPath(); ctx.arc(b.x, b.y, b.r * 0.8, 0, 7); ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fill();
         ctx.beginPath(); ctx.moveTo(b.x, b.y);
@@ -878,13 +880,9 @@ function combatUI() {
     }
   }
   ctx.textBaseline = 'alphabetic';
-  ctx.font = 'bold 15px system-ui, sans-serif'; ctx.textAlign = 'right';
-  ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.fillStyle = '#fff';
-  const info = 'Волна ' + wave + ' · Побеждено ' + kills;
-  ctx.strokeText(info, W - 14, 26); ctx.fillText(info, W - 14, 26);
   const boss = enemies.find(e => e.boss);
   if (boss && BOSS_PLATE.complete && BOSS_PLATE.naturalWidth) {
-    const bw = Math.min(460, W * 0.5), bh = bw * 136 / 728, bx = W / 2 - bw / 2, by = 8;
+    const bw = Math.min(460, W * 0.42), bh = bw * 136 / 728, bx = W / 2 - bw / 2, by = H * 0.105;
     ctx.fillStyle = boss.rage ? '#ff5a2a' : '#c8372c';
     ctx.fillRect(bx + bw * 0.085, by + bh * 0.3, bw * 0.83 * Math.max(0, boss.hp / boss.max), bh * 0.4);
     ctx.drawImage(BOSS_PLATE, bx, by, bw, bh);
