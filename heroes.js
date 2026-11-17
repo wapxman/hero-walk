@@ -35,6 +35,36 @@ function setHero(id) {
   try { localStorage.setItem(HERO_KEY, id); } catch (e) {}
 }
 
+// ---------- звуки лучницы (Higgsfield, Клауди; файлы sfx/archer_*.mp3, описание — sfx_higgs_archer/game/MAP.txt) ----------
+Object.assign(SFX_SETS, {
+  archer_bow_shot: 4, archer_arrow_hit: 6, archer_gust: 2, archer_volley: 1, archer_shield_on: 2, archer_shield_break: 2,
+  archer_ult_proc: 2, archer_step: 14, archer_death: 2,
+  archer_vo_attack: 4, archer_vo_move: 3, archer_vo_gust: 1, archer_vo_volley: 1, archer_vo_shield: 1, archer_vo_ult: 1,
+  archer_vo_kill: 2, archer_vo_hurt: 1, archer_vo_death: 1, archer_vo_respawn: 1, archer_vo_levelup: 1, archer_vo_cooldown: 1, archer_vo_nomana: 1,
+});
+Object.assign(SND_GAP, { archer_arrow_hit: 0.05, archer_step: 0.1 });
+// общие события боя у лучницы звучат её звуками: шаги, выстрел, смерть
+const ARCHER_SND = { hero_shot: 'archer_bow_shot', step: 'archer_step', hero_death: 'archer_death', archer_shot: 'archer_bow_shot',
+  archer_hit: 'archer_arrow_hit', archer_wave: 'archer_gust', archer_shield: 'archer_shield_on' };
+const _sndBase = snd;
+snd = function (name, vol, rate) {
+  if (HERO_ID === 'archer' && ARCHER_SND[name]) name = ARCHER_SND[name];
+  return _sndBase(name, vol, rate);
+};
+// Реплики: chance — шанс, gap — не чаще раза в gap секунд; две реплики не звучат одновременно
+const voLast = {};
+let voBusy = 0;
+function vo(name, chance, gap) {
+  if (HERO_ID !== 'archer' || !AC || AC.state !== 'running') return;
+  const now = AC.currentTime, n = 'archer_vo_' + name;
+  if (gap && now - (voLast[name] == null ? -1e9 : voLast[name]) < gap) return;
+  if (now < voBusy || Math.random() > chance) return;
+  voLast[name] = now;
+  _sndBase(n, 0.95);
+  const b = SND[n + '_' + sndLast[n]];
+  voBusy = now + (b ? b.duration : 1.5);
+}
+
 // ---------- эффекты лучницы ----------
 const FX3 = {};
 for (const k of ['arrow', 'hit', 'wave', 'shield', 'silence', 'aura']) {
@@ -55,7 +85,11 @@ function fx3(k, x, y, w, h, ax, ay, alpha, rot, ground) {
 // Без попаданий 3 секунды заряды по одному гаснут.
 // уровень пассивки (прокачка R) добавляет +0,6% урона к каждому заряду
 const FOCUS_MAX = 10;
-function focusHit() { P.focus = Math.min(FOCUS_MAX, (P.focus || 0) + 1); P.focusT = 3; }
+function focusHit() {
+  const was = P.focus || 0;
+  P.focus = Math.min(FOCUS_MAX, was + 1); P.focusT = 3;
+  if (was < FOCUS_MAX && P.focus === FOCUS_MAX) { snd('archer_ult_proc', 0.8); vo('ult', 0.5, 20); say(P.x, P.y - CH * 1.3 * HS(), 'Фокус!', '#ffe27a'); }
+}
 const focusK = () => 1 + (0.05 + 0.006 * (skLv('r') - 1)) * (P.focus || 0);
 
 // ---------- атака: стрела ----------
@@ -69,6 +103,9 @@ shoot = function () {
   P.atkCd = 0.6 / (1 + 0.04 * (P.focus || 0)); P.cast = 0.12;
   P.act = { anim: 'atk', t: 0, dur: Math.min(0.45, P.atkCd * 0.9), row: t ? runRow(t.x - P.x, t.y - P.y) : null };
   snd('archer_shot', 0.8);
+  // реплика атаки — в начале серии выстрелов и не чаще раза в 6 с
+  if (performance.now() - (P.lastShot || 0) > 1500) vo('attack', 1, 6);
+  P.lastShot = performance.now();
 };
 function arrow(dx, dy, tgt, dmg) {
   shots.push({ own: 'p', arrow: true, x: P.x + dx * 26 * HS(), y: P.y + dy * 26 * YK * HS(), dx, dy, sp: 1300, tgt, left: RANGE + 120,
@@ -89,8 +126,8 @@ cast = function (id) {
   if (HERO_ID !== 'archer') return _castMage(id);
   if (P.dead > 0 || (typeof SHOP !== 'undefined' && SHOP.paused)) return;
   if (id === 'r') { say(P.x, P.y - CH * 1.2 * HS(), 'Фокус ' + (P.focus || 0) + '/' + FOCUS_MAX + ' — пассивка', '#d9ffb0'); return; }
-  if (P.cd[id] > 0) return;
-  if (P.mp < MANA[id]) { if (!P.noMana || P.noMana < performance.now()) { say(P.x, P.y - CH * HS(), 'мало маны', '#8ab8ff'); P.noMana = performance.now() + 700; } return; }
+  if (P.cd[id] > 0) { vo('cooldown', 1, 3); return; }
+  if (P.mp < MANA[id]) { vo('nomana', 1, 3); if (!P.noMana || P.noMana < performance.now()) { say(P.x, P.y - CH * HS(), 'мало маны', '#8ab8ff'); P.noMana = performance.now() + 700; } return; }
   let row = null;
   if (id === 'q') {
     // Волна: удар ветра вокруг лучницы — урон, отбрасывание и тишина (враг не может стрелять и применять скиллы)
@@ -105,7 +142,7 @@ cast = function (id) {
       e.kb = { vx: dx * push / t, vy: dy * push / t * YK, t };
       e.silT = 3.5 + 0.15 * (skLv('q') - 1);
     }
-    snd('archer_wave', 0.9);
+    snd('archer_wave', 0.9); vo('gust', 0.75);
   } else if (id === 'e') {
     // Залп: пять стрел веером в сторону ближайшего врага (или туда, куда смотрит лучница)
     const t = nearestEnemy(RANGE * 1.1);
@@ -113,12 +150,12 @@ cast = function (id) {
     if (t) { dx = t.x - P.x; dy = (t.y - P.y) / YK; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m; row = runRow(t.x - P.x, t.y - P.y); }
     const a0 = Math.atan2(dy, dx);
     for (let i = -2; i <= 2; i++) { const a = a0 + i * 0.2; arrow(Math.cos(a), Math.sin(a), null, rnd(52, 64) * focusK() * skDmg('e')); }
-    snd('archer_volley', 0.9);
+    snd('archer_volley', 0.9); vo('volley', 0.75);
   } else if (id === 'f') {
     // Щит: купол поглощает 260 урона (плюс 15 за уровень героя) 6 секунд
     P.shield = Math.round((260 + 6 * (P.lvl - 1)) * skDmg('f')); P.shieldT = 6;
     say(P.x, P.y - CH * 1.2 * HS(), 'Щит ' + P.shield, '#b9ffcf');
-    snd('archer_shield', 0.85);
+    snd('archer_shield', 0.85); vo('shield', 0.75);
   }
   P.cd[id] = CDMAX[id] * (P.cdMul || 1) * skCd(id); P.cast = 0.25; P.mp -= MANA[id];
   P.act = { anim: 'cast', t: 0, dur: 0.55, row };
@@ -129,19 +166,29 @@ hurtPlayer = function (d) {
   if (P.dead <= 0 && P.shieldT > 0 && P.shield > 0) {
     const a = Math.min(P.shield, d);
     P.shield -= a; d -= a;
-    if (P.shield <= 0) { P.shieldT = 0; say(P.x, P.y - CH * 1.2 * HS(), 'щит разбит', '#b9ffcf'); }
+    if (P.shield <= 0) { P.shieldT = 0; say(P.x, P.y - CH * 1.2 * HS(), 'щит разбит', '#b9ffcf'); snd('archer_shield_break', 0.8); }
     if (d <= 0) return;
   }
   _hurtPlayer(d);
+  if (P.dead <= 0) vo('hurt', 0.25, 3);
 };
 // каждый кадр: заряды фокуса, дальность, время щита
+const heroEv = { moving: false, kills: 0, dead: 0, lvl: 0 };
 const _combatUpdate = combatUpdate;
 combatUpdate = function (dt) {
   _combatUpdate(dt);
   if (HERO_ID !== 'archer') return;
   RANGE = HEROES.archer.range * (1 + 0.03 * (P.focus || 0));
   if (P.focus > 0) { P.focusT -= dt; if (P.focusT <= 0) { P.focus--; P.focusT = 0.5; } }
-  if (P.shieldT > 0) { P.shieldT -= dt; if (P.shieldT <= 0) P.shield = 0; }
+  if (P.shieldT > 0) { P.shieldT -= dt; if (P.shieldT <= 0) { P.shield = 0; snd('archer_shield_break', 0.6); } }
+  // реплики на события: шаг с места, убийство, смерть, возрождение, новый уровень
+  const st = heroEv;
+  if (P.moving && !st.moving) vo('move', 1, 6);
+  if (kills > st.kills) vo('kill', 0.2);
+  if (P.dead > 0 && !(st.dead > 0)) vo('death', 1);
+  if (!(P.dead > 0) && st.dead > 0) vo('respawn', 1);
+  if (P.lvl > st.lvl && st.lvl) vo('levelup', 1);
+  st.moving = P.moving; st.kills = kills; st.dead = P.dead; st.lvl = P.lvl;
   if (P.dead > 0) { P.focus = 0; P.shield = 0; P.shieldT = 0; }
 };
 
