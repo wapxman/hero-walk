@@ -7,6 +7,8 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
   const TICK = 30, DT = 1 / TICK;          // сервер считает мир 30 раз в секунду
+  // версия протокола: клиент и сервер обязаны совпадать (APK может отстать от сайта) — увеличивать при любом изменении формата
+  const PROTO = 2;
   const YK = 0.72;                         // сжатие по вертикали (наклон камеры), как в combat.js
   const RUN_AT = 0.6, WALK_SPEED = 105, RUN_SPEED = 260;
   const PR = [16, 11];                     // «толщина» героя у земли
@@ -192,7 +194,7 @@
     }
     return out;
   }
-  return { TICK, DT, YK, POS_Q, setMap, collide, inWalk, move, qpos, KINDS,
+  return { PROTO, TICK, DT, YK, POS_Q, setMap, collide, inWalk, move, qpos, KINDS,
     C_INPUT, C_PING, S_SNAP, S_EVENTS, S_PONG, B_ATK, B_Q, B_E, B_F, B_R, B_WAVE,
     F_DEAD, F_ROOT, F_SIL, F_SLOW, F_SHIELD, F_CAST, F_ATK, F_RAGE, EV,
     encInput, encPing, encSnap, decSnap, encEvents, decEvents };

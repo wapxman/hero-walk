@@ -426,6 +426,11 @@ function onMessage(c, data, isBin) {
     let m; try { m = JSON.parse(data.toString()); } catch (e) { return; }
     if (m.t === 'join') {
       leave(c);
+      if (m.proto !== NET.PROTO) {
+        // старый или новый клиент: понятная ошибка вместо странного поведения в общей комнате
+        return c.ws.send(JSON.stringify({ t: 'error', code: 'proto', server: NET.PROTO, client: m.proto || 0,
+          msg: (m.proto || 0) < NET.PROTO ? 'Обновите приложение — у соперника новая версия' : 'На сервере старая версия игры, попробуйте позже' }));
+      }
       const mode = m.mode === 'duel' ? 'duel' : 'coop';
       let r = m.room ? rooms.get(String(m.room)) : null;
       if (r && (r.mode !== mode || r.clients.size >= r.max)) return c.ws.send(JSON.stringify({ t: 'error', msg: r.mode !== mode ? 'комната другого режима' : 'комната заполнена' }));

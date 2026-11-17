@@ -68,7 +68,7 @@ var NETC = { on: false };
     ws.binaryType = 'arraybuffer';
     S.ws = ws;
     ws.onopen = () => {
-      ws.send(JSON.stringify({ t: 'join', mode, room: room || undefined, hero: HERO_ID, name: HEROES[HERO_ID].name, prog: progOf() }));
+      ws.send(JSON.stringify({ t: 'join', proto: N.PROTO, mode, room: room || undefined, hero: HERO_ID, name: HEROES[HERO_ID].name, prog: progOf() }));
     };
     ws.onmessage = m => {
       if (typeof m.data === 'string') return onJson(JSON.parse(m.data));
@@ -100,7 +100,13 @@ var NETC = { on: false };
       say(P.x, P.y - CH * 1.3 * HS(), m.mode === 'duel' ? 'Дуэль! Комната ' + m.room : 'Кооператив, комната ' + m.room, '#ffe9a8');
     } else if (m.t === 'peer') { S.names[m.id] = m; say(P.x, P.y - CH * 1.2 * HS(), (m.name || 'Игрок') + ' в комнате', '#bfe6ff'); }
     else if (m.t === 'left') { S.views.delete(m.id); say(P.x, P.y - CH * 1.2 * HS(), 'Игрок вышел', '#ffd28a'); }
-    else if (m.t === 'error') status('Ошибка: ' + m.msg);
+    else if (m.t === 'error' && m.code === 'proto') {
+      // версия протокола не совпала: в APK — обновить приложение, на сайте — обновить страницу
+      const app = location.host === 'duelarena.app';
+      status(m.client < m.server ? (app ? 'Обновите приложение — у соперника новая версия' : 'Обновите страницу — у соперника новая версия')
+        : 'На сервере старая версия игры, попробуйте позже');
+      try { S.ws.close(); } catch (e) {}
+    } else if (m.t === 'error') status('Ошибка: ' + m.msg);
   }
 
   // ---------- снимки: свой герой — сверка, остальные — в буфер для интерполяции ----------
@@ -185,7 +191,7 @@ var NETC = { on: false };
         const fromHero = mine || (ov && ov.hero);
         shots.push({ nid: id, own: fromHero ? 'p' : 'e', arrow: kind === 2, bolt: kind === 4, x, y, dx: dx / 1000, dy: dy / 1000, sp, left: 1600,
           tgt: tgt >= 0 ? viewOf(tgt) : null, h: fromHero ? CH * 0.55 * HS() : 80, sc: fromHero ? HS() : 1 });
-        if (mine) { P.act = { anim: 'atk', t: 0, dur: 0.36, row: runRow(dx, dy) }; P.cast = 0.14; snd(HERO_ID === 'archer' ? 'archer_shot' : 'hero_shot', 0.8); }
+        if (mine) { P.act = { anim: 'atk', t: 0, dur: 0.36, row: runRow(dx, dy) }; P.cast = 0.14; snd(HERO_ID === 'archer' ? 'archer_shot' : 'hero_shot', 0.8); voAttack(); }
         else if (ov && ov.hero) { ov.act = { t: 0, dur: 0.36 }; ov.anim = 'atk'; snd(ov.kind === 'archer' ? 'archer_bow_shot' : 'hero_shot_1', 0.5); }
         else if (!fromHero) snd(kind === 4 ? 'enemy_arrow' : 'enemy_fireball', 0.45);
       } else if (t === E.HIT) {
@@ -200,7 +206,7 @@ var NETC = { on: false };
         if (!v) continue;
         const top = v === P ? CH * 1.05 * HS() : (v.ch && v.ch.ok ? v.ch.top * v.ch.U * (v.sc || 1) * 0.8 : 60);
         say(v.x + rnd(-14, 14), v.y - top, (v === P ? '-' : '') + Math.round(dmg), v === P ? '#ff8a7a' : col === 2 ? '#d9ffb0' : '#bfe6ff');
-        if (v === P) { P.hurt = 0.25; if (HERO_ID === 'archer' && Math.random() < 0.25) snd('archer_vo_hurt', 0.9); } else v.flash = 0.08;
+        if (v === P) { P.hurt = 0.25; vo('hurt', 0.25, 3); } else v.flash = 0.08;
       } else if (t === E.DIE) {
         const [, id] = e, v = viewOf(id);
         if (v === P) { P.dead = 3; snd('hero_death', 0.75); }
@@ -209,7 +215,7 @@ var NETC = { on: false };
       } else if (t === E.CAST) {
         const [, owner, sk, a, b, c] = e, ov = viewOf(owner), mine = owner === S.myId;
         const [hero, slot] = SK_OF[sk] || [];
-        if (mine && slot) { P.cd[slot] = CDMAX[slot] * skCd(slot); P.cast = 0.3; P.act = { anim: 'cast', t: 0, dur: 0.6, row: null }; }
+        if (mine && slot) { P.cd[slot] = CDMAX[slot] * skCd(slot); P.cast = 0.3; P.act = { anim: 'cast', t: 0, dur: 0.6, row: null }; voSkill(slot); }
         else if (ov && ov.hero) { ov.act = { t: 0, dur: 0.6, cast: 1 }; ov.anim = 'cast'; }
         if (sk === 1) { fx.push({ type: 'nova', x: a, y: b, t: 0, dur: 0.95, R: c }); snd('nova', 0.9); }
         else if (sk === 2) { const tv = viewOf(a); if (tv) fx.push({ type: 'chains', e: tv, x: tv.x, y: tv.y, t: 0, dur: b / 100 + 0.45, h: (tv.ch ? tv.ch.top * tv.ch.U * (tv.sc || 1) : 170) }); snd('chains', 0.85); }
@@ -254,8 +260,8 @@ var NETC = { on: false };
     if (!NETC.on) return _castN(id);
     if (P.dead > 0 || SHOP.paused) return;
     if (HERO_ID === 'archer' && id === 'r') return _castN(id);       // пассивка: только подсказка
-    if (P.cd[id] > 0) { if (HERO_ID === 'archer') vo('cooldown', 1, 3); return; }
-    if (P.mp < MANA[id]) { say(P.x, P.y - CH * HS(), 'мало маны', '#8ab8ff'); return; }
+    if (P.cd[id] > 0) { vo('cooldown', 1, 3); return; }
+    if (P.mp < MANA[id]) { vo('nomana', 1, 3); say(P.x, P.y - CH * HS(), 'мало маны', '#8ab8ff'); return; }
     S.latch |= BIT[id];
   };
   const _startWave = SHOP.startWave;
@@ -302,7 +308,7 @@ var NETC = { on: false };
     }
     // пинг раз в секунду
     if (S.ws && S.ws.readyState === 1 && performance.now() - S.pingT > 1000) { S.pingT = performance.now(); S.ws.send(N.encPing(S.pingT)); }
-    if (!paused) localUpdate(dt);
+    if (!paused) { localUpdate(dt); heroVoiceTick(); }
     SHOP.hud();
     const mode = S.modeOn === 'duel' ? 'Дуэль' : 'Вместе', other = [...S.views.values()].filter(v => v.hero);
     let line = mode + ' · комната ' + S.room + ' · пинг ' + Math.round(S.rtt) + ' мс · игроков ' + (1 + other.length);

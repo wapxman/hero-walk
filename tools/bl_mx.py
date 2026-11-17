@@ -22,6 +22,11 @@ for key, fname, n, loop in cfg["anims"]:
         if o.type == "MESH" and not any(m.type == "ARMATURE" for m in o.modifiers):
             print("DROP", o.name)
             bpy.data.objects.remove(o, do_unlink=True)
+    for o in list(bpy.data.objects):
+        # лишние части модели по материалу (имена объектов в FBX Mixamo бывают перепутаны, материалы — нет),
+        # например стрела, которая в анимациях стойки и натяжения лежит у ног
+        if o.type == "MESH" and any(k in s.material.name for k in cfg.get("drop", []) for s in o.material_slots if s.material):
+            print("DROP", o.name); bpy.data.objects.remove(o, do_unlink=True)
     if cfg.get("tex"):
         # перекрашенная текстура вместо родной
         new = bpy.data.images.load(cfg["tex"])
