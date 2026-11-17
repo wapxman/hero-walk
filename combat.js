@@ -8,31 +8,47 @@ function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
 const rnd = (a, b) => a + Math.random() * (b - a);
 
 // ---------- звук ----------
-const SFX = ['cm5_shot_v1', 'cm5_shot_v2', 'cm5_shot_v3', 'cm_ice_hit_small', 'cm_ice_hit_mid', 'cm_ice_hit_big',
-  'cm3_nova', 'cm3_frostbite', 'cm_ice_hail', 'cm3_ult', 'cm_ult_purga',
-  'em_shot_v1', 'em_shot_v2', 'em_shot_v3', 'em_slam', 'em_rockburst', 'em_quake_ult', 'gen_nova'];
+// В репозитории (и на сайте) только звуки атаки героя, сделанные в Higgsfield. Остальные места пока молчат.
+const SFX = ['hero_shot1', 'hero_shot2'];
 const SND = {};
 let AC = null;
+// Оригинальные звуки Доты (Valve) — только для локальной проверки: их отдаёт локальный сервер разработчика
+// по адресу dota/ из папки вне репозитория. На сайте и в APK этого адреса нет — там тишина.
+const DOTA_FILES = {
+  hit1: '01_Атака/05_Попадание снаряда 1_Crystal_Maiden_projectile_impact1.mp3',
+  hit2: '01_Атака/06_Попадание снаряда 2_Crystal_Maiden_projectile_impact2.mp3',
+  hit3: '01_Атака/07_Попадание снаряда 3_Crystal_Maiden_projectile_impact3.mp3',
+  step1: '02_Передвижение/01_Шаг 1_Shared_footstep_hero_general1.mp3',
+  step2: '02_Передвижение/02_Шаг 2_Shared_footstep_hero_general2.mp3',
+  step3: '02_Передвижение/03_Шаг 3_Shared_footstep_hero_general3.mp3',
+  step4: '02_Передвижение/04_Шаг 4_Shared_footstep_hero_general4.mp3',
+  step5: '02_Передвижение/05_Шаг 5_Shared_footstep_hero_general5.mp3',
+  step6: '02_Передвижение/06_Шаг 6_Shared_footstep_hero_general6.mp3',
+  step7: '02_Передвижение/07_Шаг 7_Shared_footstep_hero_general7.mp3',
+  nova: '03_Crystal Nova/02_Звук полностью_Crystal_Nova.mp3',
+  ff: '04_Freezing Field/05_Звук полностью_Freezing_Field.mp3',
+  ff1: '04_Freezing Field/02_Цель 1_Freezing_Field_target1.mp3',
+  ff2: '04_Freezing Field/03_Цель 2_Freezing_Field_target2.mp3',
+  ff3: '04_Freezing Field/04_Цель 3_Freezing_Field_target3.mp3',
+  death: '05_Остальные/01_Звук смерти 50-60 громкости_Crystal_Maiden_death2.mp3',
+  coins: '06_Золото/03_Монеты за добивание крипа_Ui_coins.mp3',
+};
 function audioInit() {
   if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
   const C = window.AudioContext || window.webkitAudioContext;
   if (!C) return;
   AC = new C();
-  const load = (path, n) => fetch(path + V).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
+  const load = (path, n) => fetch(path).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
     .then(b => AC.decodeAudioData(b, buf => { SND[n] = buf; }, () => {})).catch(() => {});
-  for (const n of SFX) load('sfx/' + n + '.mp3', n);
-  // Локальный набор (папка sfx_dota есть только на компьютере разработчика, в репозиторий не входит).
-  // Если он найден, игра берёт звуки героини из него.
-  fetch('sfx_dota/shot1.mp3' + V, { method: 'HEAD' }).then(r => {
+  for (const n of SFX) load('sfx/' + n + '.mp3' + V, n);
+  fetch('dota/MANIFEST.txt', { method: 'HEAD' }).then(r => {
     if (!r.ok) return;
     DOTA_ON = true;
-    for (const n of DOTA) load('sfx_dota/' + n + '.mp3', 'd_' + n);
+    for (const n in DOTA_FILES) load('dota/' + DOTA_FILES[n].split('/').map(encodeURIComponent).join('/'), 'd_' + n);
   }).catch(() => {});
   musicStart();
 }
 let DOTA_ON = false;
-const DOTA = ['pre1', 'pre2', 'shot1', 'shot2', 'hit1', 'hit2', 'hit3', 'nova', 'ff', 'ff1', 'ff2', 'ff3', 'death',
-  'step1', 'step2', 'step3', 'step4', 'step5', 'step6', 'step7'];
 const D_HITS = ['d_hit1', 'd_hit2', 'd_hit3'], D_FF = ['d_ff1', 'd_ff2', 'd_ff3'];
 const D_STEPS = ['d_step1', 'd_step2', 'd_step3', 'd_step4', 'd_step5', 'd_step6', 'd_step7'];
 let stepT = 0;
@@ -116,9 +132,6 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyN' && mus.on) musicNext();
 });
 
-const SHOTS = ['cm5_shot_v1', 'cm5_shot_v2', 'cm5_shot_v3'];
-const HITS = ['cm_ice_hit_small', 'cm_ice_hit_mid'];
-const ESHOTS = ['em_shot_v1', 'em_shot_v2', 'em_shot_v3'];
 
 // ---------- состояние героини ----------
 const SPAWN = { x: 440 * GS, y: 745 * GS };
@@ -221,7 +234,7 @@ function hurtEnemy(e, dmg, col) {
     kills++;
     e.dieT = 0; e.anim = 'die'; e.act = null; corpses.push(e);
     if (typeof SHOP !== 'undefined') SHOP.onKill(e);
-    play('em_rockburst', e.boss ? 0.6 : 0.3, e.boss ? 0.8 : 1.4);
+    play('d_coins', e.boss ? 0.9 : 0.6);   // звон монет за добивание (Дота, только локально)
   }
 }
 function slow(e, k, t) { e.slowK = Math.min(e.slowT > 0 ? e.slowK : 1, k); e.slowT = Math.max(e.slowT, t); }
@@ -232,8 +245,7 @@ function shoot() {
   shots.push({ own: 'p', x: P.x + dx * 26 * HS(), y: P.y + dy * 26 * YK * HS(), dx, dy, sp: 980, tgt: t, left: 700, dmg: rnd(44, 56), h: CH * 0.55 * HS(), sc: HS() });
   P.atkCd = 0.62; P.cast = 0.16;
   P.act = { anim: 'atk', t: 0, dur: 0.36, row: t ? runRow(t.x - P.x, t.y - P.y) : null };
-  if (DOTA_ON) { play(pick(['d_pre1', 'd_pre2']), 0.45); play(pick(['d_shot1', 'd_shot2']), 0.8); }
-  else play(pick(SHOTS), 0.7, rnd(0.94, 1.06));
+  play(pick(['hero_shot1', 'hero_shot2']), 0.8);
 }
 // размер героя из редактора: скиллы и выстрелы растут вместе с ним (и картинка, и зона поражения)
 const HS = () => (CFG.units.hero.scale || 1);
@@ -243,20 +255,18 @@ function cast(id) {
     const c = aimPoint(320 * HS()), R = 215 * HS();
     fx.push({ type: 'nova', x: c.x, y: c.y, t: 0, dur: 0.95, R });
     for (const e of enemies) if (gdist(c, e) < R + e.rad) { hurtEnemy(e, 95); slow(e, 0.45, 3.5); }
-    play(SND.gen_nova ? 'gen_nova' : DOTA_ON ? 'd_nova' : 'cm3_nova', 0.9);   // gen_nova — сгенерирован в Higgsfield
+    play('d_nova', 0.9);
   } else if (id === 'e') {
     const t = nearestEnemy(RANGE);
     if (!t) { say(P.x, P.y - CH * HS(), 'нет цели', '#ffd28a'); return; }
     t.root = 2.8; t.dot = 45; hurtEnemy(t, 40);
     fx.push({ type: 'chains', e: t, x: t.x, y: t.y, t: 0, dur: 3.25, h: t.ch.top * t.ch.U });
-    play('cm3_frostbite', 0.9);
   } else if (id === 'f') {
     const c = aimPoint(340 * HS());
     zones.push({ type: 'hail', x: c.x, y: c.y, R: 250 * HS(), t: 3.2, tick: 0 });
-    play('cm_ice_hail', 0.9);
   } else if (id === 'r') {
     P.ult = DOTA_ON ? 10 : 5; P.ultTick = 0;   // оригинальный звук поля длится дольше
-    if (DOTA_ON) play('d_ff', 0.9); else { play('cm3_ult', 0.9); play('cm_ult_purga', 0.55); }
+    play('d_ff', 0.9);
   }
   P.cd[id] = CDMAX[id] * (P.cdMul || 1); P.cast = 0.3;
   P.act = { anim: 'cast', t: 0, dur: 0.7, row: null };
@@ -432,7 +442,6 @@ function updateEnemy(e, dt) {
   if (e.mel && d < k.reach + 12 && e.atkCd <= 0) {
     e.atkCd = k.cd;
     startAct(e, 'atk', 0.5, 0.55, () => {
-      play(pick(ESHOTS), 0.22, 1.5);
       if (gdist(P, e) < k.reach + 34) hurtPlayer(rnd(k.dmg[0], k.dmg[1]) * e.dm);
     });
   }
@@ -441,7 +450,6 @@ function updateEnemy(e, dt) {
     startAct(e, 'atk', 0.55, 0.5, (ax, ay) => {
       shots.push({ own: 'e', bolt: k.bolt, x: e.x + ax * 20, y: e.y + ay * 20 * YK, dx: ax, dy: ay, sp: k.shot, left: k.want + 150,
         dmg: rnd(k.dmg[0], k.dmg[1]) * e.dm, h: e.ch.U * 0.75 });
-      play(pick(ESHOTS), k.bolt ? 0.3 : 0.4, k.bolt ? 1.5 : rnd(0.95, 1.05));
     });
   }
   if (e.boss) bossSkills(e, d);
@@ -451,7 +459,7 @@ function updateEnemy(e, dt) {
 function bossSkills(e, d) {
   if (!e.rage && e.hp < e.max * 0.4) {
     e.rage = true; e.speed *= 1.35;
-    say(e.x, e.y - e.ch.top * e.ch.U - 30, 'ЯРОСТЬ!', '#ff5a3a'); play('em_quake_ult', 0.6, 1.3);
+    say(e.x, e.y - e.ch.top * e.ch.U - 30, 'ЯРОСТЬ!', '#ff5a3a');
   }
   const cdk = e.rage ? 0.65 : 1;
   if (e.summonCd <= 0 && enemies.length < 14) {
@@ -462,23 +470,22 @@ function bossSkills(e, d) {
         m.x = e.x + Math.cos(a) * 110; m.y = e.y + Math.sin(a) * 110 * YK; collide(m);
         fx.push({ type: 'quake', x: m.x, y: m.y, t: 0, dur: 0.6, R: 60 });
       }
-      say(e.x, e.y - e.ch.top * e.ch.U - 30, 'Ко мне!', '#ffb36a'); play('em_slam', 0.5, 1.2);
+      say(e.x, e.y - e.ch.top * e.ch.U - 30, 'Ко мне!', '#ffb36a');
     });
   } else if (e.quakeCd <= 0) {
     e.quakeCd = 12 * cdk;
     startAct(e, 'cast', 1.3, 0.25, () => {
       fx.push({ type: 'tele', x: P.x, y: P.y, t: 0, dur: 1.6, R: 290, dmg: 120 * e.dm, big: true });
-      play('em_quake_ult', 0.8);
     });
   } else if (d > 300 && d < 900 && e.leapCd <= 0) {
     e.leapCd = 8 * cdk;
     const tx = P.x, ty = P.y;
-    fx.push({ type: 'tele', x: tx, y: ty, t: 0, dur: 0.95, R: 175, dmg: 70 * e.dm, snd: 'em_slam' });
+    fx.push({ type: 'tele', x: tx, y: ty, t: 0, dur: 0.95, R: 175, dmg: 70 * e.dm });
     e.leap = { x0: e.x, y0: e.y, x1: tx, y1: ty, t: 0, dur: 0.95 };
     startAct(e, 'atk', 1.0, 2, () => {});
   } else if (d < 150 && e.slamCd <= 0) {
     e.slamCd = 2.6 * cdk;
-    fx.push({ type: 'tele', x: e.x, y: e.y, t: 0, dur: 0.75, R: 155, dmg: 55 * e.dm, snd: 'em_slam' });
+    fx.push({ type: 'tele', x: e.x, y: e.y, t: 0, dur: 0.75, R: 155, dmg: 55 * e.dm });
     startAct(e, 'atk', 1.0, 2, () => {});
   }
 }
@@ -534,7 +541,7 @@ function combatUpdate(dt) {
         if (e.hp > 0 && gdist(s, e) < e.rad + 16 * (s.sc || 1)) {
           hurtEnemy(e, s.dmg); slow(e, 0.8, 1); s.left = 0;
           fx.push({ type: 'spark', hit: 1, x: e.x, y: e.y - e.ch.top * e.ch.U * 0.5, t: 0, dur: 0.4, R: 34 * (s.sc || 1), sc: s.sc || 1 });
-          play(pick(DOTA_ON ? D_HITS : HITS), 0.45, rnd(0.95, 1.1));
+          play(pick(D_HITS), 0.45, rnd(0.95, 1.1));
           break;
         }
       }
@@ -560,7 +567,7 @@ function combatUpdate(dt) {
       for (const e of enemies) if (gdist(f, e) < f.R + e.rad) { hurtEnemy(e, f.dmg); slow(e, f.sk, f.st); hit = true; }
       fx.push({ type: 'spark', hail: 1, x: f.x, y: f.y, t: 0, dur: 0.5, R: f.R, sc: f.sc });
       if (hit || Math.random() < 0.18) {
-        const set = !DOTA_ON ? HITS.concat(['cm_ice_hit_big']) : f.st === 2 ? D_FF : D_HITS;
+        const set = f.st === 2 ? D_FF : D_HITS;
         play(pick(set), hit ? 0.3 : 0.14, rnd(0.9, 1.15));
       }
     }
@@ -933,7 +940,7 @@ function combatUI() {
   if (el) {
     const n = Object.keys(SND).length, on = AC && AC.state === 'running';
     const txt = !on ? '🔇 коснитесь экрана, чтобы включить звук'
-      : '🔊 звук: ' + (DOTA_ON ? 'Дота' : 'синтез') + ', загружено ' + n;
+      : '🔊 звук' + (DOTA_ON ? ' (+ Дота, локально)' : '') + ', загружено ' + n;
     if (el.textContent !== txt) { el.textContent = txt; el.style.color = on ? '#9df0a6' : '#ffd28a'; }
   }
 }
