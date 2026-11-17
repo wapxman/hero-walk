@@ -34,7 +34,7 @@ const SHOP = {
     P.spdMul = (1 + 0.1 * L('boots')) * (b.swift > 0 ? 1.45 : 1);
     P.cdMul = Math.pow(0.88, L('ring'));
     P.armMul = Math.pow(0.88, L('shield'));
-    const mh = Math.round(BASE_HP * CFG.units.hero.hp) + 150 * L('heart') + 30 * (P.lvl - 1);
+    const mh = Math.round((P.baseHp || BASE_HP) * CFG.units.hero.hp) + 150 * L('heart') + 30 * (P.lvl - 1);
     if (mh !== P.maxHp) { P.hp = Math.min(mh, P.hp + Math.max(0, mh - P.maxHp)); P.maxHp = mh; }
   },
   itemPrice(it) { return Math.round(it.price * (1 + 0.6 * (SHOP.items[it.id] || 0))); },

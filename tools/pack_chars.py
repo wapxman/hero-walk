@@ -11,7 +11,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "chars", "src")
 OUT = os.path.join(ROOT, "chars")
 SHEETS = {"zombie": 256, "vampire": 256, "mage": 256, "archer": 256, "boss": 320,
-          "hero_a": 400, "hero_b": 400, "hero_d": 400}
+          "hero_a": 400, "hero_b": 400, "hero_d": 400, "archer_a": 400, "archer_b": 400, "archer_d": 400}
 MAXW, PAD = 2048, 2
 
 atlas = {}

@@ -45,6 +45,7 @@ function snd(name, vol, rate) {
   const gap = SND_GAP[name];
   if (gap && AC.currentTime - (sndAt[name] || -1) < gap) return;
   const k = SFX_SETS[name];
+  if (!k) return;
   let i = 1 + Math.floor(Math.random() * k);
   if (k > 1 && i === sndLast[name]) i = i % k + 1;
   sndLast[name] = i; sndAt[name] = AC.currentTime;
@@ -129,7 +130,7 @@ function gainXp(n) {
 Object.assign(P, { hp: 600, maxHp: 600, dead: 0, face: { x: 1, y: 0 }, atkCd: 0, cast: 0, ult: 0, ultTick: 0, hurt: 0,
   cd: { q: 0, e: 0, f: 0, r: 0 } });
 const CDMAX = { q: 6, e: 9, f: 12, r: 28 };
-const RANGE = 600;
+let RANGE = 600;
 let kills = 0, wave = 0, waveT = 1.5;
 
 const enemies = [], shots = [], fx = [], texts = [], zones = [];
@@ -322,21 +323,26 @@ function drawSprite(c, anim, fi, row, flash) {
 }
 // Герой: три листа по 400 px на кадр. s — лист, i — первый кадр в полосе направления, n — число кадров,
 // o — сколько метров модели охватывает кадр (стойка и бег сняты крупно, падение — шире).
-const HERO = { U: 118, zc: 0.9, cell: 400,
+let HERO = { pre: 'hero_', U: 118, zc: 0.9, cell: 400,
   sheets: { a: { wrap: 6, rows: 2 }, b: { wrap: 6, rows: 2 }, d: { wrap: 5, rows: 1 } },
   an: { idle: { s: 'a', i: 0, n: 4, o: 2.4 }, run: { s: 'a', i: 4, n: 8, o: 2.4 }, atk: { s: 'b', i: 0, n: 5, o: 2.4 },
     cast: { s: 'b', i: 5, n: 6, o: 2.6 }, die: { s: 'd', i: 0, n: 5, o: 3.0 } } };
-for (const k in HERO.sheets) {
-  const S = HERO.sheets[k]; S.img = new Image();
-  S.img.onload = () => { S.ok = true; HERO.ok = Object.values(HERO.sheets).every(x => x.ok); };
-  S.img.src = 'chars/at_hero_' + k + '.webp' + V;
+// листы героя грузятся только у выбранного героя (heroes.js вызывает loadHero)
+function loadHero(H) {
+  if (H.loading) return; H.loading = true;
+  for (const k in H.sheets) {
+    const S = H.sheets[k]; S.img = new Image();
+    S.img.onload = () => { S.ok = true; H.ok = Object.values(H.sheets).every(x => x.ok); };
+    S.img.src = 'chars/at_' + H.pre + k + '.webp' + V;
+  }
 }
+const MAGE = HERO;
 function drawHeroSprite(anim, fi, row, flash) {
   const a = HERO.an[anim] || HERO.an.idle, S = HERO.sheets[a.s];
   fi = a.i + Math.max(0, Math.min(a.n - 1, fi));
   const flip = row >= 1 && row <= 3;            // ряды 1–3 листа смотрят вправо, левые — зеркало
   if (row > 4) row = 8 - row;
-  const gx = fi % S.wrap, gy = row * S.rows + Math.floor(fi / S.wrap), nm = 'hero_' + a.s;
+  const gx = fi % S.wrap, gy = row * S.rows + Math.floor(fi / S.wrap), nm = HERO.pre + a.s;
   const size = a.o * HERO.U, ay = 0.5 + HERO.zc * COS_EL / a.o;
   ctx.save();
   if (flip) ctx.scale(-1, 1);
@@ -346,7 +352,7 @@ function drawHeroSprite(anim, fi, row, flash) {
 }
 // герой: персонаж и размер берутся из настроек редактора; адрес с #lira возвращает прежнюю Лиру
 function drawHero() {
-  const u = CFG.units.hero, c = CHARS[u.char] || CHARS.ganfaul;
+  const u = CFG.units.hero, c = HERO !== MAGE ? CHARS.ganfaul : CHARS[u.char] || CHARS.ganfaul;
   if (!c.ok || location.hash.indexOf('lira') >= 0) return false;
   let anim = 'idle', fi = Math.floor(P.heroT * 3) % frames(c, 'idle'), row = runRow(P.face.x, P.face.y);
   if (P.dead > 0) { anim = 'die'; fi = Math.floor((3 - P.dead) / 0.6 * frames(c, 'die')); }
@@ -405,6 +411,13 @@ function startAct(e, anim, dur, at, fn) { e.act = { anim, dur, at, fn, t: 0, hit
 function updateEnemy(e, dt) {
   e.bob += dt * 7; e.flash -= dt; e.atkCd -= dt; e.slamCd -= dt; e.quakeCd -= dt; e.leapCd -= dt; e.summonCd -= dt; e.animT += dt;
   if (e.slowT > 0) e.slowT -= dt;
+  if (e.silT > 0) e.silT -= dt;
+  if (e.kb) {
+    const q = Math.min(dt, e.kb.t); e.x += e.kb.vx * q; e.y += e.kb.vy * q; e.kb.t -= dt; collide(e);
+    e.act = null; e.leap = null; e.jump = 0; e.anim = 'idle';
+    if (e.kb.t <= 0) e.kb = null;
+    return;
+  }
   if (e.root > 0) {
     if (e.leap) { e.leap = null; collide(e); }   // пойман в прыжке: остаётся на месте, но не внутри камня
     e.root -= dt; e.act = null; e.jump = 0; e.anim = 'idle'; hurtTick(e, e.dot * dt); return;
@@ -444,7 +457,7 @@ function updateEnemy(e, dt) {
       }
     });
   }
-  if (e.rng && d < k.want + 40 && e.atkCd <= 0) {
+  if (e.rng && !(e.silT > 0) && d < k.want + 40 && e.atkCd <= 0) {
     e.atkCd = k.cd;
     startAct(e, 'atk', 0.55, 0.5, (ax, ay) => {
       shots.push({ own: 'e', bolt: k.bolt, x: e.x + ax * 20, y: e.y + ay * 20 * YK, dx: ax, dy: ay, sp: k.shot, left: k.want + 150,
@@ -452,7 +465,7 @@ function updateEnemy(e, dt) {
       snd(k.bolt ? 'enemy_arrow' : 'enemy_fireball', 0.45, rnd(0.95, 1.05));
     });
   }
-  if (e.boss) bossSkills(e, d);
+  if (e.boss && !(e.silT > 0)) bossSkills(e, d);
 }
 // Скиллы босса: удар по земле вблизи, прыжок на героя издалека, землетрясение под героем, призыв свиты.
 // Ниже 40% здоровья впадает в ярость: быстрее двигается и чаще применяет скиллы.
@@ -542,9 +555,10 @@ function combatUpdate(dt) {
     if (s.own === 'p') {
       for (const e of enemies) {
         if (e.hp > 0 && gdist(s, e) < e.rad + 16 * (s.sc || 1)) {
-          hurtEnemy(e, s.dmg); slow(e, 0.8, 1); s.left = 0;
-          fx.push({ type: 'spark', hit: 1, x: e.x, y: e.y - e.ch.top * e.ch.U * e.sc * 0.5, t: 0, dur: 0.4, R: 34 * (s.sc || 1), sc: s.sc || 1 });
-          snd('hit', 0.45, rnd(0.95, 1.1));
+          hurtEnemy(e, s.dmg); if (!s.arrow) slow(e, 0.8, 1); s.left = 0;
+          if (s.onHit) s.onHit(e);
+          fx.push({ type: 'spark', hit: 1, hit3: s.arrow, x: e.x, y: e.y - e.ch.top * e.ch.U * e.sc * 0.5, t: 0, dur: 0.4, R: 34 * (s.sc || 1), sc: s.sc || 1 });
+          snd(s.arrow ? 'archer_hit' : 'hit', 0.45, rnd(0.95, 1.1));
           break;
         }
       }
@@ -628,7 +642,7 @@ function stormDraw(x, y, R, t, alpha) {
   fx2('storm', x, y, R * 1.3, R * 1.3, 0.5, 0.5, alpha * 0.22, -t * 1.4 + 1, true);
 }
 // иконки кнопок: лист 3x2
-const SK_ICONS = new Image(); SK_ICONS.src = 'ui/sk_icons.webp' + V;
+let SK_ICONS = new Image(); SK_ICONS.src = 'ui/sk_icons.webp' + V;
 const SK_CELL = { atk: 0, q: 1, e: 2, f: 3, r: 4 };
 const TOUCH_UI = 'ontouchstart' in window;   // на телефоне подписи клавиш не нужны
 
@@ -640,6 +654,7 @@ function disc(x, y, R, fill, stroke, lw) {
 }
 // всё, что лежит на земле: зоны, предупреждения, кольца
 function combatGround(t) {
+  if (window.heroGround) heroGround(t);
   const tg = P.dead > 0 ? null : nearestEnemy(RANGE);
   if (tg) disc(tg.x, tg.y, tg.rad * 1.35, null, 'rgba(160,220,255,0.75)', 2.5);
   if (P.ult > 0) {
@@ -798,6 +813,11 @@ function combatOver(t) {
   for (const f of fx) {
     if (f.type !== 'spark' && f.type !== 'puff') continue;
     if (f.hail && fx2ok('shatter')) continue;
+    if (f.hit3 && typeof FX3 !== 'undefined' && FX3.hit.ok) {
+      const k = f.t / f.dur, s = 0.45 + 0.75 * easeOut(k);
+      fx3('hit', f.x, f.y, 180 * s * (f.sc || 1), 180 * s * (f.sc || 1), 0.5, 0.5, 1 - k, f.x * 0.03);
+      continue;
+    }
     if (f.hit && fx2ok('hit')) {
       const k = f.t / f.dur, s = 0.45 + 0.75 * easeOut(k);
       ctx.globalCompositeOperation = 'source-over';
@@ -810,6 +830,7 @@ function combatOver(t) {
     g.addColorStop(0, 'rgba(' + col + ',' + 0.8 * (1 - k) + ')'); g.addColorStop(1, 'rgba(' + col + ',0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(f.x, f.y, R, 0, 7); ctx.fill();
   }
+  if (window.heroOver) heroOver(t);
   if (P.cast > 0 && P.dead <= 0) {
     const hs = HS(), y = P.y - CH * 0.78 * hs, g = ctx.createRadialGradient(P.x, y, 0, P.x, y, 60 * hs);
     g.addColorStop(0, 'rgba(170,225,255,' + Math.min(0.9, P.cast * 5) + ')'); g.addColorStop(1, 'rgba(170,225,255,0)');
@@ -844,6 +865,7 @@ function combatUI() {
       if (on) { ctx.save(); ctx.shadowColor = 'rgba(150,220,255,0.95)'; ctx.shadowBlur = 24; }
       ctx.drawImage(SK_ICONS, (i % 3) * c, Math.floor(i / 3) * c, c, c, b.x - d / 2, b.y - d / 2, d, d);
       if (on) ctx.restore();
+      if (window.heroButton && heroButton(b)) continue;
       if (cd <= 0 && b.id !== 'atk' && P.mp < MANA[b.id]) {
         ctx.beginPath(); ctx.arc(b.x, b.y, b.r * 0.8, 0, 7); ctx.fillStyle = 'rgba(10,30,90,0.55)'; ctx.fill();
       }

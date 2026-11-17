@@ -1,0 +1,5 @@
+{"dir":"C:/Users/User/Desktop/GitHub/_assets3d/mixamo/archer","out":"<scratch>/arc/full","res":400,"ortho":2.4,"zc":0.9,"el":35,"dirs":[0,1,2,3,4],"rich":true,"amb":0.6,
+ "texmap":{"file46":"<scratch>/arc/file46.png","MOBU_file2":"<scratch>/arc/MOBU_file2.png"},
+ "ortho_by":{"cast":2.6,"die":3.0},
+ "range":{"idle":[0,0.1],"cast":[0,1]},
+ "anims":[["idle","atk.fbx",4,false],["run","run.fbx",8,true],["atk","atk.fbx",5,false],["cast","atk.fbx",6,false],["die","die.fbx",5,false]]}
