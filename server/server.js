@@ -464,7 +464,21 @@ function leave(c) {
 }
 function log(...a) { console.log(new Date().toISOString().slice(11, 19), ...a); }
 
-const wss = new WebSocketServer({ port: PORT, perMessageDeflate: false });
+// TLS: при TLS_CERT и TLS_KEY сервер работает как wss:// (сайт и APK открыты по https и к ws:// подключаться не могут).
+// Новый сертификат подхватывается на лету: файл перечитывается раз в час, перезапуск не нужен.
+let httpServer = null;
+if (process.env.TLS_CERT && process.env.TLS_KEY) {
+  const https = require('https');
+  const ctx = () => ({ cert: fs.readFileSync(process.env.TLS_CERT), key: fs.readFileSync(process.env.TLS_KEY) });
+  httpServer = https.createServer(ctx(), (req, res) => { res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' }); res.end('Duel Arena game server: ok'); });
+  let stamp = 0;
+  setInterval(() => {
+    try { const m = fs.statSync(process.env.TLS_CERT).mtimeMs; if (stamp && m !== stamp) { httpServer.setSecureContext(ctx()); log('сертификат обновлён'); } stamp = m; } catch (e) {}
+  }, 3600e3);
+  httpServer.listen(PORT);
+}
+const wss = httpServer ? new WebSocketServer({ server: httpServer, perMessageDeflate: false, maxPayload: 4096 })
+  : new WebSocketServer({ port: PORT, perMessageDeflate: false, maxPayload: 4096 });
 wss.on('connection', ws => {
   const c = { ws, room: null, player: null };
   ws.binaryType = 'nodebuffer';
@@ -484,4 +498,4 @@ setInterval(() => {
   while (acc >= DT && n < 5) { for (const r of rooms.values()) step(r); acc -= DT; n++; }
   if (acc > 0.5) acc = 0;
 }, 5);
-log('Duel Arena server: порт', PORT, LAG || JITTER ? 'искусственная задержка ' + LAG + '±' + JITTER + ' мс' : '');
+log('Duel Arena server: порт', PORT, httpServer ? 'wss' : 'ws', LAG || JITTER ? 'искусственная задержка ' + LAG + '±' + JITTER + ' мс' : '');

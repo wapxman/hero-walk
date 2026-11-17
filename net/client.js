@@ -7,7 +7,7 @@ var NETC = { on: false };
   const N = NET;
   N.setMap(WALK, DEFAULT_OBJ);     // сервер считает столкновения по карте по умолчанию — предсказание обязано по ней же
   // адрес сервера: ?server=ws://… или по умолчанию тот же компьютер, порт 8790 (локальная проверка)
-  const PROD_URL = '';             // сюда встанет адрес боевого сервера, когда его выберут
+  const PROD_URL = 'wss://abpartners.uz:30777';   // боевой сервер: хостинг abpartners.uz (webspace.uz, Ташкент)
   const qs = new URLSearchParams(location.search);
   const SERVER = qs.get('server') || PROD_URL || ('ws://' + (location.hostname || 'localhost') + ':8790');
   const BIT = { q: N.B_Q, e: N.B_E, f: N.B_F, r: N.B_R };
@@ -58,7 +58,7 @@ var NETC = { on: false };
 
   // ---------- подключение ----------
   // пока боевой сервер не выбран, онлайн работает только при локальной проверке (порт 8765) или с ?server=
-  const READY = !!(qs.get('server') || PROD_URL || location.port === '8765' || location.hostname === 'localhost');
+  const READY = true;
   function connect(mode, room) {
     if (!READY) { status('Онлайн заработает, когда подключим игровой сервер'); return; }
     if (S.ws) try { S.ws.close(); } catch (e) {}
