@@ -119,7 +119,7 @@ const MANA = { q: 60, e: 50, f: 80, r: 150 }, MP_REGEN = 11;
 const skLv = id => (P.skLv && P.skLv[id]) || 1;
 const skDmg = id => (1 + 0.12 * (skLv(id) - 1)) * (P.skMul || 1);
 const skCd = id => 1 - 0.03 * (skLv(id) - 1);
-const KILL_XP = { min: 8, war: 18, mag: 14, rog: 14, boss: 120 };
+const KILL_XP = { min: 8, war: 18, mag: 14, rog: 14, boss: 150 };
 const xpNeed = l => 40 + 35 * l;
 function gainXp(n) {
   P.xp += n;
@@ -388,9 +388,9 @@ function spawnEnemy(type) {
   const e = {
     type, k, ch: CHARS[k.ch], boss: !!k.boss, mel: !!k.mel, rng: !!k.rng,
     x: ENEMY_SPAWN.x + rnd(-90, 90), y: ENEMY_SPAWN.y + rnd(-30, 90),   // выходят из красного портала
-    // рост от волны к волне: здоровье +14%, урон +8%, скорость +2% (не больше +25%)
-    hp: Math.round(k.hp * (1 + 0.14 * Math.max(0, wave - 1))), dm: (1 + 0.08 * Math.max(0, wave - 1)) * k.pw, sc: k.sc,
-    rad: k.rad, speed: k.speed * (1 + Math.min(0.25, 0.02 * Math.max(0, wave - 1))), col: k.col, eye: k.boss ? '#ffb347' : '#ffe27a',
+    // рост от волны к волне и от мира к миру — BAL в data.js
+    hp: Math.round(k.hp * BAL.hp(wave)), dm: BAL.dmg(wave) * k.pw, sc: k.sc,
+    rad: k.rad, speed: k.speed * BAL.speed(wave), col: k.col, eye: k.boss ? '#ffb347' : '#ffe27a',
     slowT: 0, slowK: 1, root: 0, dot: 0, atkCd: rnd(0.3, 1.2), flash: 0, bob: rnd(0, 6), slamCd: 2, quakeCd: 7, leapCd: 4, summonCd: 9, jump: 0,
     anim: 'run', animT: rnd(0, 1), runPh: rnd(0, 1), row: 2, act: null,
   };

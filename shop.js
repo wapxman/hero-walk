@@ -58,7 +58,7 @@ const SHOP = {
     for (const k in SHOP.buffs) if (SHOP.buffs[k] > 0) { SHOP.buffs[k] -= dt; if (SHOP.buffs[k] <= 0) { SHOP.buffs[k] = 0; SHOP.recompute(); } }
     if (SHOP.phase === 'fight' && !enemies.length) {
       SHOP.phase = 'rest'; SHOP.restT = 1.3;
-      const bonus = 20 + 6 * wave; SHOP.addGold(bonus);
+      const bonus = BAL.waveGold(wave); SHOP.addGold(bonus);
       say(P.x, P.y - CH * HS() * 1.35, 'Волна ' + wave + ' отбита  +' + bonus, '#ffe9a8');
       SHOP.refresh();
     }
@@ -78,7 +78,7 @@ const SHOP = {
     SHOP.hud();
   },
   onKill(e) {
-    const g = Math.round((KILL_GOLD[e.type] || 8) * rnd(0.85, 1.2));
+    const g = Math.round((KILL_GOLD[e.type] || 8) * BAL.gold(wave) * rnd(0.85, 1.2));
     SHOP.drop('coin', null, e.x, e.y, g);
     if (e.boss) SHOP.drop('chest', null, e.x + 40, e.y + 10);
     else if (Math.random() < 0.05) SHOP.drop('chest', null, e.x + rnd(-30, 30), e.y + rnd(-10, 20));

@@ -14,8 +14,8 @@ const LAG = +(process.env.LAG || 0), JITTER = +(process.env.JITTER || 0);
 const box = { location: { port: '', pathname: '/' }, localStorage: { getItem: () => null, setItem() {} }, console };
 vm.createContext(box);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'data.js'), 'utf8') +
-  '\n;this.D = { WALK, DEFAULT_OBJ, HERO_SPAWN, ENEMY_SPAWN };', box);
-const D = box.D;
+  '\n;this.D = { WALK, DEFAULT_OBJ, HERO_SPAWN, ENEMY_SPAWN, BAL };', box);
+const D = box.D, BAL = D.BAL;
 NET.setMap(D.WALK, D.DEFAULT_OBJ);
 const { TICK, DT, YK, EV } = NET;
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -33,7 +33,7 @@ const KIND = {
   war: { mel: 1, hp: 300, rad: 26, speed: 112, dmg: [20, 26], cd: 1.25, reach: 72, xp: 18 },
   mag: { rng: 1, hp: 150, rad: 22, speed: 100, dmg: [18, 24], cd: 1.9, want: 430, shot: 520, xp: 14 },
   rog: { rng: 1, hp: 120, rad: 21, speed: 125, dmg: [13, 16], cd: 1.35, want: 500, shot: 820, bolt: 1, xp: 14 },
-  boss: { boss: 1, hp: 1500, rad: 46, speed: 92, xp: 120 },
+  boss: { boss: 1, hp: 1500, rad: 46, speed: 92, xp: 150 },
 };
 const SHOT_KIND = { ice: 1, arrow: 2, fire: 3, bolt: 4 };
 const SKILL = { nova: 1, chains: 2, hail: 3, storm: 4, gust: 5, shield: 6, volley: 7 };
@@ -109,7 +109,7 @@ function hurt(r, e, dmg, src, col) {
     else {
       e.dieT = 0;
       // опыт за врага — всем игрокам комнаты (общий опыт в кооперативе), растёт с волной
-      const xp = Math.round((KIND[e.kind].xp || 8) * (1 + 0.08 * Math.max(0, r.wave - 1)));
+      const xp = Math.round((KIND[e.kind].xp || 8) * BAL.xp(r.wave));
       ev(r, EV.LVL, xp);
     }
   }
@@ -238,9 +238,9 @@ function shard(r, owner, x, y, R, dmg, sk, st) { r.shards.push({ owner, x, y, R,
 
 // ---------- враги (кооператив) ----------
 function spawnEnemy(r, type, x, y) {
-  const k = KIND[type], w = Math.max(0, r.wave - 1);
+  const k = KIND[type];
   const e = { id: newId(r), kind: type, team: 2, k, boss: !!k.boss, x: x != null ? x : D.ENEMY_SPAWN.x + rnd(-90, 90), y: y != null ? y : D.ENEMY_SPAWN.y + rnd(-30, 90),
-    hp: Math.round(k.hp * (1 + 0.14 * w)), dm: 1 + 0.08 * w, rad: k.rad, speed: k.speed * (1 + Math.min(0.25, 0.02 * w)), row: 2,
+    hp: Math.round(k.hp * BAL.hp(r.wave)), dm: BAL.dmg(r.wave), rad: k.rad, speed: k.speed * BAL.speed(r.wave), row: 2,
     slowT: 0, slowK: 1, root: 0, silT: 0, atkCd: rnd(0.3, 1.2), slamCd: 2, quakeCd: 7, leapCd: 4, summonCd: 9, jump: 0, act: null };
   e.max = e.hp; NET.collide(e);
   r.ents.set(e.id, e);
@@ -394,7 +394,7 @@ function step(r) {
   // погибшие враги исчезают через 2,2 с (клиент успевает показать падение)
   for (const e of [...r.ents.values()]) if (!e.player && e.hp <= 0) { e.dieT += DT; if (e.dieT > 2.2) r.ents.delete(e.id); }
   if (r.mode === 'coop' && r.phase === 1 && ![...r.ents.values()].some(e => !e.player && e.hp > 0)) {
-    r.phase = 0; ev(r, EV.WAVE_END, r.wave, 20 + 6 * r.wave);
+    r.phase = 0; ev(r, EV.WAVE_END, r.wave, BAL.waveGold(r.wave));
   }
   recordHistory(r);
   // рассылка: флаги и доп. поле, затем снимок каждому клиенту (дельта к тому, что он уже знает) и события

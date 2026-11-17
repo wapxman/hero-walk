@@ -121,6 +121,28 @@ function normCfg(c) {
 // Режим разработки: на локальном сервере (порт 8765) настройки ещё и лежат в файле dev_cfg.json,
 // чтобы редактор на компьютере и игра в эмуляторе или на телефоне видели одно и то же.
 const DEV_SYNC = location.port === '8765';
+// ---------- рост сложности (таблица и пояснения — BALANCE.md, расчёт — tools/balance_sim.py) ----------
+// Сквозной номер волны n раскладывается на круг C (повторное прохождение), мир M (1–4) и волну в мире W (1–10).
+// Враги растут умеренной экспонентой: по волнам медленно, скачком — при переходе в новый мир и на новом круге.
+const BAL = {
+  WAVES: 10, WORLDS: 4,
+  ELITE: { hp: 3.5, dmg: 1.7, size: 1.3, xp: 3, gold: 4 },   // элита против рядового того же вида
+  BOSS: { size: 2.5 },
+  at(n) {
+    n = Math.max(1, n | 0); const per = BAL.WAVES * BAL.WORLDS, m = (n - 1) % per;
+    return { C: 1 + Math.floor((n - 1) / per), M: 1 + Math.floor(m / BAL.WAVES), W: 1 + m % BAL.WAVES };
+  },
+  hp(n) { const a = BAL.at(n); return Math.pow(1.07, a.W - 1) * Math.pow(1.35, a.M - 1) * Math.pow(1.8, a.C - 1); },
+  dmg(n) { const a = BAL.at(n); return Math.pow(1.055, a.W - 1) * Math.pow(1.28, a.M - 1) * Math.pow(1.5, a.C - 1); },
+  xp(n) { const a = BAL.at(n); return Math.pow(1.05, a.W - 1) * Math.pow(1.2, a.M - 1) * Math.pow(1.3, a.C - 1); },
+  gold(n) { const a = BAL.at(n); return Math.pow(1.04, a.W - 1) * Math.pow(1.25, a.M - 1); },
+  speed(n) { return 1 + Math.min(0.25, 0.02 * (BAL.at(n).W - 1)); },
+  count(n) { const a = BAL.at(n); return 12 + 3 * (a.W - 1) + 4 * (a.M - 1); },      // врагов в обычной волне
+  elites(n) { const W = BAL.at(n).W; return W < 4 ? 0 : W < 7 ? 1 : 2; },
+  waveGold(n) { const a = BAL.at(n); return 20 + 6 * a.W + 10 * (a.M - 1); },        // награда за отбитую волну
+  bossGold(n) { return 100 * Math.pow(1.5, BAL.at(n).M - 1); },
+};
+
 function devText() {
   try {
     const x = new XMLHttpRequest();

@@ -34,10 +34,10 @@ function progSave() {
   try { localStorage.setItem(progKey(), JSON.stringify({ lvl: P.lvl, xp: P.xp, sp: P.sp, stp: P.stp, sk: P.skLv, st: P.st })); } catch (e) {}
 }
 
-// опыт за победу растёт с номером волны
+// опыт за победу растёт с волной и миром (BAL в data.js)
 gainXp = function (n) {
   if (P.lvl >= LVL_MAX) return;
-  P.xp += Math.round(n * (1 + 0.08 * Math.max(0, wave - 1)));
+  P.xp += Math.round(n * BAL.xp(wave));
   let up = false;
   while (P.lvl < LVL_MAX && P.xp >= xpNeedP(P.lvl)) {
     P.xp -= xpNeedP(P.lvl); P.lvl++; P.sp++; P.stp += STAT_PER_LVL; up = true;
