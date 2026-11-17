@@ -21,18 +21,30 @@
 <canvas id="c"></canvas>
 <div id="hud"><b>Duel Arena</b> · <span id="tip">стик — движение, кнопки справа — огонь и скилы (ПК: WASD, пробел, Q E F R, фласки 1–4, Enter — волна, B — магазин)</span><br>
 <span id="snd">🔇 коснитесь экрана, чтобы включить звук</span> <span id="pad">🎮 геймпад подключён</span></div>
-<script src="data.js?v=28"></script>
+<script src="data.js?v=29"></script>
+<script src="chars/atlas.js?v=29"></script>
 <script>
-const V = '?v=28';
+const V = '?v=29';
 const cv = document.getElementById('c');
 const ctx = cv.getContext('2d');
-let DPR = 1, W = 0, H = 0;
+// Чёткость: холст рисуется не больше чем в 2 точки на точку экрана. Если телефон не успевает
+// (средний кадр дольше 20 мс две секунды подряд), чёткость понижается ступенями до 1.25 и обратно не растёт.
+let DPR = 1, DPR_CAP = 2, W = 0, H = 0, VIG = null;
 function resize() {
-  DPR = Math.min(2, window.devicePixelRatio || 1);
+  DPR = Math.min(DPR_CAP, window.devicePixelRatio || 1);
   W = window.innerWidth; H = window.innerHeight;
-  cv.width = W * DPR; cv.height = H * DPR;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  VIG = null;
 }
 window.addEventListener('resize', resize); resize();
+const perf = { t: 0, n: 0, skip: 3 };
+function perfTick(dt) {
+  if (perf.skip > 0) { perf.skip -= dt; return; }   // первые секунды картинки загружаются в видеопамять — не считаем
+  perf.t += dt; perf.n++;
+  if (perf.t < 2) return;
+  const avg = perf.t / perf.n; perf.t = 0; perf.n = 0;
+  if (avg > 0.02 && DPR > 1.25) { DPR_CAP = Math.max(1.25, DPR - 0.375); resize(); perf.skip = 1; }
+}
 
 // ---------- мир ----------
 const CH = 170;                          // рост героини в единицах мира
@@ -60,9 +72,11 @@ function runRow(ax, ay) {
 const img = {};
 let loaded = 0;
 const FILES = {
-  front: 'front.png', side: 'side.png', run: 'run.webp', ground: 'arena/ground.webp',
-  s2: 'arena/s2.webp', s3: 'arena/s3.webp', s4: 'arena/s4.webp', s5: 'arena/s5.webp', s6: 'arena/s6.webp',
+  ground: 'arena/ground.webp', s2: 'arena/s2.webp', s3: 'arena/s3.webp', s4: 'arena/s4.webp', s5: 'arena/s5.webp', s6: 'arena/s6.webp',
 };
+// листы прежней героини Лиры (около 24 МБ в памяти) нужны только по адресу с #lira
+const LIRA = location.hash.indexOf('lira') >= 0;
+if (LIRA) Object.assign(FILES, { front: 'front.png', side: 'side.png', run: 'run.webp' });
 const TOTAL = Object.keys(FILES).length;
 for (const k in FILES) {
   img[k] = new Image();
@@ -147,18 +161,20 @@ addEventListener('touchend', stickEnd, { passive: true });
 addEventListener('touchcancel', stickEnd, { passive: true });
 
 // ---------- геймпад ----------
+// Геймпады опрашиваются один раз за кадр, список PADS читают и бой, и магазин.
+// Крестовина — фласки (shop.js), ходьба — левым стиком: раньше крестовина делала и то и другое сразу.
 const padEl = document.getElementById('pad');
-function padAxes() {
+let PADS = [];
+const dz = v => Math.abs(v) > 0.25 ? v : 0;
+function padPoll() {
+  PADS = [];
   const gps = navigator.getGamepads ? navigator.getGamepads() : [];
-  for (const g of gps) {
-    if (!g) continue;
-    padEl.style.display = 'inline';
-    const dz = v => Math.abs(v) > 0.25 ? v : 0;
-    let ax = dz(g.axes[0] || 0), ay = dz(g.axes[1] || 0);
-    if (g.buttons[14] && g.buttons[14].pressed) ax = -1;
-    if (g.buttons[15] && g.buttons[15].pressed) ax = 1;
-    if (g.buttons[12] && g.buttons[12].pressed) ay = -1;
-    if (g.buttons[13] && g.buttons[13].pressed) ay = 1;
+  for (const g of gps) if (g) PADS.push(g);
+  if (PADS.length && padEl.style.display !== 'inline') padEl.style.display = 'inline';
+}
+function padAxes() {
+  for (const g of PADS) {
+    const ax = dz(g.axes[0] || 0), ay = dz(g.axes[1] || 0);
     if (ax || ay) return { ax, ay };
   }
   return null;
@@ -223,16 +239,20 @@ function drawObj(o, red) {
   }
   ctx.globalAlpha = 1;
 }
+const SHADOW_G = {};
 function shadow(x, y, rx, ry, a) {
-  const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
-  g.addColorStop(0, 'rgba(8,20,6,' + a + ')'); g.addColorStop(0.6, 'rgba(8,20,6,' + a * 0.6 + ')'); g.addColorStop(1, 'rgba(8,20,6,0)');
+  let g = SHADOW_G[a];
+  if (!g) {
+    g = SHADOW_G[a] = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+    g.addColorStop(0, 'rgba(8,20,6,' + a + ')'); g.addColorStop(0.6, 'rgba(8,20,6,' + a * 0.6 + ')'); g.addColorStop(1, 'rgba(8,20,6,0)');
+  }
   ctx.save(); ctx.translate(x, y); ctx.scale(rx, ry);
   ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 1, 0, 7); ctx.fill();
   ctx.restore();
 }
 function drawPlayer() {
   if (drawHero()) return;
-  if (P.dead > 0) return;
+  if (P.dead > 0 || !LIRA) return;
   if (P.running) {
     const rs = CH * 0.95 / RUN.stand;
     const rf = Math.floor((P.animT % RUN.cycle) / RUN.cycle * RUN.frames) % RUN.frames;
@@ -264,6 +284,16 @@ function drawStickUI() {
   ctx.restore();
 }
 
+// круглое пятно света цвета col (r,g,b): рисуется один раз, потом только масштабируется
+const GLOW_IMG = {};
+function glowImg(col) {
+  if (GLOW_IMG[col]) return GLOW_IMG[col];
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const g = c.getContext('2d'), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  gr.addColorStop(0, 'rgba(' + col + ',1)'); gr.addColorStop(1, 'rgba(' + col + ',0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  return (GLOW_IMG[col] = c);
+}
 // светлячки
 const FLIES = [];
 for (let i = 0; i < 70; i++) {
@@ -277,13 +307,15 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   const t = now / 1000;
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  if (loaded < TOTAL || !window.COMBAT_READY) {
+  if (loaded < TOTAL || !window.COMBAT_READY || !(HERO.ok || LIRA)) {
     ctx.fillStyle = '#0c1017'; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = '#aab6c8'; ctx.font = '15px system-ui, sans-serif'; ctx.textAlign = 'center';
     ctx.fillText('Загрузка арены… ' + loaded + ' / ' + TOTAL, W / 2, H / 2);
     return;
   }
   if (!red.s4) { red.s4 = makeRed(img.s4); red.s5 = makeRed(img.s5); }
+  perfTick(dt);
+  padPoll();
 
   // --- движение ---
   let { ax, ay, m } = inputVector();
@@ -364,19 +396,20 @@ function frame(now) {
     const col = (o.red && o.s === 'shrine') ? '255,90,60' : gl[0];
     const fl = 1 + gl[3] * (0.12 * Math.sin(t * 9 + o.x) + 0.08 * Math.sin(t * 23 + o.y));
     const rad = gl[2] * fl, gy = r.y + r.h * gl[1];
-    const g = ctx.createRadialGradient(o.x, gy, 0, o.x, gy, rad);
     const pulse = gl[3] < 1 ? 0.75 + 0.25 * Math.sin(t * 1.6 + o.x * 0.01) : 1;
-    g.addColorStop(0, 'rgba(' + col + ',' + 0.42 * pulse + ')'); g.addColorStop(1, 'rgba(' + col + ',0)');
-    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(o.x, gy, rad, 0, 7); ctx.fill();
+    ctx.globalAlpha = 0.42 * pulse;
+    ctx.drawImage(glowImg(col), o.x - rad, gy - rad, rad * 2, rad * 2);
   }
+  const flyImg = glowImg('230,255,150');
   for (const fl of FLIES) {
     const x = fl.x + Math.sin(t * 0.5 * fl.s + fl.p) * 40, y = fl.y + Math.cos(t * 0.37 * fl.s + fl.p * 2) * 26;
     if (x < cam.x - 20 || x > cam.x + vw + 20 || y < cam.y - 20 || y > cam.y + vh + 20) continue;
     const a = 0.35 + 0.35 * Math.sin(t * 2.2 * fl.s + fl.p * 3);
-    const g = ctx.createRadialGradient(x, y, 0, x, y, 9);
-    g.addColorStop(0, 'rgba(230,255,150,' + a + ')'); g.addColorStop(1, 'rgba(230,255,150,0)');
-    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, 9, 0, 7); ctx.fill();
+    if (a <= 0) continue;
+    ctx.globalAlpha = a;
+    ctx.drawImage(flyImg, x - 9, y - 9, 18, 18);
   }
+  ctx.globalAlpha = 1;
   ctx.globalCompositeOperation = 'source-over';
 
   for (const o of FRONT) if (seen(o)) drawObj(o, red);
@@ -384,9 +417,11 @@ function frame(now) {
 
   // --- поверх мира: затемнение краёв и стик ---
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.5, W / 2, H / 2, Math.max(W, H) * 0.8);
-  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.38)');
-  ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+  if (!VIG) {
+    VIG = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.5, W / 2, H / 2, Math.max(W, H) * 0.8);
+    VIG.addColorStop(0, 'rgba(0,0,0,0)'); VIG.addColorStop(1, 'rgba(0,0,0,0.38)');
+  }
+  ctx.fillStyle = VIG; ctx.fillRect(0, 0, W, H);
   combatUI();
   drawStickUI();
 }
@@ -401,7 +436,7 @@ if (location.host !== 'duelarena.app') {
 // на сенсорном экране подсказка короче, чтобы не наезжать на счётчик волн
 if ('ontouchstart' in window) document.getElementById('tip').textContent = 'стик — движение, кнопки справа — огонь и скиллы';
 </script>
-<script src="combat.js?v=28"></script>
-<script src="shop.js?v=28"></script>
+<script src="combat.js?v=29"></script>
+<script src="shop.js?v=29"></script>
 </body>
 </html>

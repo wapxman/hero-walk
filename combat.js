@@ -96,7 +96,7 @@ function musicLabel() {
 }
 function musicLoad() {
   mus.el.src = 'music/' + MUSIC[mus.i][0] + '.mp3' + V;
-  mus.g.gain.cancelScheduledValues(AC.currentTime); mus.g.gain.value = 0;
+  mus.g.gain.cancelScheduledValues(AC.currentTime); mus.g.gain.value = 0; mus.v = 0;
   if (mus.on) mus.el.play().catch(() => {});
   store('hw_mus_i', mus.i);
   musicLabel();
@@ -114,8 +114,10 @@ function musicUpdate() {
   const el = mus.el, t = el.currentTime, d = el.duration;
   let k = Math.min(1, t / MUS_FADE);
   if (d > 0 && isFinite(d)) k = Math.min(k, Math.max(0, (d - t) / MUS_FADE));
-  const duck = P.dead > 0 ? 0.35 : P.ult > 0 ? 0.55 : 1;
-  mus.g.gain.setTargetAtTime(MUS_VOL * k * duck, AC.currentTime, 0.12);
+  const duck = P.dead > 0 ? 0.35 : P.ult > 0 ? 0.55 : 1, v = MUS_VOL * k * duck;
+  // раньше новое событие громкости ставилось в каждом кадре; теперь — только при заметном изменении
+  if (mus.v != null && Math.abs(v - mus.v) < 0.004) return;
+  mus.v = v; mus.g.gain.setTargetAtTime(v, AC.currentTime, 0.12);
 }
 addEventListener('keydown', e => {
   if (e.repeat) return;
@@ -190,9 +192,8 @@ addEventListener('keyup', e => { if (e.code === 'Space' || e.code === 'KeyJ') he
 // геймпад: A / R1 / R2 — огонь, X — нова, Y — оковы, B — град, L1 — буря
 const padPrev = {};
 function padButtons() {
-  const gps = navigator.getGamepads ? navigator.getGamepads() : [];
   held.pad = false;
-  for (const g of gps) {
+  for (const g of PADS) {
     if (!g) continue;
     const on = i => !!(g.buttons[i] && g.buttons[i].pressed);
     if (on(0) || on(5) || on(7)) held.pad = true;
@@ -220,7 +221,7 @@ function hurtEnemy(e, dmg, col) {
   if (e.hp <= 0) return;
   dmg *= P.dmgMul || 1;
   e.hp -= dmg; e.flash = 0.08;
-  say(e.x + rnd(-14, 14), e.y - e.rad * 2.2, Math.round(dmg), col || '#bfe6ff');
+  say(e.x + rnd(-14, 14), e.y - (e.ch.ok ? e.ch.top * e.ch.U * e.sc * 0.8 : e.rad * 2.2), Math.round(dmg), col || '#bfe6ff');
   if (e.hp <= 0) {
     kills++;
     e.dieT = 0; e.anim = 'die'; e.act = null; corpses.push(e);
@@ -252,7 +253,7 @@ function cast(id) {
     const t = nearestEnemy(RANGE);
     if (!t) { say(P.x, P.y - CH * HS(), 'нет цели', '#ffd28a'); return; }
     t.root = 2.8; t.dot = 45; hurtEnemy(t, 40);
-    fx.push({ type: 'chains', e: t, x: t.x, y: t.y, t: 0, dur: 3.25, h: t.ch.top * t.ch.U });
+    fx.push({ type: 'chains', e: t, x: t.x, y: t.y, t: 0, dur: 3.25, h: t.ch.top * t.ch.U * t.sc });
     snd('chains', 0.85);
   } else if (id === 'f') {
     const c = aimPoint(340 * HS());
@@ -290,7 +291,7 @@ const CHARS = {
   archer: { cell: 256, ortho: 3.0, zc: 0.9, U: 104, top: 1.5 },
   boss: { cell: 320, ortho: 4.0, zc: 1.15, U: 122, top: 1.95 },
 };
-for (const k in CHARS) { const im = CHARS[k].img = new Image(); im.onload = () => { CHARS[k].ok = true; }; im.src = 'chars/mx_' + k + '.webp' + V; }
+for (const k in CHARS) { const im = CHARS[k].img = new Image(); CHARS[k].at = k; im.onload = () => { CHARS[k].ok = true; }; im.src = 'chars/at_' + k + '.webp' + V; }
 // Ganfaul в общей таблице: рисуется своими листами (HERO), размеры — как у остальных
 CHARS.ganfaul = { hero: true, U: 118, top: 1.5, get ok() { return HERO.ok; } };
 // сколько кадров в анимации у данного персонажа (у обычных листов каста нет — вместо него атака)
@@ -314,10 +315,10 @@ function drawSprite(c, anim, fi, row, flash) {
   const size = c.ortho * c.U, ay = 0.5 + c.zc * COS_EL / c.ortho;
   ctx.save();
   if (flip) ctx.scale(-1, 1);
-  ctx.drawImage(c.img, (a[0] + fi) * c.cell, row * c.cell, c.cell, c.cell, -size / 2, -ay * size, size, size);
+  drawCell(ctx, c.img, c.at, a[0] + fi, row, -size / 2, -ay * size, size);
   if (flash) {
     ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.75;
-    ctx.drawImage(c.img, (a[0] + fi) * c.cell, row * c.cell, c.cell, c.cell, -size / 2, -ay * size, size, size);
+    drawCell(ctx, c.img, c.at, a[0] + fi, row, -size / 2, -ay * size, size);
   }
   ctx.restore();
 }
@@ -330,19 +331,19 @@ const HERO = { U: 118, zc: 0.9, cell: 400,
 for (const k in HERO.sheets) {
   const S = HERO.sheets[k]; S.img = new Image();
   S.img.onload = () => { S.ok = true; HERO.ok = Object.values(HERO.sheets).every(x => x.ok); };
-  S.img.src = 'chars/mx_hero_' + k + '.webp' + V;
+  S.img.src = 'chars/at_hero_' + k + '.webp' + V;
 }
 function drawHeroSprite(anim, fi, row, flash) {
-  const a = HERO.an[anim] || HERO.an.idle, S = HERO.sheets[a.s], c = HERO.cell;
+  const a = HERO.an[anim] || HERO.an.idle, S = HERO.sheets[a.s];
   fi = a.i + Math.max(0, Math.min(a.n - 1, fi));
   const flip = row >= 1 && row <= 3;            // ряды 1–3 листа смотрят вправо, левые — зеркало
   if (row > 4) row = 8 - row;
-  const sx = (fi % S.wrap) * c, sy = (row * S.rows + Math.floor(fi / S.wrap)) * c;
+  const gx = fi % S.wrap, gy = row * S.rows + Math.floor(fi / S.wrap), nm = 'hero_' + a.s;
   const size = a.o * HERO.U, ay = 0.5 + HERO.zc * COS_EL / a.o;
   ctx.save();
   if (flip) ctx.scale(-1, 1);
-  ctx.drawImage(S.img, sx, sy, c, c, -size / 2, -ay * size, size, size);
-  if (flash) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.7; ctx.drawImage(S.img, sx, sy, c, c, -size / 2, -ay * size, size, size); }
+  drawCell(ctx, S.img, nm, gx, gy, -size / 2, -ay * size, size);
+  if (flash) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.7; drawCell(ctx, S.img, nm, gx, gy, -size / 2, -ay * size, size); }
   ctx.restore();
 }
 // герой: персонаж и размер берутся из настроек редактора; адрес с #lira возвращает прежнюю Лиру
@@ -406,7 +407,10 @@ function startAct(e, anim, dur, at, fn) { e.act = { anim, dur, at, fn, t: 0, hit
 function updateEnemy(e, dt) {
   e.bob += dt * 7; e.flash -= dt; e.atkCd -= dt; e.slamCd -= dt; e.quakeCd -= dt; e.leapCd -= dt; e.summonCd -= dt; e.animT += dt;
   if (e.slowT > 0) e.slowT -= dt;
-  if (e.root > 0) { e.root -= dt; e.act = null; e.leap = null; e.jump = 0; e.anim = 'idle'; hurtTick(e, e.dot * dt); return; }
+  if (e.root > 0) {
+    if (e.leap) { e.leap = null; collide(e); }   // пойман в прыжке: остаётся на месте, но не внутри камня
+    e.root -= dt; e.act = null; e.jump = 0; e.anim = 'idle'; hurtTick(e, e.dot * dt); return;
+  }
   const k = e.k, sk = e.slowT > 0 ? e.slowK : 1;
   let dx = (P.x - e.x), dy = (P.y - e.y) / YK; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m;
   if (e.act) {
@@ -446,7 +450,7 @@ function updateEnemy(e, dt) {
     e.atkCd = k.cd;
     startAct(e, 'atk', 0.55, 0.5, (ax, ay) => {
       shots.push({ own: 'e', bolt: k.bolt, x: e.x + ax * 20, y: e.y + ay * 20 * YK, dx: ax, dy: ay, sp: k.shot, left: k.want + 150,
-        dmg: rnd(k.dmg[0], k.dmg[1]) * e.dm, h: e.ch.U * 0.75 });
+        dmg: rnd(k.dmg[0], k.dmg[1]) * e.dm, h: e.ch.U * 0.75 * e.sc });
       snd(k.bolt ? 'enemy_arrow' : 'enemy_fireball', 0.45, rnd(0.95, 1.05));
     });
   }
@@ -457,7 +461,7 @@ function updateEnemy(e, dt) {
 function bossSkills(e, d) {
   if (!e.rage && e.hp < e.max * 0.4) {
     e.rage = true; e.speed *= 1.35;
-    say(e.x, e.y - e.ch.top * e.ch.U - 30, 'ЯРОСТЬ!', '#ff5a3a');
+    say(e.x, e.y - e.ch.top * e.ch.U * e.sc - 30, 'ЯРОСТЬ!', '#ff5a3a');
     snd('boss_roar', 1);
   }
   const cdk = e.rage ? 0.65 : 1;
@@ -469,7 +473,7 @@ function bossSkills(e, d) {
         m.x = e.x + Math.cos(a) * 110; m.y = e.y + Math.sin(a) * 110 * YK; collide(m);
         fx.push({ type: 'quake', x: m.x, y: m.y, t: 0, dur: 0.6, R: 60 });
       }
-      say(e.x, e.y - e.ch.top * e.ch.U - 30, 'Ко мне!', '#ffb36a');
+      say(e.x, e.y - e.ch.top * e.ch.U * e.sc - 30, 'Ко мне!', '#ffb36a');
       snd('boss_roar', 0.8, 1.12);
     });
   } else if (e.quakeCd <= 0) {
@@ -540,7 +544,7 @@ function combatUpdate(dt) {
       for (const e of enemies) {
         if (e.hp > 0 && gdist(s, e) < e.rad + 16 * (s.sc || 1)) {
           hurtEnemy(e, s.dmg); slow(e, 0.8, 1); s.left = 0;
-          fx.push({ type: 'spark', hit: 1, x: e.x, y: e.y - e.ch.top * e.ch.U * 0.5, t: 0, dur: 0.4, R: 34 * (s.sc || 1), sc: s.sc || 1 });
+          fx.push({ type: 'spark', hit: 1, x: e.x, y: e.y - e.ch.top * e.ch.U * e.sc * 0.5, t: 0, dur: 0.4, R: 34 * (s.sc || 1), sc: s.sc || 1 });
           snd('hit', 0.45, rnd(0.95, 1.1));
           break;
         }
@@ -576,7 +580,6 @@ function combatUpdate(dt) {
     }
   }
   for (const t of texts) { t.t += dt; t.y -= 46 * dt; }
-  const keep = (arr, ok) => { for (let i = arr.length - 1; i >= 0; i--) if (!ok(arr[i])) arr.splice(i, 1); };
   for (const c of corpses) c.dieT += dt;
   keep(corpses, c => c.dieT < 2.2);
   keep(enemies, e => e.hp > 0);
@@ -585,10 +588,13 @@ function combatUpdate(dt) {
   keep(fx, f => f.t < f.dur);
   keep(texts, t => t.t < 0.9);
 }
+// оставить в массиве только то, что прошло проверку, без нового массива и без splice
+function keep(arr, ok) { let j = 0; for (let i = 0; i < arr.length; i++) if (ok(arr[i])) arr[j++] = arr[i]; arr.length = j; }
 
 // ---------- графика скиллов ----------
 // Листы нарисованы в ChatGPT: сетка кадров, фон переведён в прозрачность. g — число кадров по стороне.
-const FXS = { nova: { g: 4 }, chains: { g: 4 }, hail: { g: 4 }, storm: { g: 4 }, bolt: { g: 2 }, hit: { g: 4 }, bwarn: { g: 4 }, bslam: { g: 4 } };
+// Из листов остались только предупреждение и удар босса; скиллы героя рисуются картинками FX2 ниже.
+const FXS = { bwarn: { g: 4 }, bslam: { g: 4 } };
 for (const k in FXS) { const im = FXS[k].img = new Image(); im.onload = () => { FXS[k].ok = true; }; im.src = 'fx/' + k + '.webp' + V; }
 // кадр fi листа k: прямоугольник w x h, точка (ax, ay) кадра (доли 0..1) ставится в (x, y)
 function fxDraw(k, fi, x, y, w, h, ax, ay, alpha) {
@@ -639,18 +645,16 @@ function combatGround(t) {
   if (tg) disc(tg.x, tg.y, tg.rad * 1.35, null, 'rgba(160,220,255,0.75)', 2.5);
   if (P.ult > 0) {
     if (fx2ok('storm')) stormDraw(P.x, P.y, 420 * HS(), t, Math.min(1, P.ult) * 0.95);
-    else if (FXS.storm.ok) fxDraw('storm', (t * 12) % 16, P.x, P.y, 880, 1230, 0.5, 0.5, Math.min(1, P.ult) * 0.9);
     else { const a = Math.min(1, P.ult) * 0.22; disc(P.x, P.y, 410 * HS(), 'rgba(150,200,255,' + a + ')', 'rgba(210,235,255,' + a * 2.2 + ')', 4); }
   }
   for (const z of zones) {
     if (fx2ok('storm')) stormDraw(z.x, z.y, z.R, t + 2, Math.min(1, z.t) * 0.75);
-    else if (FXS.storm.ok) fxDraw('storm', (t * 9 + 5) % 16, z.x, z.y, z.R * 2.15, z.R * 3.0, 0.5, 0.5, Math.min(1, z.t) * 0.7);
     else { const a = Math.min(1, z.t) * 0.2; disc(z.x, z.y, z.R, 'rgba(130,180,255,' + a + ')', 'rgba(200,225,255,' + a * 2.5 + ')', 3); }
   }
   for (const f of fx) {
     const k = f.t / f.dur;
     if (f.type === 'nova') {
-      if (!FXS.nova.ok && !fx2ok('nova')) disc(f.x, f.y, f.R * Math.min(1, k * 2.2), 'rgba(140,215,255,' + 0.45 * (1 - k) + ')', 'rgba(230,248,255,' + (1 - k) + ')', 6);
+      if (!fx2ok('nova')) disc(f.x, f.y, f.R * Math.min(1, k * 2.2), 'rgba(140,215,255,' + 0.45 * (1 - k) + ')', 'rgba(230,248,255,' + (1 - k) + ')', 6);
     } else if (f.type === 'tele' && FXS.bwarn.ok) {
       fxDraw('bwarn', (f.t * 14) % 16, f.x, f.y, f.R * 2.2, f.R * 2.6, 0.5, 0.52, 0.55 + 0.45 * k);
     } else if (f.type === 'quake' && FXS.bslam.ok) {
@@ -721,12 +725,6 @@ function drawShot(s) {
     ctx.restore();
     return;
   }
-  if (s.own === 'p' && FXS.bolt.ok) {
-    ctx.save(); ctx.translate(s.x, y); ctx.rotate(Math.atan2(s.dy * YK, s.dx));
-    fxDraw('bolt', (s.left / 40) % 4, 0, 0, 175, 175, 0.9, 0.5);
-    ctx.restore();
-    return;
-  }
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   const col = s.own === 'p' ? '150,215,255' : '255,170,90';
   const g = ctx.createRadialGradient(s.x, y, 0, s.x, y, 26);
@@ -739,8 +737,11 @@ function drawShot(s) {
   ctx.beginPath(); ctx.arc(s.x, y, s.own === 'p' ? 7 : 10, 0, 7); ctx.fill();
 }
 // то, что сортируется по глубине вместе с объектами арены
+const ENT = [];
 function combatEntities() {
-  const out = enemies.concat(corpses);
+  const out = ENT; out.length = 0;
+  for (const e of enemies) out.push(e);
+  for (const e of corpses) out.push(e);
   if (typeof SHOP !== 'undefined') for (const d of SHOP.drops) out.push(d);
   for (const s of shots) { if (!s.draw) s.draw = () => drawShot(s); out.push(s); }
   for (const f of fx) {
@@ -749,10 +750,6 @@ function combatEntities() {
         const k = f.t / f.dur, s = 0.2 + 0.95 * easeOut(Math.min(1, k * 1.6));
         fx2('nova', f.x, f.y, f.R * 2.3 * s, f.R * 2.3 * s, 0.5, 0.5, k < 0.55 ? 1 : (1 - k) / 0.45, k * 0.6, true);
       };
-      out.push(f); continue;
-    }
-    if (f.type === 'nova' && FXS.nova.ok) {
-      if (!f.draw) f.draw = () => fxDraw('nova', f.t / f.dur * 16, f.x, f.y, f.R * 2.25, f.R * 2.9, 0.5, 0.56);
       out.push(f); continue;
     }
     if (f.type === 'quake' && FXS.bslam.ok) {
@@ -772,25 +769,11 @@ function combatEntities() {
       };
       f.y = f.e.y + 2; out.push(f); continue;
     }
-    if (f.type === 'chains' && FXS.chains.ok) {
-      if (!f.draw) f.draw = () => {
-        // рост, удержание по кругу, затем раскол; если враг погиб раньше — сразу раскол
-        if (f.e.hp <= 0 && f.t < f.dur - 0.45) f.t = f.dur - 0.45;
-        const left = f.dur - f.t, fi = f.t < 0.35 ? f.t / 0.35 * 5 : left < 0.45 ? 12 + (0.45 - left) / 0.45 * 4 : 5 + ((f.t - 0.35) * 7) % 7;
-        const sz = f.h * 1.75;
-        fxDraw('chains', fi, f.e.x, f.e.y + 2, sz, sz, 0.5, 0.86);
-      };
-      f.y = f.e.y + 2; out.push(f); continue;
-    }
     if (f.type === 'spark' && f.hail && fx2ok('shatter')) {
       if (!f.draw) f.draw = () => {
         const k = f.t / f.dur, s = 0.35 + 0.8 * easeOut(Math.min(1, k * 2));
         fx2('shatter', f.x, f.y, f.R * 2.1 * s, f.R * 2.1 * s, 0.5, 0.5, 0.85 * (1 - k * k), f.x * 0.01, true);
       };
-      out.push(f); continue;
-    }
-    if (f.type === 'spark' && f.hail && FXS.hail.ok) {
-      if (!f.draw) f.draw = () => fxDraw('hail', 6 + f.t / f.dur * 10, f.x, f.y, f.R * 3.4, f.R * 3.4, 0.5, 0.87);
       out.push(f); continue;
     }
     if (f.type !== 'shard') continue;
@@ -799,10 +782,6 @@ function combatEntities() {
         const k = f.t / f.dur, sc = f.sc || 1, y = f.y - (1 - k * k) * 460 * sc;
         fx2('icicle', f.x, y, 240 * sc, 240 * sc, 0.5, 0.97, Math.min(1, k * 4));
       };
-      out.push(f); continue;
-    }
-    if (FXS.hail.ok) {
-      if (!f.draw) f.draw = () => fxDraw('hail', f.t / f.dur * 6, f.x, f.y, f.R * 3.4, f.R * 3.4, 0.5, 0.87);
       out.push(f); continue;
     }
     if (!f.draw) f.draw = () => {
@@ -814,24 +793,16 @@ function combatEntities() {
   }
   return out;
 }
-const SNOW = [];
-for (let i = 0; i < 90; i++) SNOW.push({ a: Math.random() * 6.283, r: Math.random(), s: 0.6 + Math.random(), h: Math.random() });
 // поверх мира: вспышки, снег бури, цифры урона
 function combatOver(t) {
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   for (const f of fx) {
     if (f.type !== 'spark' && f.type !== 'puff') continue;
-    if (f.hail && (FXS.hail.ok || fx2ok('shatter'))) continue;
+    if (f.hail && fx2ok('shatter')) continue;
     if (f.hit && fx2ok('hit')) {
       const k = f.t / f.dur, s = 0.45 + 0.75 * easeOut(k);
       ctx.globalCompositeOperation = 'source-over';
       fx2('hit', f.x, f.y, 200 * s * (f.sc || 1), 200 * s * (f.sc || 1), 0.5, 0.5, 1 - k, f.x * 0.03);
-      ctx.globalCompositeOperation = 'lighter';
-      continue;
-    }
-    if (f.hit && FXS.hit.ok) {
-      ctx.globalCompositeOperation = 'source-over';
-      fxDraw('hit', f.t / f.dur * 16, f.x, f.y, 190, 190, 0.5, 0.5);
       ctx.globalCompositeOperation = 'lighter';
       continue;
     }
@@ -844,13 +815,6 @@ function combatOver(t) {
     const hs = HS(), y = P.y - CH * 0.78 * hs, g = ctx.createRadialGradient(P.x, y, 0, P.x, y, 60 * hs);
     g.addColorStop(0, 'rgba(170,225,255,' + Math.min(0.9, P.cast * 5) + ')'); g.addColorStop(1, 'rgba(170,225,255,0)');
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(P.x, y, 60 * hs, 0, 7); ctx.fill();
-  }
-  if (P.ult > 0 && !FXS.storm.ok) {
-    ctx.fillStyle = 'rgba(235,245,255,' + Math.min(1, P.ult) * 0.8 + ')';
-    for (const s of SNOW) {
-      const a = s.a + t * 1.6 * s.s, r = 60 + s.r * 360, hh = ((s.h + t * 0.5 * s.s) % 1) * 260;
-      ctx.beginPath(); ctx.arc(P.x + Math.cos(a) * r, P.y + Math.sin(a) * r * YK - hh, 2.2 + s.s * 1.6, 0, 7); ctx.fill();
-    }
   }
   ctx.restore();
   ctx.font = 'bold 24px system-ui, sans-serif'; ctx.textAlign = 'center';
@@ -867,6 +831,7 @@ function combatOver(t) {
     ctx.fillStyle = P.hurt > 0 ? '#ffffff' : '#57d46a'; ctx.fillRect(P.x - bw / 2, by, bw * P.hp / P.maxHp, 8);
   }
 }
+const SND_EL = document.getElementById('snd');
 const BOSS_PLATE = new Image(); BOSS_PLATE.src = 'ui/plate.webp' + V;
 // интерфейс в координатах экрана
 function combatUI() {
@@ -934,7 +899,7 @@ function combatUI() {
     ctx.fillText('Возрождение через ' + Math.ceil(P.dead), W / 2, H / 2);
   }
   musicUpdate();
-  const el = document.getElementById('snd');
+  const el = SND_EL;
   if (el) {
     const n = Object.keys(SND).length, on = AC && AC.state === 'running';
     const txt = !on ? '🔇 коснитесь экрана, чтобы включить звук'

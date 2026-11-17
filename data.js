@@ -119,6 +119,16 @@ const UNIT_LIST = [
   { id: 'boss', name: 'Босс', char: 'boss' },
 ];
 
+// Листы персонажей упакованы в атласы (chars/at_*.webp, координаты кадров — chars/atlas.js):
+// пустые поля вокруг кадров обрезаны, поэтому в памяти они втрое меньше исходных листов.
+// Рисует кадр (gx, gy) исходного листа name так, будто вся его клетка занимает квадрат size в точке (dx, dy).
+function drawCell(g, img, name, gx, gy, dx, dy, size) {
+  const A = ATLAS[name], f = A.f[gy * A.gc + gx];
+  if (!f) return;
+  const k = size / A.cell;
+  g.drawImage(img, f[0], f[1], f[2], f[3], dx + f[4] * k, dy + f[5] * k, f[2] * k, f[3] * k);
+}
+
 // ---------- настройки редактора ----------
 // Хранятся в браузере (localStorage). scale, speed, power, hp — множители к значениям по умолчанию.
 // map — список объектов карты или null, если карта не менялась.
@@ -126,7 +136,8 @@ const CFG_KEY = 'hw_config_v1';
 function defaultCfg() {
   const units = {};
   for (const u of UNIT_LIST) units[u.id] = { char: u.char, scale: 1, speed: 1, power: 1, hp: 1 };
-  return { v: 1, units, map: null, cam: 1 };   // cam — отдаление камеры в игре: 1 как сейчас, 2 — вдвое дальше
+  // cam — отдаление камеры в игре: 1 — ближе всего, 2 — вдвое дальше; 1.65 подобрал Бахтиёр в редакторе 17.11
+  return { v: 1, units, map: null, cam: 1.65 };
 }
 function normCfg(c) {
   const d = defaultCfg();
@@ -143,7 +154,7 @@ function normCfg(c) {
       if (o.red) r.red = true;
       if (o.soft) r.soft = true;
       if (Array.isArray(o.r)) r.r = [+o.r[0] || 0, +o.r[1] || 0];
-      if (Array.isArray(o.c)) r.c = o.c.map(e => e.map(Number));
+      if (Array.isArray(o.c)) r.c = o.c.filter(Array.isArray).map(e => e.map(Number));
       return r;
     });
   }

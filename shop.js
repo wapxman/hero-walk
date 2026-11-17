@@ -134,7 +134,7 @@ const SHOP = {
   // ----- геймпад: Start — волна, Select — магазин, крестовина — фласки -----
   padPrev: {},
   pad() {
-    const gp = [...(navigator.getGamepads ? navigator.getGamepads() : [])].find(g => g);
+    const gp = PADS[0];   // опрос геймпадов — один раз за кадр в index.html
     if (!gp) return;
     const map = { 9: () => SHOP.startWave(), 8: () => (SHOP.open ? SHOP.closeShop() : SHOP.openShop()),
       12: () => SHOP.use('heal'), 13: () => SHOP.use('frost'), 15: () => SHOP.use('swift'), 14: () => SHOP.use('power') };
@@ -236,7 +236,9 @@ const SHOP = {
     E.gold.lastChild.textContent = SHOP.gold;
     E.title.querySelector('em').textContent = SHOP.gold;
     for (const f of FLASKS) { const s = E.fl[f.id], n = SHOP.flasks[f.id]; s.querySelector('b').textContent = n; s.classList.toggle('off', !n); }
-    E.items.innerHTML = ITEMS.filter(it => SHOP.items[it.id]).map(it => '<div class="slot item bg" title="' + it.name + ': ' + it.desc + '">' + icon(ICON[it.id]) + '<b>' + ROM[SHOP.items[it.id]] + '</b></div>').join('');
+    // ячейки предметов перестраиваем, только когда набор поменялся (refresh зовётся на каждую монету)
+    const ih = ITEMS.filter(it => SHOP.items[it.id]).map(it => '<div class="slot item bg" title="' + it.name + ': ' + it.desc + '">' + icon(ICON[it.id]) + '<b>' + ROM[SHOP.items[it.id]] + '</b></div>').join('');
+    if (ih !== E.itemsHtml) { E.items.innerHTML = ih; E.itemsHtml = ih; }
     const rest = SHOP.phase === 'rest';
     E.wave.style.display = rest && !SHOP.open ? 'flex' : 'none';
     E.waveTxt.textContent = 'Начать волну ' + (wave + 1);

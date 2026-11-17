@@ -89,10 +89,11 @@
   </div>
 </div>
 
-<script src="../data.js?v=28"></script>
+<script src="../data.js?v=29"></script>
+<script src="../chars/atlas.js?v=29"></script>
 <script>
 'use strict';
-const V = '?v=28';
+const V = '?v=29';
 let cfg = loadCfg();
 // рабочая копия карты: объекты в координатах мира
 let objs = (cfg.map || DEFAULT_OBJ).map(o => JSON.parse(JSON.stringify(o)));
@@ -103,7 +104,7 @@ const img = {};
 for (const k of ['ground', 's2', 's3', 's4', 's5', 's6']) { img[k] = new Image(); img[k].src = '../arena/' + k + '.webp' + V; img[k].onload = () => { need = true; buildPalette(); }; }
 const chr = {};
 function charImg(id) {
-  if (!chr[id]) { chr[id] = new Image(); chr[id].src = '../chars/mx_' + (id === 'ganfaul' ? 'hero_a' : id) + '.webp' + V; }
+  if (!chr[id]) { chr[id] = new Image(); chr[id].src = '../chars/at_' + (id === 'ganfaul' ? 'hero_a' : id) + '.webp' + V; }
   return chr[id];
 }
 
@@ -317,7 +318,8 @@ function buildPalette() {
 const SL = [['scale', 'Размер', 0.5, 1.8], ['speed', 'Скорость', 0.4, 2.5], ['power', 'Сила', 0.3, 4], ['hp', 'Здоровье', 0.3, 4]];
 const previews = [];
 // отдаление камеры в игре: больше — видно больше арены, персонажи мельче
-$('camZ').value = cfg.cam; $('camZv').textContent = '×' + (+cfg.cam).toFixed(2);
+function showCam() { $('camZ').value = cfg.cam; $('camZv').textContent = '×' + (+cfg.cam).toFixed(2); }
+showCam();
 $('camZ').oninput = () => { cfg.cam = +$('camZ').value; $('camZv').textContent = '×' + cfg.cam.toFixed(2); touch(); };
 function buildUnits() {
   $('units').innerHTML = ''; previews.length = 0;
@@ -351,12 +353,10 @@ function drawPreviews() {
     const g = pv.getContext('2d'), im = charImg(c.char);
     g.clearRect(0, 0, 168, 168);
     if (!im.complete || !im.naturalWidth) continue;
-    const fi = Math.floor(t * 9) % 8;
-    let sx, sy, cell;
-    if (c.char === 'ganfaul') { cell = 400; const k = 4 + fi; sx = (k % 6) * cell; sy = (2 + Math.floor(k / 6)) * cell; }   // ряд «вниз-вправо»
-    else { cell = c.char === 'boss' ? 320 : 256; sx = fi * cell; sy = cell; }
-    const s = 150 * Math.min(1.25, Math.max(0.55, c.scale));
-    g.drawImage(im, sx, sy, cell, cell, 84 - s / 2, 96 - s / 2, s, s);
+    const fi = Math.floor(t * 9) % 8, s = 150 * Math.min(1.25, Math.max(0.55, c.scale));
+    // кадр бега в направлении «вниз-вправо» из атласа персонажа
+    if (c.char === 'ganfaul') { const k = 4 + fi; drawCell(g, im, 'hero_a', k % 6, 2 + Math.floor(k / 6), 84 - s / 2, 96 - s / 2, s); }
+    else drawCell(g, im, c.char, fi, 1, 84 - s / 2, 96 - s / 2, s);
   }
 }
 $('unitsReset').onclick = () => { cfg.units = defaultCfg().units; buildUnits(); touch(); };
@@ -378,7 +378,7 @@ $('file').onchange = () => {
     try {
       cfg = normCfg(JSON.parse(rd.result));
       objs = (cfg.map || DEFAULT_OBJ).map(o => JSON.parse(JSON.stringify(o)));
-      select(null); buildUnits(); save(true); need = true; say('Настройки загружены из файла и сохранены.');
+      select(null); buildUnits(); showCam(); save(true); need = true; say('Настройки загружены из файла и сохранены.');
     } catch (e) { say('Это не файл настроек Duel Arena.', true); }
     $('file').value = '';
   };
