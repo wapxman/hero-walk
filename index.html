@@ -21,9 +21,9 @@
 <canvas id="c"></canvas>
 <div id="hud"><b>Duel Arena</b> · <span id="tip">стик — движение, кнопки справа — огонь и скилы (ПК: WASD, пробел, Q E F R, фласки 1–4, Enter — волна, B — магазин)</span><br>
 <span id="snd">🔇 коснитесь экрана, чтобы включить звук</span> <span id="pad">🎮 геймпад подключён</span></div>
-<script src="data.js?v=22"></script>
+<script src="data.js?v=23"></script>
 <script>
-const V = '?v=22';
+const V = '?v=23';
 const cv = document.getElementById('c');
 const ctx = cv.getContext('2d');
 let DPR = 1, W = 0, H = 0;
@@ -309,7 +309,7 @@ function frame(now) {
   combatUpdate(dt);
 
   // --- камера ---
-  const charScr = Math.max(90, Math.min(260, H * 0.28));
+  const charScr = Math.max(90, Math.min(260, H * 0.28)) / CFG.cam;   // CFG.cam — отдаление из редактора
   // адрес с #map показывает всю арену целиком (для проверки расстановки)
   const Z = location.hash === '#map' ? Math.min(W / WORLD_W, H / WORLD_H) : charScr / CH;
   const vw = W / Z, vh = H / Z;
@@ -401,7 +401,7 @@ if (location.host !== 'duelarena.app') {
 // на сенсорном экране подсказка короче, чтобы не наезжать на счётчик волн
 if ('ontouchstart' in window) document.getElementById('tip').textContent = 'стик — движение, кнопки справа — огонь и скиллы';
 </script>
-<script src="combat.js?v=22"></script>
-<script src="shop.js?v=22"></script>
+<script src="combat.js?v=23"></script>
+<script src="shop.js?v=23"></script>
 </body>
 </html>

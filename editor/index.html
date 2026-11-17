@@ -67,6 +67,7 @@
     <h3>Добавить объект</h3>
     <div id="pal"></div>
     <h3>Карта целиком</h3>
+    <div class="row"><span>Отдаление камеры в игре</span><input type="range" id="camZ" min="0.6" max="2.5" step="0.05"><output id="camZv"></output></div>
     <label class="chk"><input type="checkbox" id="showSolid" checked> показывать преграды</label>
     <label class="chk"><input type="checkbox" id="showFront"> показывать передний план (ветки, кроны)</label>
     <div class="btn blue" id="mapReset" style="margin-top:6px">Вернуть карту по умолчанию</div>
@@ -88,10 +89,10 @@
   </div>
 </div>
 
-<script src="../data.js?v=22"></script>
+<script src="../data.js?v=23"></script>
 <script>
 'use strict';
-const V = '?v=22';
+const V = '?v=23';
 let cfg = loadCfg();
 // рабочая копия карты: объекты в координатах мира
 let objs = (cfg.map || DEFAULT_OBJ).map(o => JSON.parse(JSON.stringify(o)));
@@ -315,6 +316,9 @@ function buildPalette() {
 // ---------- персонажи ----------
 const SL = [['scale', 'Размер', 0.5, 1.8], ['speed', 'Скорость', 0.4, 2.5], ['power', 'Сила', 0.3, 4], ['hp', 'Здоровье', 0.3, 4]];
 const previews = [];
+// отдаление камеры в игре: больше — видно больше арены, персонажи мельче
+$('camZ').value = cfg.cam; $('camZv').textContent = '×' + (+cfg.cam).toFixed(2);
+$('camZ').oninput = () => { cfg.cam = +$('camZ').value; $('camZv').textContent = '×' + cfg.cam.toFixed(2); touch(); };
 function buildUnits() {
   $('units').innerHTML = ''; previews.length = 0;
   for (const u of UNIT_LIST) {

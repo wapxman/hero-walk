@@ -126,7 +126,7 @@ const CFG_KEY = 'hw_config_v1';
 function defaultCfg() {
   const units = {};
   for (const u of UNIT_LIST) units[u.id] = { char: u.char, scale: 1, speed: 1, power: 1, hp: 1 };
-  return { v: 1, units, map: null };
+  return { v: 1, units, map: null, cam: 1 };   // cam — отдаление камеры в игре: 1 как сейчас, 2 — вдвое дальше
 }
 function normCfg(c) {
   const d = defaultCfg();
@@ -147,11 +147,33 @@ function normCfg(c) {
       return r;
     });
   }
+  if (typeof c.cam === 'number' && c.cam >= 0.5 && c.cam <= 3) d.cam = c.cam;
   return d;
 }
+// Режим разработки: на локальном сервере (порт 8765) настройки ещё и лежат в файле dev_cfg.json,
+// чтобы редактор на компьютере и игра в эмуляторе или на телефоне видели одно и то же.
+const DEV_SYNC = location.port === '8765';
+function devText() {
+  try {
+    const x = new XMLHttpRequest();
+    x.open('GET', '/dev_cfg.json?' + Date.now(), false); x.send();
+    return x.status === 200 ? x.responseText : null;
+  } catch (e) { return null; }
+}
 function loadCfg() {
+  if (DEV_SYNC) { const t = devText(); if (t) try { return normCfg(JSON.parse(t)); } catch (e) {} }
   try { return normCfg(JSON.parse(localStorage.getItem(CFG_KEY))); } catch (e) { return defaultCfg(); }
 }
 function saveCfg(c) {
+  if (DEV_SYNC) try { fetch('/dev_cfg', { method: 'POST', body: JSON.stringify(c) }); } catch (e) {}
   try { localStorage.setItem(CFG_KEY, JSON.stringify(c)); return true; } catch (e) { return false; }
+}
+// игра в режиме разработки сама перезапускается, когда в редакторе что-то сохранили
+if (DEV_SYNC && !/\/editor\//.test(location.pathname)) {
+  let last = devText();
+  setInterval(() => {
+    fetch('/dev_cfg.json?' + Date.now()).then(r => r.ok ? r.text() : null).then(t => {
+      if (t && t !== last) location.reload();
+    }).catch(() => {});
+  }, 1500);
 }
