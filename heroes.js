@@ -53,9 +53,10 @@ function fx3(k, x, y, w, h, ax, ay, alpha, rot, ground) {
 // ---------- Фокус охотника (пассивка, кнопка R) ----------
 // каждое попадание стрелой даёт заряд (до 10); за заряд: +5% урона, +4% скорости атаки, +3% дальности.
 // Без попаданий 3 секунды заряды по одному гаснут.
+// уровень пассивки (прокачка R) добавляет +0,6% урона к каждому заряду
 const FOCUS_MAX = 10;
 function focusHit() { P.focus = Math.min(FOCUS_MAX, (P.focus || 0) + 1); P.focusT = 3; }
-const focusK = () => 1 + 0.05 * (P.focus || 0);
+const focusK = () => 1 + (0.05 + 0.006 * (skLv('r') - 1)) * (P.focus || 0);
 
 // ---------- атака: стрела ----------
 const _shootMage = shoot;
@@ -98,11 +99,11 @@ cast = function (id) {
     for (const e of enemies) {
       const d = gdist(P, e);
       if (d > R + e.rad) continue;
-      hurtEnemy(e, 70 * focusK(), '#d9ffb0');
+      hurtEnemy(e, 70 * focusK() * skDmg('q'), '#d9ffb0');
       let dx = e.x - P.x, dy = (e.y - P.y) / YK; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m;
       const push = (e.boss ? 120 : 280) * (1 - 0.5 * d / (R + e.rad)), t = 0.28;
       e.kb = { vx: dx * push / t, vy: dy * push / t * YK, t };
-      e.silT = 3.5;
+      e.silT = 3.5 + 0.15 * (skLv('q') - 1);
     }
     snd('archer_wave', 0.9);
   } else if (id === 'e') {
@@ -111,15 +112,15 @@ cast = function (id) {
     let dx = P.face.x, dy = P.face.y;
     if (t) { dx = t.x - P.x; dy = (t.y - P.y) / YK; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m; row = runRow(t.x - P.x, t.y - P.y); }
     const a0 = Math.atan2(dy, dx);
-    for (let i = -2; i <= 2; i++) { const a = a0 + i * 0.2; arrow(Math.cos(a), Math.sin(a), null, rnd(52, 64) * focusK()); }
+    for (let i = -2; i <= 2; i++) { const a = a0 + i * 0.2; arrow(Math.cos(a), Math.sin(a), null, rnd(52, 64) * focusK() * skDmg('e')); }
     snd('archer_volley', 0.9);
   } else if (id === 'f') {
     // Щит: купол поглощает 260 урона (плюс 15 за уровень героя) 6 секунд
-    P.shield = 260 + 15 * (P.lvl - 1); P.shieldT = 6;
+    P.shield = Math.round((260 + 6 * (P.lvl - 1)) * skDmg('f')); P.shieldT = 6;
     say(P.x, P.y - CH * 1.2 * HS(), 'Щит ' + P.shield, '#b9ffcf');
     snd('archer_shield', 0.85);
   }
-  P.cd[id] = CDMAX[id] * (P.cdMul || 1); P.cast = 0.25; P.mp -= MANA[id];
+  P.cd[id] = CDMAX[id] * (P.cdMul || 1) * skCd(id); P.cast = 0.25; P.mp -= MANA[id];
   P.act = { anim: 'cast', t: 0, dur: 0.55, row };
 };
 // щит забирает урон на себя, пока не кончится

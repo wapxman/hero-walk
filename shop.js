@@ -10,7 +10,10 @@ const FLASKS = [
   { id: 'frost', name: 'Фласка холода', desc: 'сброс перезарядки', price: 55, key: '2' },
   { id: 'swift', name: 'Фласка скорости', desc: '+45% бега на 8 с', price: 35, key: '3' },
   { id: 'power', name: 'Эликсир силы', desc: '+50% урона на 10 с', price: 60, key: '4' },
+  { id: 'mana', name: 'Фласка маны', desc: '+220 маны', price: 30, key: '5' },
 ];
+ICON.mana = 'mana';   // своя картинка ui/i_mana.webp, а не клетка общего листа иконок
+const MANA_ICON = new Image(); MANA_ICON.src = 'ui/i_mana.webp' + V;
 const ITEMS = [
   { id: 'orb', name: 'Ледяная сфера', desc: '+20% урона', price: 110 },
   { id: 'boots', name: 'Крылатые сапоги', desc: '+10% скорости', price: 90 },
@@ -23,18 +26,24 @@ const KILL_GOLD = { min: 6, war: 13, mag: 11, rog: 11, boss: 90 };
 const BASE_HP = 600;
 
 const SHOP = {
-  gold: 0, flasks: { heal: 1, frost: 0, swift: 0, power: 0 }, items: {}, buffs: { swift: 0, power: 0 },
+  gold: 0, flasks: { heal: 1, frost: 0, swift: 0, power: 0, mana: 0 }, items: {}, buffs: { swift: 0, power: 0 },
   drops: [], phase: 'rest', restT: 0, open: false, el: {},
 
   // ----- модификаторы героя от предметов и фласок -----
   recompute() {
     const L = id => SHOP.items[id] || 0, b = SHOP.buffs;
-    // уровень героя: +4% урона и +30 здоровья за каждый
-    P.dmgMul = (1 + 0.2 * L('orb')) * (b.power > 0 ? 1.5 : 1) * CFG.units.hero.power * (1 + 0.04 * (P.lvl - 1));
-    P.spdMul = (1 + 0.1 * L('boots')) * (b.swift > 0 ? 1.45 : 1);
+    // уровень героя: +1,5% урона и +10 здоровья за каждый (до 100); сила, ловкость и интеллект — из progress.js
+    const st = P.st || {}, str = st.str || 0, agi = st.agi || 0, int = st.int || 0;
+    P.dmgMul = (1 + 0.2 * L('orb')) * (b.power > 0 ? 1.5 : 1) * CFG.units.hero.power * (1 + 0.015 * (P.lvl - 1)) * (1 + 0.006 * str);
+    P.spdMul = (1 + 0.1 * L('boots')) * (b.swift > 0 ? 1.45 : 1) * (1 + 0.006 * agi);
+    P.atkSpd = 1 + 0.015 * agi;
+    P.skMul = 1 + 0.015 * int;
+    P.mpRegen = 11 + 0.35 * int;
+    const mm = 420 + 12 * int;
+    if (mm !== P.maxMp) { P.mp = Math.min(mm, P.mp + Math.max(0, mm - P.maxMp)); P.maxMp = mm; }
     P.cdMul = Math.pow(0.88, L('ring'));
     P.armMul = Math.pow(0.88, L('shield'));
-    const mh = Math.round((P.baseHp || BASE_HP) * CFG.units.hero.hp) + 150 * L('heart') + 30 * (P.lvl - 1);
+    const mh = Math.round((P.baseHp || BASE_HP) * CFG.units.hero.hp) + 150 * L('heart') + 10 * (P.lvl - 1) + 8 * str;
     if (mh !== P.maxHp) { P.hp = Math.min(mh, P.hp + Math.max(0, mh - P.maxHp)); P.maxHp = mh; }
   },
   itemPrice(it) { return Math.round(it.price * (1 + 0.6 * (SHOP.items[it.id] || 0))); },
@@ -73,7 +82,7 @@ const SHOP = {
     SHOP.drop('coin', null, e.x, e.y, g);
     if (e.boss) SHOP.drop('chest', null, e.x + 40, e.y + 10);
     else if (Math.random() < 0.05) SHOP.drop('chest', null, e.x + rnd(-30, 30), e.y + rnd(-10, 20));
-    else if (Math.random() < 0.1) SHOP.drop('flask', Math.random() < 0.6 ? 'heal' : pick(['frost', 'swift', 'power']), e.x + rnd(-30, 30), e.y + rnd(-10, 20));
+    else if (Math.random() < 0.1) SHOP.drop('flask', Math.random() < 0.6 ? 'heal' : pick(['frost', 'swift', 'power', 'mana', 'mana']), e.x + rnd(-30, 30), e.y + rnd(-10, 20));
   },
   drop(kind, id, x, y, amount) {
     const d = { kind, id, x, y, t: 0, amount, icon: kind === 'coin' ? ICON.coin : kind === 'chest' ? ICON.chest : ICON[id] };
@@ -85,7 +94,8 @@ const SHOP = {
     const s = d.kind === 'coin' ? 34 : d.kind === 'chest' ? 64 : 46, c = SHOP.icons.naturalWidth / 4;
     const hop = d.t < 0.35 ? Math.sin(d.t / 0.35 * Math.PI) * 26 : 0, bob = Math.sin(d.t * 3 + d.x) * 3;
     if (d.t > 40) ctx.globalAlpha = Math.max(0, (45 - d.t) / 5);
-    ctx.drawImage(SHOP.icons, (d.icon % 4) * c, Math.floor(d.icon / 4) * c, c, c, d.x - s / 2, d.y - s * 0.85 - hop + bob, s, s);
+    if (d.icon === 'mana') { if (MANA_ICON.complete) ctx.drawImage(MANA_ICON, d.x - s / 2, d.y - s * 0.85 - hop + bob, s, s); }
+    else ctx.drawImage(SHOP.icons, (d.icon % 4) * c, Math.floor(d.icon / 4) * c, c, c, d.x - s / 2, d.y - s * 0.85 - hop + bob, s, s);
     ctx.globalAlpha = 1;
   },
   pick(d) {
@@ -111,6 +121,7 @@ const SHOP = {
     else if (id === 'frost') { for (const k in P.cd) P.cd[k] = 0; say(P.x, P.y - CH * HS() * 1.1, 'Скиллы готовы', '#bfe6ff'); }
     else if (id === 'swift') { SHOP.buffs.swift = 8; say(P.x, P.y - CH * HS() * 1.1, 'Скорость!', '#a8ffb5'); }
     else if (id === 'power') { SHOP.buffs.power = 10; say(P.x, P.y - CH * HS() * 1.1, 'Сила!', '#ffd95e'); }
+    else if (id === 'mana') { if (P.mp >= P.maxMp) return; P.mp = Math.min(P.maxMp, P.mp + 220); say(P.x, P.y - CH * HS() * 1.1, '+220 маны', '#8ab8ff'); }
     SHOP.flasks[id]--; SHOP.recompute(); SHOP.refresh();
     snd('flask', 0.7);
   },
@@ -217,7 +228,9 @@ const SHOP = {
   document.head.appendChild(css);
   const mk = (tag, cls, parent, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html) e.innerHTML = html; (parent || document.body).appendChild(e); return e; };
   const pos = i => 'background-position:' + (i % 4) * 100 / 3 + '% ' + Math.floor(i / 4) * 100 / 3 + '%';
-  const icon = i => '<span class="ic" style="' + pos(i) + ';display:block"></span>';
+  const icon = i => i === 'mana' ? '<span class="ic" style="background:' + U('i_mana') + ' center / 100% 100% no-repeat;display:block"></span>'
+    : '<span class="ic" style="' + pos(i) + ';display:block"></span>';
+  SHOP.iconHtml = icon;
   // нажатие не должно доходить до игры (иначе герой выстрелит или включится стик)
   const tap = (e, fn) => {
     e.classList.add('tap');
@@ -268,7 +281,6 @@ const SHOP = {
     tap(d, () => SHOP.buy(kind, o.id)); E.offers.push({ d, kind, o });
   };
   for (const f of FLASKS) addOffer('flask', f);
-  mk('div', 'offer', grid);                       // пустая пятая клетка в ряду фласок
   for (const it of ITEMS) addOffer('item', it);
   E.go = mk('div', 'bg', p); E.go.id = 'shGo'; tap(E.go, () => SHOP.startWave());
   E.close = mk('div', 'bg', p); E.close.id = 'shClose'; tap(E.close, () => SHOP.closeShop());

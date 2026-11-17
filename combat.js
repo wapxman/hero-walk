@@ -116,6 +116,9 @@ const SPAWN = HERO_SPAWN;
 // мана: скиллы стоят маны, она сама восстанавливается; уровень растёт от опыта за победы
 Object.assign(P, { mp: 420, maxMp: 420, lvl: 1, xp: 0 });
 const MANA = { q: 60, e: 50, f: 80, r: 150 }, MP_REGEN = 11;
+const skLv = id => (P.skLv && P.skLv[id]) || 1;
+const skDmg = id => (1 + 0.12 * (skLv(id) - 1)) * (P.skMul || 1);
+const skCd = id => 1 - 0.03 * (skLv(id) - 1);
 const KILL_XP = { min: 8, war: 18, mag: 14, rog: 14, boss: 120 };
 const xpNeed = l => 40 + 35 * l;
 function gainXp(n) {
@@ -246,23 +249,23 @@ function cast(id) {
   if (id === 'q') {
     const c = aimPoint(320 * HS()), R = 215 * HS();
     fx.push({ type: 'nova', x: c.x, y: c.y, t: 0, dur: 0.95, R });
-    for (const e of enemies) if (gdist(c, e) < R + e.rad) { hurtEnemy(e, 95); slow(e, 0.45, 3.5); }
+    for (const e of enemies) if (gdist(c, e) < R + e.rad) { hurtEnemy(e, 95 * skDmg('q')); slow(e, 0.45, 3.5); }
     snd('nova', 0.9);
   } else if (id === 'e') {
     const t = nearestEnemy(RANGE);
     if (!t) { say(P.x, P.y - CH * HS(), 'нет цели', '#ffd28a'); return; }
-    t.root = 2.8; t.dot = 45; hurtEnemy(t, 40);
+    t.root = 2.8 + 0.1 * (skLv('e') - 1); t.dot = 45 * skDmg('e'); hurtEnemy(t, 40 * skDmg('e'));
     fx.push({ type: 'chains', e: t, x: t.x, y: t.y, t: 0, dur: 3.25, h: t.ch.top * t.ch.U * t.sc });
     snd('chains', 0.85);
   } else if (id === 'f') {
     const c = aimPoint(340 * HS());
-    zones.push({ type: 'hail', x: c.x, y: c.y, R: 250 * HS(), t: 3.2, tick: 0 });
+    zones.push({ type: 'hail', x: c.x, y: c.y, R: 250 * HS(), t: 3.2, tick: 0, mul: skDmg('f') });
     snd('hail', 0.8);
   } else if (id === 'r') {
-    P.ult = 5; P.ultTick = 0;   // звук бури длится те же 5 секунд
+    P.ult = 5 + 0.2 * (skLv('r') - 1); P.ultTick = 0; P.ultMul = skDmg('r');   // звук бури длится те же 5 секунд
     snd('storm', 0.85);
   }
-  P.cd[id] = CDMAX[id] * (P.cdMul || 1); P.cast = 0.3; P.mp -= MANA[id];
+  P.cd[id] = CDMAX[id] * (P.cdMul || 1) * skCd(id); P.cast = 0.3; P.mp -= MANA[id];
   P.act = { anim: 'cast', t: 0, dur: 0.7, row: null };
 }
 function hurtPlayer(d) {
@@ -521,7 +524,7 @@ function combatUpdate(dt) {
     if (P.dead <= 0) { P.dead = 0; P.hp = P.maxHp; P.mp = P.maxMp; P.x = SPAWN.x; P.y = SPAWN.y; }
   } else {
     P.hp = Math.min(P.maxHp, P.hp + 5 * dt);
-    P.mp = Math.min(P.maxMp, P.mp + MP_REGEN * (SHOP.phase === 'rest' ? 3 : 1) * dt);   // между волнами мана копится втрое быстрее
+    P.mp = Math.min(P.maxMp, P.mp + (P.mpRegen || MP_REGEN) * (SHOP.phase === 'rest' ? 3 : 1) * dt);   // между волнами мана копится втрое быстрее
     stepT -= dt;
     if (P.moving && stepT <= 0) { snd('step', P.running ? 0.22 : 0.14, rnd(0.94, 1.06)); stepT = P.running ? 0.33 : 0.55; }
     if ((held.key || held.touch || held.mouse || held.pad) && P.atkCd <= 0) shoot();
@@ -530,7 +533,7 @@ function combatUpdate(dt) {
       while (P.ultTick <= 0) {
         P.ultTick += 0.11;
         const a = rnd(0, 6.283), r = rnd(90, 400) * HS();
-        shard(P.x + Math.cos(a) * r, P.y + Math.sin(a) * r * YK, 100, 60, 0.4, 2);
+        shard(P.x + Math.cos(a) * r, P.y + Math.sin(a) * r * YK, 100, 60 * (P.ultMul || 1), 0.4, 2);
       }
     }
   }
@@ -573,7 +576,7 @@ function combatUpdate(dt) {
     while (z.tick <= 0) {
       z.tick += 0.13;
       const a = rnd(0, 6.283), r = Math.sqrt(Math.random()) * z.R;
-      shard(z.x + Math.cos(a) * r, z.y + Math.sin(a) * r * YK, 80, 24, 0.65, 1);
+      shard(z.x + Math.cos(a) * r, z.y + Math.sin(a) * r * YK, 80, 24 * (z.mul || 1), 0.65, 1);
     }
   }
   for (const f of fx) {
