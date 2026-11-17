@@ -1,0 +1,81 @@
+Промты для ChatGPT, версия 2: кнопки скиллов и эффекты скиллов героя (лёд), высокое качество.
+Каждый эффект — одна большая картинка 1024x1024 (не сетка кадров): движение (рост, вращение, затухание) делает игра.
+Фон эффектов — чисто чёрный: в игре они рисуются в режиме «свечения», чёрное становится прозрачным.
+
+=== 1. КНОПКИ СКИЛЛОВ (sk_icons.png) ===
+Create a set of 6 fantasy game skill icons in one image, landscape 1536x1024, arranged in an exact 3x2 grid
+(3 columns, 2 rows), each icon centered in its own equal 512x512 cell with some empty space around it.
+Every icon is a perfectly round medallion: an ornate frame of polished silver with small glowing cyan diamond gems at the top,
+bottom, left and right, and inside the frame a richly detailed painted illustration of the spell on a deep dark-blue
+background. All 6 icons share exactly the same frame design and size.
+Icon 1 (top-left): "Frost Bolt" — a glowing sharp ice spear flying diagonally up-right with a trail of frost.
+Icon 2 (top-middle): "Crystal Nova" — an explosion of ice crystals bursting outward in a ring from a bright white center.
+Icon 3 (top-right): "Frostbite" — glowing frozen chains of ice wrapping around a frozen crystal.
+Icon 4 (bottom-left): "Hailstorm" — huge glowing icicles falling from a dark stormy sky.
+Icon 5 (bottom-middle): "Freezing Field" — a swirling blizzard vortex of snow and ice with a glowing rune in the middle.
+Icon 6 (bottom-right): "Ice Shield" — a glowing crystalline ice shield.
+Premium hand-painted mobile game art in the style of Dota 2 and Hearthstone ability icons: high detail, crisp edges, rich
+saturated cyan, azure, white and deep blue colors, strong glow and contrast, readable at small size.
+Pure solid black background (#000000) outside the round medallions. No text, no letters, no numbers, no watermark.
+
+=== 2. ВЫСТРЕЛ — ледяное копьё (fx2_bolt.png) ===
+Create a single game VFX image, square 1024x1024, centered: a magical ice spear projectile flying to the RIGHT, side view.
+A long sharp faceted crystal spear with a blazing white-hot core at the tip (right side), cyan and deep blue crystal body,
+swirling frost energy spiraling around it, and a long comet tail of glowing frost mist, snow sparkles and tiny ice shards
+trailing far to the left. The spear is horizontal and fills about 80% of the width.
+Premium hand-painted stylized game VFX in the style of Dota 2 / League of Legends spell effects, very high detail, crisp,
+vibrant glowing white, cyan, azure and deep blue, strong bloom. Pure solid black background (#000000).
+No text, no letters, no frame, no border, no watermark.
+
+=== 3. ПОПАДАНИЕ — ледяной взрыв (fx2_hit.png) ===
+Create a single game VFX image, square 1024x1024, centered: an ice impact burst at the moment of explosion. A blinding white
+flash in the center, a star-shaped burst of sharp glowing ice shards flying outward in all directions, a thin ring of frost
+energy, frost mist and bright sparkles. The effect is round and fills about 85% of the image.
+Premium hand-painted stylized game VFX in the style of Dota 2 / League of Legends spell effects, very high detail, crisp,
+vibrant glowing white, cyan, azure and deep blue, strong bloom. Pure solid black background (#000000).
+No text, no letters, no frame, no border, no watermark.
+
+=== 4. НОВА — кольцо льда, вид строго сверху (fx2_nova.png) ===
+Create a single game VFX image, square 1024x1024: "Crystal Nova" seen from DIRECTLY ABOVE (top-down, perfectly circular,
+no perspective). A perfect circular shockwave ring of jagged glowing ice crystals pointing outward, a bright white energy
+ring along the crystals, frost mist and snow particles blowing outward, and a faint glowing snowflake rune in the center.
+The ring is perfectly round and centered, its outer edge almost touching the image edges.
+Premium hand-painted stylized game VFX in the style of Dota 2 / League of Legends spell effects, very high detail, crisp,
+vibrant glowing white, cyan, azure and deep blue, strong bloom. Pure solid black background (#000000).
+No text, no letters, no frame, no border, no watermark.
+
+=== 5. ОКОВЫ — ледяная клетка (fx2_chains.png) ===
+Create a single game VFX image, square 1024x1024: "Frostbite" — a tall cluster of translucent glowing ice crystals that has
+grown from the ground and forms a prison about the height of a person (do NOT draw any person inside, the middle is empty
+and dark). Seen from a slightly elevated 3/4 game camera. Sharp faceted crystals of different heights rise from a glowing
+frost circle on the ground, glowing frozen chains of ice wrap around the crystals, cold mist at the base, sparkles.
+The base of the cluster is near the bottom of the image, the tallest crystals almost reach the top.
+Premium hand-painted stylized game VFX in the style of Dota 2 / League of Legends spell effects, very high detail, crisp,
+vibrant glowing white, cyan, azure and deep blue, strong bloom. Pure solid black background (#000000).
+No text, no letters, no frame, no border, no watermark.
+
+=== 6. ГРАД — падающая сосулька (fx2_icicle.png) ===
+Create a single game VFX image, square 1024x1024: a huge glowing icicle falling straight DOWN, vertical, the sharp tip at the
+bottom. Faceted translucent crystal with a white-hot glowing tip, cyan and deep blue body, a long vertical streak of frost
+energy, snow and sparkles trailing upward above it. The icicle and its trail are centered and fill the full height.
+Premium hand-painted stylized game VFX in the style of Dota 2 / League of Legends spell effects, very high detail, crisp,
+vibrant glowing white, cyan, azure and deep blue, strong bloom. Pure solid black background (#000000).
+No text, no letters, no frame, no border, no watermark.
+
+=== 7. ГРАД — удар о землю, вид строго сверху (fx2_shatter.png) ===
+Create a single game VFX image, square 1024x1024, seen from DIRECTLY ABOVE (top-down, perfectly circular, no perspective):
+the ground impact of a giant icicle — a bright white flash in the center, a circular splash of shattered ice shards flying
+outward, a frost crater crack pattern, a ring of frost shockwave and mist. Perfectly round, centered, filling about 90%.
+Premium hand-painted stylized game VFX in the style of Dota 2 / League of Legends spell effects, very high detail, crisp,
+vibrant glowing white, cyan, azure and deep blue, strong bloom. Pure solid black background (#000000).
+No text, no letters, no frame, no border, no watermark.
+
+=== 8. БУРЯ — ледяной вихрь, вид строго сверху (fx2_storm.png) ===
+Create a single game VFX image, square 1024x1024, seen from DIRECTLY ABOVE (top-down, perfectly circular, no perspective):
+"Freezing Field" — a huge swirling blizzard vortex: spiral arms of snow, frost wind and glowing ice shards rotating around
+the center, a large glowing circular rune with ornate frost runes along its edge, snowflakes everywhere. The swirl must be
+rotationally even (it will be rotated in the game). Perfectly round, centered, outer edge almost touching the image edges,
+the very center is calm and darker.
+Premium hand-painted stylized game VFX in the style of Dota 2 / League of Legends spell effects, very high detail, crisp,
+vibrant glowing white, cyan, azure and deep blue, strong bloom. Pure solid black background (#000000).
+No text, no letters, no frame, no border, no watermark.

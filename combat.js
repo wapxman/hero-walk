@@ -592,6 +592,34 @@ function fxDraw(k, fi, x, y, w, h, ax, ay, alpha) {
   if (alpha != null) ctx.globalAlpha = 1;
 }
 
+// Эффекты версии 2: одна большая картинка из ChatGPT на эффект, движение делает код.
+// «Земляные» картинки нарисованы строго сверху: их кладём на землю, сжимая по вертикали (YK), и можем вращать.
+const FX2 = {};
+for (const k of ['bolt', 'hit', 'nova', 'chains', 'icicle', 'shatter', 'storm']) {
+  const im = new Image(); FX2[k] = { img: im }; im.onload = () => { FX2[k].ok = true; }; im.src = 'fx/fx2_' + k + '.webp' + V;
+}
+const fx2ok = k => FX2[k] && FX2[k].ok;
+// картинка k размером w x h, точка (ax, ay) — в (x, y); rot — поворот, ground — положить на землю
+function fx2(k, x, y, w, h, ax, ay, alpha, rot, ground) {
+  const im = FX2[k].img;
+  ctx.save(); ctx.translate(x, y);
+  if (ground) ctx.scale(1, YK);
+  if (rot) ctx.rotate(rot);
+  if (alpha != null) ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+  ctx.drawImage(im, -w * ax, -h * ay, w, h);
+  ctx.restore();
+}
+const easeOut = k => 1 - (1 - k) * (1 - k);
+// круговая аура на земле (буря героя и ледяные зоны)
+function stormDraw(x, y, R, t, alpha) {
+  fx2('storm', x, y, R * 2.2, R * 2.2, 0.5, 0.5, alpha * 0.55, t * 0.9, true);
+  fx2('storm', x, y, R * 1.3, R * 1.3, 0.5, 0.5, alpha * 0.22, -t * 1.4 + 1, true);
+}
+// иконки кнопок: лист 3x2
+const SK_ICONS = new Image(); SK_ICONS.src = 'ui/sk_icons.webp' + V;
+const SK_CELL = { atk: 0, q: 1, e: 2, f: 3, r: 4 };
+const TOUCH_UI = 'ontouchstart' in window;   // на телефоне подписи клавиш не нужны
+
 // ---------- рисование ----------
 function disc(x, y, R, fill, stroke, lw) {
   ctx.beginPath(); ctx.ellipse(x, y, R, R * YK, 0, 0, 7);
@@ -603,17 +631,19 @@ function combatGround(t) {
   const tg = P.dead > 0 ? null : nearestEnemy(RANGE);
   if (tg) disc(tg.x, tg.y, tg.rad * 1.35, null, 'rgba(160,220,255,0.75)', 2.5);
   if (P.ult > 0) {
-    if (FXS.storm.ok) fxDraw('storm', (t * 12) % 16, P.x, P.y, 880, 1230, 0.5, 0.5, Math.min(1, P.ult) * 0.9);
+    if (fx2ok('storm')) stormDraw(P.x, P.y, 420, t, Math.min(1, P.ult) * 0.95);
+    else if (FXS.storm.ok) fxDraw('storm', (t * 12) % 16, P.x, P.y, 880, 1230, 0.5, 0.5, Math.min(1, P.ult) * 0.9);
     else { const a = Math.min(1, P.ult) * 0.22; disc(P.x, P.y, 410, 'rgba(150,200,255,' + a + ')', 'rgba(210,235,255,' + a * 2.2 + ')', 4); }
   }
   for (const z of zones) {
-    if (FXS.storm.ok) fxDraw('storm', (t * 9 + 5) % 16, z.x, z.y, z.R * 2.15, z.R * 3.0, 0.5, 0.5, Math.min(1, z.t) * 0.7);
+    if (fx2ok('storm')) stormDraw(z.x, z.y, z.R, t + 2, Math.min(1, z.t) * 0.75);
+    else if (FXS.storm.ok) fxDraw('storm', (t * 9 + 5) % 16, z.x, z.y, z.R * 2.15, z.R * 3.0, 0.5, 0.5, Math.min(1, z.t) * 0.7);
     else { const a = Math.min(1, z.t) * 0.2; disc(z.x, z.y, z.R, 'rgba(130,180,255,' + a + ')', 'rgba(200,225,255,' + a * 2.5 + ')', 3); }
   }
   for (const f of fx) {
     const k = f.t / f.dur;
     if (f.type === 'nova') {
-      if (!FXS.nova.ok) disc(f.x, f.y, f.R * Math.min(1, k * 2.2), 'rgba(140,215,255,' + 0.45 * (1 - k) + ')', 'rgba(230,248,255,' + (1 - k) + ')', 6);
+      if (!FXS.nova.ok && !fx2ok('nova')) disc(f.x, f.y, f.R * Math.min(1, k * 2.2), 'rgba(140,215,255,' + 0.45 * (1 - k) + ')', 'rgba(230,248,255,' + (1 - k) + ')', 6);
     } else if (f.type === 'tele' && FXS.bwarn.ok) {
       fxDraw('bwarn', (f.t * 14) % 16, f.x, f.y, f.R * 2.2, f.R * 2.6, 0.5, 0.52, 0.55 + 0.45 * k);
     } else if (f.type === 'quake' && FXS.bslam.ok) {
@@ -676,6 +706,13 @@ function drawShot(s) {
     ctx.fillStyle = '#9aa3ad'; ctx.beginPath(); ctx.arc(s.x, y, 4, 0, 7); ctx.fill();
     return;
   }
+  if (s.own === 'p' && fx2ok('bolt')) {
+    const fl = 1 + 0.06 * Math.sin(s.left / 9);
+    ctx.save(); ctx.translate(s.x, y); ctx.rotate(Math.atan2(s.dy * YK, s.dx));
+    fx2('bolt', 0, 0, 230 * fl, 230 * fl, 0.95, 0.5);
+    ctx.restore();
+    return;
+  }
   if (s.own === 'p' && FXS.bolt.ok) {
     ctx.save(); ctx.translate(s.x, y); ctx.rotate(Math.atan2(s.dy * YK, s.dx));
     fxDraw('bolt', (s.left / 40) % 4, 0, 0, 175, 175, 0.9, 0.5);
@@ -699,6 +736,13 @@ function combatEntities() {
   if (typeof SHOP !== 'undefined') for (const d of SHOP.drops) out.push(d);
   for (const s of shots) { if (!s.draw) s.draw = () => drawShot(s); out.push(s); }
   for (const f of fx) {
+    if (f.type === 'nova' && fx2ok('nova')) {
+      if (!f.draw) f.draw = () => {
+        const k = f.t / f.dur, s = 0.2 + 0.95 * easeOut(Math.min(1, k * 1.6));
+        fx2('nova', f.x, f.y, f.R * 2.3 * s, f.R * 2.3 * s, 0.5, 0.5, k < 0.55 ? 1 : (1 - k) / 0.45, k * 0.6, true);
+      };
+      out.push(f); continue;
+    }
     if (f.type === 'nova' && FXS.nova.ok) {
       if (!f.draw) f.draw = () => fxDraw('nova', f.t / f.dur * 16, f.x, f.y, f.R * 2.25, f.R * 2.9, 0.5, 0.56);
       out.push(f); continue;
@@ -706,6 +750,19 @@ function combatEntities() {
     if (f.type === 'quake' && FXS.bslam.ok) {
       if (!f.draw) f.draw = () => fxDraw('bslam', f.t / f.dur * 16, f.x, f.y, f.R * 2.35, f.R * 3.3, 0.5, 0.6);
       out.push(f); continue;
+    }
+    if (f.type === 'chains' && fx2ok('chains')) {
+      if (!f.draw) f.draw = () => {
+        // лёд растёт снизу вверх, держится и мерцает, в конце раскалывается и тает
+        if (f.e.hp <= 0 && f.t < f.dur - 0.4) f.t = f.dur - 0.4;
+        const left = f.dur - f.t, g = Math.min(1, f.t / 0.3), end = left < 0.4 ? 1 - left / 0.4 : 0;
+        const sz = f.h * 1.6 * (1 + end * 0.15), im = FX2.chains.img, iw = im.width, ih = im.height;
+        ctx.save(); ctx.globalAlpha = (end ? 1 - end : 0.88 + 0.12 * Math.sin(f.t * 7));
+        const vis = ih * (0.12 + 0.88 * g);
+        ctx.drawImage(im, 0, ih - vis, iw, vis, f.e.x - sz / 2, f.e.y + 2 + sz * 0.1 - sz * vis / ih, sz, sz * vis / ih);
+        ctx.restore();
+      };
+      f.y = f.e.y + 2; out.push(f); continue;
     }
     if (f.type === 'chains' && FXS.chains.ok) {
       if (!f.draw) f.draw = () => {
@@ -717,11 +774,25 @@ function combatEntities() {
       };
       f.y = f.e.y + 2; out.push(f); continue;
     }
+    if (f.type === 'spark' && f.hail && fx2ok('shatter')) {
+      if (!f.draw) f.draw = () => {
+        const k = f.t / f.dur, s = 0.35 + 0.8 * easeOut(Math.min(1, k * 2));
+        fx2('shatter', f.x, f.y, f.R * 2.1 * s, f.R * 2.1 * s, 0.5, 0.5, 0.85 * (1 - k * k), f.x * 0.01, true);
+      };
+      out.push(f); continue;
+    }
     if (f.type === 'spark' && f.hail && FXS.hail.ok) {
       if (!f.draw) f.draw = () => fxDraw('hail', 6 + f.t / f.dur * 10, f.x, f.y, f.R * 3.4, f.R * 3.4, 0.5, 0.87);
       out.push(f); continue;
     }
     if (f.type !== 'shard') continue;
+    if (fx2ok('icicle')) {
+      if (!f.draw) f.draw = () => {
+        const k = f.t / f.dur, y = f.y - (1 - k * k) * 460;
+        fx2('icicle', f.x, y, 240, 240, 0.5, 0.97, Math.min(1, k * 4));
+      };
+      out.push(f); continue;
+    }
     if (FXS.hail.ok) {
       if (!f.draw) f.draw = () => fxDraw('hail', f.t / f.dur * 6, f.x, f.y, f.R * 3.4, f.R * 3.4, 0.5, 0.87);
       out.push(f); continue;
@@ -742,7 +813,14 @@ function combatOver(t) {
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   for (const f of fx) {
     if (f.type !== 'spark' && f.type !== 'puff') continue;
-    if (f.hail && FXS.hail.ok) continue;
+    if (f.hail && (FXS.hail.ok || fx2ok('shatter'))) continue;
+    if (f.hit && fx2ok('hit')) {
+      const k = f.t / f.dur, s = 0.45 + 0.75 * easeOut(k);
+      ctx.globalCompositeOperation = 'source-over';
+      fx2('hit', f.x, f.y, 200 * s, 200 * s, 0.5, 0.5, 1 - k, f.x * 0.03);
+      ctx.globalCompositeOperation = 'lighter';
+      continue;
+    }
     if (f.hit && FXS.hit.ok) {
       ctx.globalCompositeOperation = 'source-over';
       fxDraw('hit', f.t / f.dur * 16, f.x, f.y, 190, 190, 0.5, 0.5);
@@ -788,6 +866,27 @@ function combatUI() {
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   for (const b of BTN) {
     const cd = b.id === 'atk' ? 0 : P.cd[b.id], on = b.id === 'r' && P.ult > 0;
+    if (SK_ICONS.complete && SK_ICONS.naturalWidth) {
+      // иконка из ChatGPT: медальон занимает почти всю ячейку листа 3x2
+      const c = SK_ICONS.naturalWidth / 3, i = SK_CELL[b.id], d = b.r * 2.25;
+      if (on) { ctx.save(); ctx.shadowColor = 'rgba(150,220,255,0.95)'; ctx.shadowBlur = 24; }
+      ctx.drawImage(SK_ICONS, (i % 3) * c, Math.floor(i / 3) * c, c, c, b.x - d / 2, b.y - d / 2, d, d);
+      if (on) ctx.restore();
+      if (cd > 0) {
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.r * 0.8, 0, 7); ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fill();
+        ctx.beginPath(); ctx.moveTo(b.x, b.y);
+        ctx.arc(b.x, b.y, b.r * 0.8, -Math.PI / 2, -Math.PI / 2 + 6.283 * cd / CDMAX[b.id]); ctx.closePath();
+        ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fill();
+        ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.fillStyle = '#fff';
+        ctx.font = 'bold ' + Math.round(b.r * 0.62) + 'px system-ui, sans-serif';
+        ctx.strokeText(Math.ceil(cd), b.x, b.y); ctx.fillText(Math.ceil(cd), b.x, b.y);
+      } else if (!TOUCH_UI) {
+        ctx.font = 'bold ' + Math.round(b.r * 0.3) + 'px system-ui, sans-serif';
+        ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.85)'; ctx.fillStyle = '#fff';
+        ctx.strokeText(b.key, b.x, b.y + b.r * 0.98); ctx.fillText(b.key, b.x, b.y + b.r * 0.98);
+      }
+      continue;
+    }
     ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, 7);
     ctx.fillStyle = 'rgba(12,22,36,0.55)'; ctx.fill();
     ctx.fillStyle = 'rgba(' + b.col + ',' + (cd > 0 ? 0.12 : on ? 0.6 : 0.34) + ')'; ctx.fill();
