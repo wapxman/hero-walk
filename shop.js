@@ -48,7 +48,7 @@ const SHOP = {
     if (SHOP.phase === 'fight' && !enemies.length) {
       SHOP.phase = 'rest'; SHOP.restT = 1.3;
       const bonus = 20 + 6 * wave; SHOP.addGold(bonus);
-      say(P.x, P.y - CH * 1.35, 'Волна ' + wave + ' отбита  +' + bonus, '#ffe9a8');
+      say(P.x, P.y - CH * HS() * 1.35, 'Волна ' + wave + ' отбита  +' + bonus, '#ffe9a8');
       SHOP.refresh();
     }
     if (SHOP.restT > 0) { SHOP.restT -= dt; if (SHOP.restT <= 0 && SHOP.phase === 'rest' && wave > 0 && P.dead <= 0) SHOP.openShop(); }
@@ -87,12 +87,12 @@ const SHOP = {
     ctx.globalAlpha = 1;
   },
   pick(d) {
-    if (d.kind === 'coin') { SHOP.addGold(d.amount); say(P.x + rnd(-10, 10), P.y - CH * 0.9, '+' + d.amount, '#ffd95e'); }
-    else if (d.kind === 'flask') { SHOP.flasks[d.id]++; say(P.x, P.y - CH * 1.1, FLASKS.find(f => f.id === d.id).name, '#bfe6ff'); }
+    if (d.kind === 'coin') { SHOP.addGold(d.amount); say(P.x + rnd(-10, 10), P.y - CH * HS() * 0.9, '+' + d.amount, '#ffd95e'); }
+    else if (d.kind === 'flask') { SHOP.flasks[d.id]++; say(P.x, P.y - CH * HS() * 1.1, FLASKS.find(f => f.id === d.id).name, '#bfe6ff'); }
     else {
       const free = ITEMS.filter(it => (SHOP.items[it.id] || 0) < MAXLVL);
-      if (!free.length) { SHOP.addGold(80); say(P.x, P.y - CH * 1.1, 'Сундук: +80 золота', '#ffd95e'); }
-      else { const it = pick(free); SHOP.items[it.id] = (SHOP.items[it.id] || 0) + 1; SHOP.recompute(); say(P.x, P.y - CH * 1.1, 'Сундук: ' + it.name, '#c9a8ff'); }
+      if (!free.length) { SHOP.addGold(80); say(P.x, P.y - CH * HS() * 1.1, 'Сундук: +80 золота', '#ffd95e'); }
+      else { const it = pick(free); SHOP.items[it.id] = (SHOP.items[it.id] || 0) + 1; SHOP.recompute(); say(P.x, P.y - CH * HS() * 1.1, 'Сундук: ' + it.name, '#c9a8ff'); }
     }
     SHOP.refresh();
   },
@@ -101,10 +101,10 @@ const SHOP = {
   // ----- фласки -----
   use(id) {
     if (P.dead > 0 || !SHOP.flasks[id]) return;
-    if (id === 'heal') { if (P.hp >= P.maxHp) return; P.hp = Math.min(P.maxHp, P.hp + 280); say(P.x, P.y - CH * 1.1, '+280', '#7dff8a'); }
-    else if (id === 'frost') { for (const k in P.cd) P.cd[k] = 0; say(P.x, P.y - CH * 1.1, 'Скиллы готовы', '#bfe6ff'); }
-    else if (id === 'swift') { SHOP.buffs.swift = 8; say(P.x, P.y - CH * 1.1, 'Скорость!', '#a8ffb5'); }
-    else if (id === 'power') { SHOP.buffs.power = 10; say(P.x, P.y - CH * 1.1, 'Сила!', '#ffd95e'); }
+    if (id === 'heal') { if (P.hp >= P.maxHp) return; P.hp = Math.min(P.maxHp, P.hp + 280); say(P.x, P.y - CH * HS() * 1.1, '+280', '#7dff8a'); }
+    else if (id === 'frost') { for (const k in P.cd) P.cd[k] = 0; say(P.x, P.y - CH * HS() * 1.1, 'Скиллы готовы', '#bfe6ff'); }
+    else if (id === 'swift') { SHOP.buffs.swift = 8; say(P.x, P.y - CH * HS() * 1.1, 'Скорость!', '#a8ffb5'); }
+    else if (id === 'power') { SHOP.buffs.power = 10; say(P.x, P.y - CH * HS() * 1.1, 'Сила!', '#ffd95e'); }
     SHOP.flasks[id]--; SHOP.recompute(); SHOP.refresh();
   },
 

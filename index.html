@@ -21,9 +21,9 @@
 <canvas id="c"></canvas>
 <div id="hud"><b>Duel Arena</b> · <span id="tip">стик — движение, кнопки справа — огонь и скилы (ПК: WASD, пробел, Q E F R, фласки 1–4, Enter — волна, B — магазин)</span><br>
 <span id="snd">🔇 коснитесь экрана, чтобы включить звук</span> <span id="pad">🎮 геймпад подключён</span></div>
-<script src="data.js?v=25"></script>
+<script src="data.js?v=26"></script>
 <script>
-const V = '?v=25';
+const V = '?v=26';
 const cv = document.getElementById('c');
 const ctx = cv.getContext('2d');
 let DPR = 1, W = 0, H = 0;
@@ -313,7 +313,7 @@ function frame(now) {
   // адрес с #map показывает всю арену целиком (для проверки расстановки)
   const Z = location.hash === '#map' ? Math.min(W / WORLD_W, H / WORLD_H) : charScr / CH;
   const vw = W / Z, vh = H / Z;
-  let tx = P.x - vw / 2, ty = P.y - CH * 0.45 - vh / 2;
+  let tx = P.x - vw / 2, ty = P.y - CH * 0.45 * CFG.units.hero.scale - vh / 2;
   tx = vw >= WORLD_W ? (WORLD_W - vw) / 2 : Math.max(0, Math.min(WORLD_W - vw, tx));
   ty = vh >= WORLD_H ? (WORLD_H - vh) / 2 : Math.max(0, Math.min(WORLD_H - vh, ty));
   if (!cam.ready) { cam.x = tx; cam.y = ty; cam.ready = true; }
@@ -339,7 +339,7 @@ function frame(now) {
     const rx = o.r ? o.r[0] * 1.35 : s[3] * o.k * 0.42;
     shadow(o.x, o.y + 4, rx, rx * 0.38, 0.5);
   }
-  if (P.dead <= 0) shadow(P.x, P.y, CH * 0.26, CH * 0.075, 0.6);
+  if (P.dead <= 0) shadow(P.x, P.y, CH * 0.26 * CFG.units.hero.scale, CH * 0.075 * CFG.units.hero.scale, 0.6);
 
   // объекты и героиня по глубине; высокий объект становится прозрачнее, если героиня за ним
   const list = [];
@@ -401,7 +401,7 @@ if (location.host !== 'duelarena.app') {
 // на сенсорном экране подсказка короче, чтобы не наезжать на счётчик волн
 if ('ontouchstart' in window) document.getElementById('tip').textContent = 'стик — движение, кнопки справа — огонь и скиллы';
 </script>
-<script src="combat.js?v=25"></script>
-<script src="shop.js?v=25"></script>
+<script src="combat.js?v=26"></script>
+<script src="shop.js?v=26"></script>
 </body>
 </html>

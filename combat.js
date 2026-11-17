@@ -229,28 +229,30 @@ function shoot() {
   const t = nearestEnemy(RANGE);
   let dx = P.face.x, dy = P.face.y;
   if (t) { dx = t.x - P.x; dy = (t.y - P.y) / YK; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m; }
-  shots.push({ own: 'p', x: P.x + dx * 26, y: P.y + dy * 26 * YK, dx, dy, sp: 980, tgt: t, left: 700, dmg: rnd(44, 56), h: CH * 0.55 });
+  shots.push({ own: 'p', x: P.x + dx * 26 * HS(), y: P.y + dy * 26 * YK * HS(), dx, dy, sp: 980, tgt: t, left: 700, dmg: rnd(44, 56), h: CH * 0.55 * HS(), sc: HS() });
   P.atkCd = 0.62; P.cast = 0.16;
   P.act = { anim: 'atk', t: 0, dur: 0.36, row: t ? runRow(t.x - P.x, t.y - P.y) : null };
   if (DOTA_ON) { play(pick(['d_pre1', 'd_pre2']), 0.45); play(pick(['d_shot1', 'd_shot2']), 0.8); }
   else play(pick(SHOTS), 0.7, rnd(0.94, 1.06));
 }
+// размер героя из редактора: скиллы и выстрелы растут вместе с ним (и картинка, и зона поражения)
+const HS = () => (CFG.units.hero.scale || 1);
 function cast(id) {
   if (P.dead > 0 || P.cd[id] > 0) return;
   if (id === 'q') {
-    const c = aimPoint(320), R = 215;
+    const c = aimPoint(320 * HS()), R = 215 * HS();
     fx.push({ type: 'nova', x: c.x, y: c.y, t: 0, dur: 0.95, R });
     for (const e of enemies) if (gdist(c, e) < R + e.rad) { hurtEnemy(e, 95); slow(e, 0.45, 3.5); }
     play(SND.gen_nova ? 'gen_nova' : DOTA_ON ? 'd_nova' : 'cm3_nova', 0.9);   // gen_nova — сгенерирован в Higgsfield
   } else if (id === 'e') {
     const t = nearestEnemy(RANGE);
-    if (!t) { say(P.x, P.y - CH, 'нет цели', '#ffd28a'); return; }
+    if (!t) { say(P.x, P.y - CH * HS(), 'нет цели', '#ffd28a'); return; }
     t.root = 2.8; t.dot = 45; hurtEnemy(t, 40);
     fx.push({ type: 'chains', e: t, x: t.x, y: t.y, t: 0, dur: 3.25, h: t.ch.top * t.ch.U });
     play('cm3_frostbite', 0.9);
   } else if (id === 'f') {
-    const c = aimPoint(340);
-    zones.push({ type: 'hail', x: c.x, y: c.y, R: 250, t: 3.2, tick: 0 });
+    const c = aimPoint(340 * HS());
+    zones.push({ type: 'hail', x: c.x, y: c.y, R: 250 * HS(), t: 3.2, tick: 0 });
     play('cm_ice_hail', 0.9);
   } else if (id === 'r') {
     P.ult = DOTA_ON ? 10 : 5; P.ultTick = 0;   // оригинальный звук поля длится дольше
@@ -263,12 +265,12 @@ function hurtPlayer(d) {
   if (P.dead > 0) return;
   d *= P.armMul || 1;
   P.hp -= d; P.hurt = 0.25;
-  say(P.x + rnd(-12, 12), P.y - CH * 1.05, '-' + Math.round(d), '#ff8a7a');
+  say(P.x + rnd(-12, 12), P.y - CH * 1.05 * HS(), '-' + Math.round(d), '#ff8a7a');
   if (P.hp <= 0) { P.hp = 0; P.dead = 3; P.ult = 0; held.touch = held.mouse = false; play('d_death', 0.6); }
 }
 // ледяной осколок, падающий с неба: через delay бьёт по кругу
 function shard(x, y, R, dmg, sk, st) {
-  fx.push({ type: 'shard', x, y, t: 0, dur: 0.28, R, dmg, sk, st });
+  fx.push({ type: 'shard', x, y, t: 0, dur: 0.28, R: R * HS(), dmg, sk, st, sc: HS() });
 }
 
 // ---------- враги ----------
@@ -393,7 +395,7 @@ function spawnWave() {
   const nr = Math.round(Math.min(1 + Math.floor(wave / 2), 4) * (bossWave ? 0.5 : 1));
   for (let i = 0; i < nr; i++) spawnEnemy((i + wave) % 2 ? 'mag' : 'rog');
   if (bossWave) spawnEnemy('boss');
-  say(P.x, P.y - CH * 1.3, bossWave ? 'Волна ' + wave + ' — БОСС' : 'Волна ' + wave, bossWave ? '#ff9a6a' : '#ffe9a8');
+  say(P.x, P.y - CH * 1.3 * HS(), bossWave ? 'Волна ' + wave + ' — БОСС' : 'Волна ' + wave, bossWave ? '#ff9a6a' : '#ffe9a8');
 }
 // действие с замахом: анимация длится dur, удар срабатывает в момент at (доля от dur)
 function startAct(e, anim, dur, at, fn) { e.act = { anim, dur, at, fn, t: 0, hit: false }; e.anim = anim; e.animT = 0; }
@@ -504,7 +506,7 @@ function combatUpdate(dt) {
       P.ult -= dt; P.ultTick -= dt;
       while (P.ultTick <= 0) {
         P.ultTick += 0.11;
-        const a = rnd(0, 6.283), r = rnd(90, 400);
+        const a = rnd(0, 6.283), r = rnd(90, 400) * HS();
         shard(P.x + Math.cos(a) * r, P.y + Math.sin(a) * r * YK, 100, 60, 0.4, 2);
       }
     }
@@ -529,16 +531,16 @@ function combatUpdate(dt) {
     s.x += s.dx * step; s.y += s.dy * step * YK; s.left -= step;
     if (s.own === 'p') {
       for (const e of enemies) {
-        if (e.hp > 0 && gdist(s, e) < e.rad + 16) {
+        if (e.hp > 0 && gdist(s, e) < e.rad + 16 * (s.sc || 1)) {
           hurtEnemy(e, s.dmg); slow(e, 0.8, 1); s.left = 0;
-          fx.push({ type: 'spark', hit: 1, x: e.x, y: e.y - e.ch.top * e.ch.U * 0.5, t: 0, dur: 0.4, R: 34 });
+          fx.push({ type: 'spark', hit: 1, x: e.x, y: e.y - e.ch.top * e.ch.U * 0.5, t: 0, dur: 0.4, R: 34 * (s.sc || 1), sc: s.sc || 1 });
           play(pick(DOTA_ON ? D_HITS : HITS), 0.45, rnd(0.95, 1.1));
           break;
         }
       }
-    } else if (P.dead <= 0 && gdist(s, P) < 30) {
+    } else if (P.dead <= 0 && gdist(s, P) < 30 * HS()) {
       hurtPlayer(s.dmg); s.left = 0;
-      fx.push({ type: 'spark', x: P.x, y: P.y - CH * 0.5, t: 0, dur: 0.25, R: 30, rock: true });
+      fx.push({ type: 'spark', x: P.x, y: P.y - CH * 0.5 * HS(), t: 0, dur: 0.25, R: 30, rock: true });
     }
   }
   for (const z of zones) {
@@ -556,7 +558,7 @@ function combatUpdate(dt) {
     if (f.type === 'shard') {
       let hit = false;
       for (const e of enemies) if (gdist(f, e) < f.R + e.rad) { hurtEnemy(e, f.dmg); slow(e, f.sk, f.st); hit = true; }
-      fx.push({ type: 'spark', hail: 1, x: f.x, y: f.y, t: 0, dur: 0.5, R: f.R });
+      fx.push({ type: 'spark', hail: 1, x: f.x, y: f.y, t: 0, dur: 0.5, R: f.R, sc: f.sc });
       if (hit || Math.random() < 0.18) {
         const set = !DOTA_ON ? HITS.concat(['cm_ice_hit_big']) : f.st === 2 ? D_FF : D_HITS;
         play(pick(set), hit ? 0.3 : 0.14, rnd(0.9, 1.15));
@@ -631,9 +633,9 @@ function combatGround(t) {
   const tg = P.dead > 0 ? null : nearestEnemy(RANGE);
   if (tg) disc(tg.x, tg.y, tg.rad * 1.35, null, 'rgba(160,220,255,0.75)', 2.5);
   if (P.ult > 0) {
-    if (fx2ok('storm')) stormDraw(P.x, P.y, 420, t, Math.min(1, P.ult) * 0.95);
+    if (fx2ok('storm')) stormDraw(P.x, P.y, 420 * HS(), t, Math.min(1, P.ult) * 0.95);
     else if (FXS.storm.ok) fxDraw('storm', (t * 12) % 16, P.x, P.y, 880, 1230, 0.5, 0.5, Math.min(1, P.ult) * 0.9);
-    else { const a = Math.min(1, P.ult) * 0.22; disc(P.x, P.y, 410, 'rgba(150,200,255,' + a + ')', 'rgba(210,235,255,' + a * 2.2 + ')', 4); }
+    else { const a = Math.min(1, P.ult) * 0.22; disc(P.x, P.y, 410 * HS(), 'rgba(150,200,255,' + a + ')', 'rgba(210,235,255,' + a * 2.2 + ')', 4); }
   }
   for (const z of zones) {
     if (fx2ok('storm')) stormDraw(z.x, z.y, z.R, t + 2, Math.min(1, z.t) * 0.75);
@@ -709,7 +711,8 @@ function drawShot(s) {
   if (s.own === 'p' && fx2ok('bolt')) {
     const fl = 1 + 0.06 * Math.sin(s.left / 9);
     ctx.save(); ctx.translate(s.x, y); ctx.rotate(Math.atan2(s.dy * YK, s.dx));
-    fx2('bolt', 0, 0, 230 * fl, 230 * fl, 0.95, 0.5);
+    const bs = 230 * fl * (s.sc || 1);
+    fx2('bolt', 0, 0, bs, bs, 0.95, 0.5);
     ctx.restore();
     return;
   }
@@ -788,8 +791,8 @@ function combatEntities() {
     if (f.type !== 'shard') continue;
     if (fx2ok('icicle')) {
       if (!f.draw) f.draw = () => {
-        const k = f.t / f.dur, y = f.y - (1 - k * k) * 460;
-        fx2('icicle', f.x, y, 240, 240, 0.5, 0.97, Math.min(1, k * 4));
+        const k = f.t / f.dur, sc = f.sc || 1, y = f.y - (1 - k * k) * 460 * sc;
+        fx2('icicle', f.x, y, 240 * sc, 240 * sc, 0.5, 0.97, Math.min(1, k * 4));
       };
       out.push(f); continue;
     }
@@ -817,7 +820,7 @@ function combatOver(t) {
     if (f.hit && fx2ok('hit')) {
       const k = f.t / f.dur, s = 0.45 + 0.75 * easeOut(k);
       ctx.globalCompositeOperation = 'source-over';
-      fx2('hit', f.x, f.y, 200 * s, 200 * s, 0.5, 0.5, 1 - k, f.x * 0.03);
+      fx2('hit', f.x, f.y, 200 * s * (f.sc || 1), 200 * s * (f.sc || 1), 0.5, 0.5, 1 - k, f.x * 0.03);
       ctx.globalCompositeOperation = 'lighter';
       continue;
     }
@@ -833,9 +836,9 @@ function combatOver(t) {
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(f.x, f.y, R, 0, 7); ctx.fill();
   }
   if (P.cast > 0 && P.dead <= 0) {
-    const y = P.y - CH * 0.78, g = ctx.createRadialGradient(P.x, y, 0, P.x, y, 60);
+    const hs = HS(), y = P.y - CH * 0.78 * hs, g = ctx.createRadialGradient(P.x, y, 0, P.x, y, 60 * hs);
     g.addColorStop(0, 'rgba(170,225,255,' + Math.min(0.9, P.cast * 5) + ')'); g.addColorStop(1, 'rgba(170,225,255,0)');
-    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(P.x, y, 60, 0, 7); ctx.fill();
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(P.x, y, 60 * hs, 0, 7); ctx.fill();
   }
   if (P.ult > 0 && !FXS.storm.ok) {
     ctx.fillStyle = 'rgba(235,245,255,' + Math.min(1, P.ult) * 0.8 + ')';
@@ -854,7 +857,7 @@ function combatOver(t) {
   ctx.globalAlpha = 1;
   // полоска здоровья над героиней
   if (P.dead <= 0) {
-    const bw = 96, by = P.y - CH * 1.12;
+    const bw = 96, by = P.y - CH * 1.12 * HS();
     ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(P.x - bw / 2 - 1, by - 1, bw + 2, 10);
     ctx.fillStyle = P.hurt > 0 ? '#ffffff' : '#57d46a'; ctx.fillRect(P.x - bw / 2, by, bw * P.hp / P.maxHp, 8);
   }
