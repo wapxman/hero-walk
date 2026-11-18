@@ -62,7 +62,7 @@ function statText(st) {
   return Object.entries(st).map(([k, v]) => { const t = STAT_TXT[k]; return (t[2] || '+') + (t[1] ? Math.round(v * 100) : v) + t[1] + ' ' + t[0]; }).join(', ');
 }
 // полная цена предмета — сумма всех его частей
-const fullPrice = id => PARTS[id] ? PARTS[id].pr : RECIPES[id].from.reduce((s, x) => s + fullPrice(x), 0);
+const fullPrice = id => PARTS[id] ? PARTS[id].pr : ALL[id] && ALL[id].relic ? ALL[id].pr : RECIPES[id].from.reduce((s, x) => s + fullPrice(x), 0);
 // в какие предметы входит вещь
 const USED_IN = {};
 for (const id in RECIPES) for (const f of RECIPES[id].from) (USED_IN[f] = USED_IN[f] || []).includes(id) || USED_IN[f].push(id);
@@ -96,6 +96,14 @@ function assemble(id, bag) {
   if (RECIPES[id]) for (const f of RECIPES[id].from) assemble(f, bag);
 }
 function buyItem(id) {
+  // предмет-ответ на босса (relics.js) покупается целиком, без частей
+  if (ALL[id] && ALL[id].relic) {
+    const r = ALL[id];
+    if (SHOP.bag.includes(id) || SHOP.gold < r.pr) return false;
+    if (SHOP.bag.length >= BAG_MAX) { say(P.x, P.y - CH * HS() * 1.2, 'Сумка полна', '#ffb36a'); return false; }
+    SHOP.gold -= r.pr; SHOP.bag.push(id); say(P.x, P.y - CH * HS() * 1.2, r.nm, '#ffe27a');
+    snd('coins', 0.6, 0.8); SHOP.recompute(); SHOP.refresh(); return true;
+  }
   // часть можно купить всегда (хоть вторую такую же), предмет — только недостающими частями
   const bag = SHOP.bag.slice(), miss = PARTS[id] ? [id] : plan(id, bag), cost = miss.reduce((s, x) => s + PARTS[x].pr, 0);
   if (!miss.length || SHOP.gold < cost) return false;
@@ -165,7 +173,9 @@ SHOP.pick = (function (orig) {
 (function () {
   const V2 = typeof V === 'string' ? V : '';
   const U = n => 'url(ui/' + n + '.webp' + V2 + ')';
-  const IT = i => '<span class="it" style="background-position:' + (i % 4) * 100 / 3 + '% ' + Math.floor(i / 4) * 100 / 11 + '%"></span>';
+  const IT = i => typeof i === 'string' ? '<span class="it" style="background:url(' + i + V2 + ') center / 100% 100% no-repeat"></span>'
+    : '<span class="it" style="background-position:' + (i % 4) * 100 / 3 + '% ' + Math.floor(i / 4) * 100 / 11 + '%"></span>';
+  const ICN = it => IT(it.img || it.ic);
   const css = document.createElement('style');
   css.textContent = `
   .it { display: block; background-image: ${U('items')}; background-size: 400% 1200%; background-repeat: no-repeat; }
@@ -214,14 +224,14 @@ SHOP.pick = (function (orig) {
   };
   const ui = { tab: 'items', sel: 'blade', selBag: -1 };
   const tabs = mk('div', '', panel); tabs.id = 'shTabs';
-  const TABS = [['items', 'Предметы'], ['parts', 'Части'], ['flasks', 'Фласки']];
-  const tabEls = TABS.map(([k, t]) => { const d = mk('div', 'bg', tabs, t); tap(d, () => { ui.tab = k; ui.sel = k === 'items' ? 'blade' : k === 'parts' ? 'sword' : 'f:heal'; ui.selBag = -1; draw(); }); return d; });
+  const TABS = [['items', 'Предметы'], ['parts', 'Части'], ['relics', 'Против боссов'], ['flasks', 'Фласки']];
+  const tabEls = TABS.map(([k, t]) => { const d = mk('div', 'bg', tabs, t); tap(d, () => { ui.tab = k; ui.sel = k === 'items' ? 'blade' : k === 'parts' ? 'sword' : k === 'relics' ? 'pierce_crystal' : 'f:heal'; ui.selBag = -1; draw(); }); return d; });
   const list = mk('div', '', panel); list.id = 'shList';
   const info = mk('div', '', panel); info.id = 'shInfo';
   const bagRow = mk('div', '', panel); bagRow.id = 'shBag';
   const cell = (id, extra) => {
     const it = ALL[id], d = document.createElement('div');
-    d.className = 'ci ' + (extra || ''); d.innerHTML = IT(it.ic) + (extra && extra.includes('pr') ? '<b>' + fullPrice(id) + '</b>' : '');
+    d.className = 'ci ' + (extra || ''); d.innerHTML = ICN(it) + (extra && extra.includes('pr') ? '<b>' + fullPrice(id) + '</b>' : '');
     d.title = it.nm; return d;
   };
   function tree(id, depth) {
@@ -249,7 +259,7 @@ SHOP.pick = (function (orig) {
         tap(d, () => { ui.sel = 'f:' + f.id; draw(); });
       }
     } else {
-      for (const id of Object.keys(ui.tab === 'items' ? RECIPES : PARTS)) {
+      for (const id of Object.keys(ui.tab === 'items' ? RECIPES : ui.tab === 'relics' ? RELICS : PARTS)) {
         const d = cell(id, 'pr'); list.appendChild(d);
         d.classList.toggle('sel', ui.sel === id); d.classList.toggle('own', SHOP.bag.includes(id));
         tap(d, () => { ui.sel = id; ui.selBag = -1; draw(); });
@@ -265,7 +275,7 @@ SHOP.pick = (function (orig) {
       cost = f.price; can = SHOP.gold >= cost; label = 'Купить';
     } else {
       const id = ui.sel, it = ALL[id];
-      mk('div', 'nm', info, it.nm); mk('div', 'ds', info, statText(it.st));
+      mk('div', 'nm', info, it.nm); mk('div', 'ds', info, it.relic ? (statText(it.st) ? statText(it.st) + '; ' : '') + it.ds + ' · против: ' + it.boss : statText(it.st));
       info.appendChild(tree(id, 0));
       if (USED_IN[id]) {
         mk('div', 'inn', info, 'Входит в:');
@@ -273,6 +283,7 @@ SHOP.pick = (function (orig) {
         for (const r of USED_IN[id]) { const c = cell(r); tap(c, () => { ui.sel = r; draw(); }); u.appendChild(c); }
       }
       if (ui.selBag >= 0) { cost = Math.floor(fullPrice(id) / 2); can = true; label = 'Продать за'; }
+      else if (it.relic) { cost = it.pr; const own = SHOP.bag.includes(id); can = !own && SHOP.gold >= cost; label = own ? 'Уже есть' : 'Купить'; }
       else { const miss = PARTS[id] ? [id] : plan(id, SHOP.bag.slice()); cost = miss.reduce((s, x) => s + PARTS[x].pr, 0); can = miss.length > 0 && SHOP.gold >= cost; label = miss.length ? (cost < fullPrice(id) ? 'Докупить' : 'Купить') : 'Уже есть'; }
     }
     const b = mk('div', 'bg', info, label + ' ' + SHOP.iconHtml(ICON.coin) + ' ' + cost); b.id = 'shBuy'; b.classList.toggle('no', !can);
@@ -286,7 +297,7 @@ SHOP.pick = (function (orig) {
     bagRow.innerHTML = '<span>Сумка</span>';
     for (let i = 0; i < BAG_MAX; i++) {
       const id = SHOP.bag[i], d = id ? cell(id) : mk('div', 'ci', bagRow);
-      if (id) { bagRow.appendChild(d); d.classList.toggle('sel', ui.selBag === i); tap(d, () => { ui.sel = id; ui.selBag = i; ui.tab = RECIPES[id] ? 'items' : 'parts'; draw(); }); }
+      if (id) { bagRow.appendChild(d); d.classList.toggle('sel', ui.selBag === i); tap(d, () => { ui.sel = id; ui.selBag = i; ui.tab = RECIPES[id] ? 'items' : ALL[id].relic ? 'relics' : 'parts'; draw(); }); }
     }
   }
   SHOP.drawShop = draw;
@@ -296,7 +307,7 @@ SHOP.pick = (function (orig) {
     _refresh();
     if (SHOP.open) draw();
     // ячейки внизу экрана: предметы сумки, потом фласки (кроме лечения)
-    const inv = SHOP.bag.map(id => ({ h: IT(ALL[id].ic), t: ALL[id].nm + ': ' + statText(ALL[id].st) }));
+    const inv = SHOP.bag.map(id => ({ h: ICN(ALL[id]), t: ALL[id].nm + ': ' + (ALL[id].ds || statText(ALL[id].st)) }));
     for (const f of FLASKS) if (f.id !== 'heal' && SHOP.flasks[f.id] && inv.length < 6) inv.push({ h: SHOP.iconHtml(ICON[f.id]) + '<b>' + SHOP.flasks[f.id] + '</b>', use: f.id, t: f.name });
     E.slots.forEach((c, i) => {
       const x = inv[i], h = x ? x.h : '';

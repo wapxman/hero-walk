@@ -108,5 +108,11 @@
  "vl_b_voidmage_cast1": 448,
  "vl_b_voidmage_cast2": 448,
  "vl_b_voidmage_death": 448,
- "vl_b_voidmage_idle": 352
+ "vl_b_voidmage_idle": 352,
+ "vl_b_blackknight_walk": 352,
+ "vl_b_blackknight_attack": 448,
+ "vl_b_blackknight_cast1": 448,
+ "vl_b_blackknight_cast2": 448,
+ "vl_b_blackknight_death": 448,
+ "vl_b_blackknight_idle": 352
 }

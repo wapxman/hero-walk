@@ -556,12 +556,17 @@ for (const id in VARIANT) {
   const [base, nm, tint] = VARIANT[id], b = KIND[base];
   KIND[id] = Object.assign({}, b, { nm, ch: id, chBase: b.ch, base: b.base || base, tint });
 }
+// ---- новые боссы Клауди (ночь 19.11): механика — bossmech.js; spells — запасной вариант для сервера ----
+KIND.b_blackknight = { nm: ['Чёрный Рыцарь', 'страж Королевского замка'], ch: 'b_blackknight', boss: 1, mel: 1, hp: 1900, rad: 54, speed: 96, dmg: [44, 56], cd: 1.3, reach: 130,
+  xp: 150, gold: 100, col: '#2a2a3a', sz: 1.15, spells: [
+    { nm: 'Зеркальный щит', ph: 21, how: 'self', R: 140, warn: 0.7, dmg: 0, cd: 10, an: 'cast1' },
+    { nm: 'Таран', ph: 21, how: 'target', R: 120, warn: 0.8, dmg: 40, cd: 7, an: 'cast2' }] };
 // мини-боссы середины мира (5-я волна): Жнец Урожая в Горящей деревне, Королева Колючек в Осеннем лесу — как элита
 KIND.mb_thornqueen = Object.assign({}, KIND.b_thornqueen, { nm: 'Королева Колючек', boss: 0, elite: 1, hp: 520, sz: 1, xp: 40, gold: 30, base: 'b_thornqueen' });
 KIND.mb_reaper = Object.assign({}, KIND.b_reaper, { nm: 'Жнец Урожая', boss: 0, elite: 1, hp: 540, sz: 1, xp: 40, gold: 30, base: 'b_reaper' });
 // кто выходит в каком мире: рядовые ближнего и дальнего боя, элита, мини-босс 5-й волны и босс мира (10-я волна)
 const ROSTER = {
-  1: { mel: ['cs_hound', 'cs_guard', 'cs_hound', 'cs_brute'], rng: ['cs_archer'], elite: ['el_castellan'], boss: 'tb_blackknight' },
+  1: { mel: ['cs_hound', 'cs_guard', 'cs_hound', 'cs_brute'], rng: ['cs_archer'], elite: ['el_castellan'], boss: 'b_blackknight' },
   2: { mel: ['fireimp', 'magmahound', 'bv_scare', 'fireimp'], rng: ['ashcultist', 'cinderwraith'], elite: ['el_cultist'], mini: 'mb_reaper', boss: 'tb_plaguelord' },
   3: { mel: ['shadowwolf', 'werefox', 'rotdryad', 'autumnbear', 'boarbrute', 'scarecrow'], rng: ['sporeshaman', 'thornimp', 'crowharpy', 'hollowarcher'],
     elite: ['thornroot', 'el_bear'], mini: 'mb_thornqueen', boss: 'tb_serpentqueen' },

@@ -10,6 +10,7 @@ from PIL import Image
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC_DIR = "C:/Users/User/Desktop/villains"
 ROSTER = "C:/Users/User/browser-tools/roster.py"
+sys.path.insert(0, "C:/Users/User/browser-tools")   # roster.py подмешивает новых боссов из roster_night.py
 spec = importlib.util.spec_from_file_location("roster", ROSTER); roster = importlib.util.module_from_spec(spec); spec.loader.exec_module(roster)
 AN = {"walk": "run", "attack": "atk", "death": "die", "idle": "idle", "cast1": "cast1", "cast2": "cast2"}
 

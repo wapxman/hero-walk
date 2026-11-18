@@ -96,7 +96,7 @@
     'ic_bear', 'ic_fox', 'ic_wisp', 'ic_harpy', 'el_icebear', 'tb_frostqueen', 'rn_knight', 'rn_scare',
     'rn_ghoul', 'rn_archer', 'rn_wraith', 'el_mirror', 'tb_mirrorlord', 'sk_fox', 'sk_warrior', 'sk_harpy',
     'sk_wisp', 'el_seraph', 'tb_skyjudge', 'ab_wolf', 'ab_ghoul', 'ab_knight', 'ab_wraith', 'ab_wisp',
-    'el_voidcultist', 'mb_thornqueen', 'mb_reaper'];
+    'el_voidcultist', 'mb_thornqueen', 'mb_reaper', 'b_blackknight', 'mirrorcopy'];
   // реплики врагов над головой (событие SAY с кодом 10 + номер): [текст, цвет]
   const PHRASES = [['Броня!', '#bcd4ff'], ['Прыжок!', '#ffb36a'], ['Таран!', '#ffb36a'], ['Восстаньте!', '#c9a8ff'], ['РЁВ!', '#ff7a5a'],
     ['Яд!', '#9be37a'], ['Сотрясение!', '#ffb347'], ['Жатва!', '#ffb347'], ['За спиной!', '#ff5a3a'], ['Огненный дождь!', '#ff8a4a'],
