@@ -36,14 +36,15 @@ def grab(name):
 PARTS, RECIPES = grab('PARTS'), grab('RECIPES'); ALL = {**PARTS, **RECIPES}
 def full(i): return round(PARTS[i]['pr'] * PM) if i in PARTS else sum(full(x) for x in RECIPES[i]['from'])
 def need(l): return round(30 + 20 * l + 0.5 * l * l)
-def at(n): m = (n - 1) % 40; return (n - 1) // 40 + 1, m // 10 + 1, m % 10 + 1
-def mw(n): C, M, W = at(n); return M + 4 * (C - 1)
+NWORLD = 10
+def at(n): m = (n - 1) % (10 * NWORLD); return (n - 1) // (10 * NWORLD) + 1, m // 10 + 1, m % 10 + 1
+def mw(n): C, M, W = at(n); return M + NWORLD * (C - 1)
 def wk(n, k1, k2): m = mw(n); return k1 ** (min(m, 4) - 1) * k2 ** max(0, m - 4)
 def hpm(n): return 1.07 ** (at(n)[2] - 1) * wk(n, 1.35, 1.12)
 def dmm(n): return 1.055 ** (at(n)[2] - 1) * wk(n, 1.28, 1.1)
 def xpm(n): return 1.05 ** (at(n)[2] - 1) * 1.2 ** (mw(n) - 1)
 def gom(n): return 1.04 ** (at(n)[2] - 1) * wk(n, 1.25, 1.1)
-def count(n): C, M, W = at(n); return 12 + 3 * (W - 1) + 4 * (M - 1)
+def count(n): C, M, W = at(n); return 12 + 3 * (W - 1) + 2 * (M - 1)
 def elites(n): W = at(n)[2]; return 0 if W < 4 else 1 if W < 7 else 2
 def stats(bag):
     S = dict.fromkeys(['dmg', 'hp', 'mp', 'as', 'spd', 'hpr', 'mpr', 'arm', 'sk', 'cd', 'ls', 'crit'], 0.0)
@@ -83,7 +84,7 @@ def shop():
             if not best or gain > best[0]: best = (gain, i, nb, cost)
         if not best or best[0] <= 0: break
         gold -= best[3]; bag = best[2]
-for rnd in range(56):           # 4 мира по 4 раунда (3+3+3+босс) + круг 2
+for rnd in range(4 * NWORLD):   # 10 миров по 4 раунда (3+3+3+босс)
     n0 = n + 1; C, M, W = at(n0)
     last = n0 if W == 10 else n0 + 2
     for w in range(n0, last + 1):
@@ -92,7 +93,7 @@ for rnd in range(56):           # 4 мира по 4 раунда (3+3+3+босс
         else:
             k = count(w); rx, rg, ex, eg, _, _ = world_mix(M)
             add_xp(rx * k * xpm(w) + elites(w) * 3 * ex * xpm(w))
-            gold += GM * (rg * k * gom(w) + elites(w) * 4 * eg * gom(w)) + 20 + 6 * W + 10 * (M - 1)
+            gold += GM * (rg * k * gom(w) + elites(w) * 4 * eg * gom(w)) + 20 + 6 * W + 8 * (M - 1)
     n = last
     gold -= 40          # фласки
     shop()

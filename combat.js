@@ -117,8 +117,8 @@ const SPAWN = HERO_SPAWN;
 Object.assign(P, { mp: 420, maxMp: 420, lvl: 1, xp: 0 });
 const MANA = { q: 60, e: 50, f: 80, r: 150 }, MP_REGEN = 11;
 const skLv = id => (P.skLv && P.skLv[id]) || 1;
-const skDmg = id => (1 + 0.12 * (skLv(id) - 1)) * (P.skMul || 1);
-const skCd = id => 1 - 0.03 * (skLv(id) - 1);
+let skDmg = id => (1 + 0.12 * (skLv(id) - 1)) * (P.skMul || 1);
+let skCd = id => 1 - 0.03 * (skLv(id) - 1);
 const KILL_XP = { min: 8, war: 18, mag: 14, rog: 14, boss: 150 };   // новые виды — поле xp в KIND
 const xpNeed = l => 40 + 35 * l;
 function gainXp(n) {
@@ -275,7 +275,7 @@ function hurtPlayer(d) {
   d *= P.armMul || 1;
   P.hp -= d; P.hurt = 0.25;
   say(P.x + rnd(-12, 12), P.y - CH * 1.05 * HS(), '-' + Math.round(d), '#ff8a7a');
-  if (P.hp <= 0) { P.hp = 0; P.dead = 3; P.ult = 0; held.touch = held.mouse = false; snd('hero_death', 0.75); }
+  if (P.hp <= 0) { P.hp = 0; P.dead = typeof LIMBO !== 'undefined' && !(window.NETC && NETC.on) ? 2.2 : 3; P.ult = 0; held.touch = held.mouse = false; snd('hero_death', 0.75); }
 }
 // ледяной осколок, падающий с неба: через delay бьёт по кругу
 function shard(x, y, R, dmg, sk, st) {
@@ -317,7 +317,14 @@ function loadMul(c) {
   if (c.loading) return; c.loading = true;
   for (const id in c.mul) {
     const a = c.mul[id]; if (a.img) continue;
-    a.img = new Image(); a.img.onload = () => { a.ok = true; c.ok = Object.values(c.mul).every(x => x.ok); };
+    a.img = new Image();
+    a.img.onload = () => {
+      if (c.tint) {   // перекрашенный злодей: один раз рисуем лист через фильтр в свой холст
+        const im = a.img, cv = document.createElement('canvas'); cv.width = im.naturalWidth; cv.height = im.naturalHeight;
+        const g = cv.getContext('2d'); g.filter = c.tint; g.drawImage(im, 0, 0); a.img = cv;
+      }
+      a.ok = true; c.ok = Object.values(c.mul).every(x => x.ok);
+    };
     a.img.src = 'chars/at_' + a.at + '.webp' + V;
   }
 }
@@ -491,13 +498,89 @@ const KIND = {
       { nm: 'Разлом', ph: 24, how: 'multi', R: 120, warn: 1.0, dmg: 60, cd: 10, an: 'cast2' }] },
 };
 // кто выходит в каком мире: рядовые ближнего и дальнего боя, элита и босс мира
+// ---- ночь 19.11: 10 миров. Пустые миры пока получают перекрашенных злодеев ChatGPT: тот же лист, своё имя и цвет
+// (tint — CSS-фильтр, лист перекрашивается один раз при загрузке, см. loadMul). Клауди дорисует своих злодеев под эти миры.
+// Боссы миров без готового арта — временно перекрашенные существующие боссы (с их магией), до прихода настоящих.
+const VARIANT = {
+  // 1 Королевский замок
+  cs_guard: ['drownedknight', 'Чёрный страж', 'grayscale(0.7) brightness(0.75) contrast(1.25)'],
+  cs_hound: ['shadowwolf', 'Замковый пёс', 'sepia(0.7) hue-rotate(-25deg) saturate(1.3)'],
+  cs_brute: ['boarbrute', 'Тюремщик', 'hue-rotate(-30deg) brightness(0.85) contrast(1.1)'],
+  cs_archer: ['hollowarcher', 'Призрачный арбалетчик', 'grayscale(0.6) brightness(1.15)'],
+  el_castellan: ['el_drowned', 'Кастелян', 'grayscale(0.8) brightness(0.7) contrast(1.3)'],
+  tb_blackknight: ['b_reaper', ['Чёрный Рыцарь', 'страж Королевского замка'], 'grayscale(0.9) brightness(0.6) contrast(1.4)'],
+  // 2 Горящая деревня
+  bv_scare: ['scarecrow', 'Горящее пугало', 'hue-rotate(-25deg) saturate(1.6) brightness(0.9)'],
+  tb_plaguelord: ['b_ashlord', ['Чумной Мародёр', 'поджигатель деревни'], 'hue-rotate(60deg) saturate(0.7) brightness(0.9)'],
+  // 3 Осенний лес
+  tb_serpentqueen: ['b_thornqueen', ['Королева Змей', 'хозяйка Осеннего леса'], 'hue-rotate(40deg) saturate(1.4)'],
+  // 5 Гномьи шахты
+  mn_worm: ['leechworm', 'Пещерный червь', 'hue-rotate(45deg) brightness(0.8) saturate(0.8)'],
+  mn_boar: ['boarbrute', 'Рудокоп-громила', 'grayscale(0.4) sepia(0.6) brightness(0.9)'],
+  mn_imp: ['fireimp', 'Горновой бес', 'hue-rotate(15deg) brightness(1.1)'],
+  mn_thrower: ['ashcultist', 'Гномий огнеметатель', 'hue-rotate(25deg) saturate(1.2)'],
+  el_forgeman: ['el_salamander', 'Кузнечный страж', 'sepia(0.5) hue-rotate(-10deg) brightness(0.9)'],
+  tb_forgegolem: ['b_ashlord', ['Горн-Голем', 'сердце Гномьих шахт'], 'sepia(0.8) hue-rotate(-15deg) brightness(1.05)'],
+  // 6 Ледяные вершины
+  ic_wolf: ['shadowwolf', 'Ледяной волк', 'hue-rotate(190deg) saturate(0.7) brightness(1.35)'],
+  ic_bear: ['autumnbear', 'Снежный медведь', 'grayscale(0.75) brightness(1.45)'],
+  ic_fox: ['werefox', 'Снежный лис', 'grayscale(0.6) brightness(1.3) hue-rotate(180deg)'],
+  ic_wisp: ['wisplantern', 'Морозный фонарщик', 'hue-rotate(60deg) brightness(1.15)'],
+  ic_harpy: ['crowharpy', 'Снежная гарпия', 'grayscale(1) brightness(1.7)'],
+  el_icebear: ['el_bear', 'Ледяной исполин', 'grayscale(0.6) brightness(1.4) hue-rotate(180deg)'],
+  tb_frostqueen: ['b_thornqueen', ['Королева Вьюги', 'владычица Ледяных вершин'], 'hue-rotate(160deg) saturate(0.8) brightness(1.3)'],
+  // 7 Руины Зеркального города
+  rn_knight: ['drownedknight', 'Зеркальный рыцарь', 'grayscale(0.85) brightness(1.35)'],
+  rn_scare: ['scarecrow', 'Пустое пугало', 'grayscale(0.75) brightness(1.1)'],
+  rn_ghoul: ['bogghoul', 'Руинный упырь', 'grayscale(0.5) hue-rotate(200deg)'],
+  rn_archer: ['hollowarcher', 'Лучник руин', 'grayscale(0.7) brightness(1.25)'],
+  rn_wraith: ['cinderwraith', 'Зеркальный призрак', 'hue-rotate(200deg) saturate(0.6) brightness(1.25)'],
+  el_mirror: ['el_drowned', 'Страж зеркал', 'grayscale(0.9) brightness(1.5)'],
+  tb_mirrorlord: ['b_voidmage', ['Зеркальный Лорд', 'хозяин Руин'], 'grayscale(0.85) brightness(1.4)'],
+  // 9 Небесный храм
+  sk_fox: ['werefox', 'Небесный лис-страж', 'sepia(0.45) brightness(1.3) saturate(1.3)'],
+  sk_warrior: ['salamander', 'Небесный воитель', 'hue-rotate(40deg) brightness(1.2)'],
+  sk_harpy: ['crowharpy', 'Белая гарпия', 'grayscale(1) brightness(1.75)'],
+  sk_wisp: ['wisplantern', 'Светоносец', 'hue-rotate(-120deg) brightness(1.2)'],
+  el_seraph: ['el_salamander', 'Серафим-страж', 'hue-rotate(45deg) brightness(1.35) saturate(0.8)'],
+  tb_skyjudge: ['b_voidmage', ['Небесный Судья', 'страж Небесного храма'], 'sepia(0.9) hue-rotate(-10deg) brightness(1.35) saturate(1.4)'],
+  // 10 Бездна
+  ab_wolf: ['shadowwolf', 'Волк Бездны', 'hue-rotate(40deg) saturate(1.6)'],
+  ab_ghoul: ['bogghoul', 'Пустотный упырь', 'hue-rotate(200deg) saturate(1.4) brightness(0.9)'],
+  ab_knight: ['drownedknight', 'Рыцарь Бездны', 'hue-rotate(160deg) saturate(1.3)'],
+  ab_wraith: ['cinderwraith', 'Призрак Бездны', 'hue-rotate(230deg) saturate(1.4)'],
+  ab_wisp: ['wisplantern', 'Огонёк Бездны', 'hue-rotate(150deg) saturate(1.3)'],
+  el_voidcultist: ['el_cultist', 'Жрец Бездны', 'hue-rotate(230deg) saturate(1.3)'],
+};
+for (const id in VARIANT) {
+  const [base, nm, tint] = VARIANT[id], b = KIND[base];
+  KIND[id] = Object.assign({}, b, { nm, ch: id, chBase: b.ch, base: b.base || base, tint });
+}
+// мини-боссы середины мира (5-я волна): Жнец Урожая в Горящей деревне, Королева Колючек в Осеннем лесу — как элита
+KIND.mb_thornqueen = Object.assign({}, KIND.b_thornqueen, { nm: 'Королева Колючек', boss: 0, elite: 1, hp: 520, sz: 1, xp: 40, gold: 30, base: 'b_thornqueen' });
+KIND.mb_reaper = Object.assign({}, KIND.b_reaper, { nm: 'Жнец Урожая', boss: 0, elite: 1, hp: 540, sz: 1, xp: 40, gold: 30, base: 'b_reaper' });
+// кто выходит в каком мире: рядовые ближнего и дальнего боя, элита, мини-босс 5-й волны и босс мира (10-я волна)
 const ROSTER = {
-  1: { mel: ['shadowwolf', 'rotdryad', 'shadowwolf', 'boarbrute'], rng: ['sporeshaman', 'thornimp'], elite: ['thornroot'], boss: 'b_thornqueen' },
-  2: { mel: ['bogghoul', 'leechworm', 'bogghoul', 'drownedknight'], rng: ['toadwitch', 'wisplantern'], elite: ['el_drowned', 'el_witch'], boss: 'b_toadking' },
-  3: { mel: ['scarecrow', 'werefox', 'autumnbear', 'werefox'], rng: ['crowharpy', 'hollowarcher'], elite: ['thornroot', 'el_bear'], boss: 'b_reaper' },
-  4: { mel: ['magmahound', 'fireimp', 'salamander', 'fireimp'], rng: ['ashcultist', 'cinderwraith'], elite: ['el_salamander', 'el_cultist'], boss: 'b_ashlord', final: 'b_voidmage' },
+  1: { mel: ['cs_hound', 'cs_guard', 'cs_hound', 'cs_brute'], rng: ['cs_archer'], elite: ['el_castellan'], boss: 'tb_blackknight' },
+  2: { mel: ['fireimp', 'magmahound', 'bv_scare', 'fireimp'], rng: ['ashcultist', 'cinderwraith'], elite: ['el_cultist'], mini: 'mb_reaper', boss: 'tb_plaguelord' },
+  3: { mel: ['shadowwolf', 'werefox', 'rotdryad', 'autumnbear', 'boarbrute', 'scarecrow'], rng: ['sporeshaman', 'thornimp', 'crowharpy', 'hollowarcher'],
+    elite: ['thornroot', 'el_bear'], mini: 'mb_thornqueen', boss: 'tb_serpentqueen' },
+  4: { mel: ['bogghoul', 'leechworm', 'bogghoul', 'drownedknight'], rng: ['toadwitch', 'wisplantern'], elite: ['el_drowned', 'el_witch'], boss: 'b_toadking' },
+  5: { mel: ['mn_worm', 'mn_boar', 'mn_imp', 'mn_imp'], rng: ['mn_thrower'], elite: ['el_forgeman'], boss: 'tb_forgegolem' },
+  6: { mel: ['ic_wolf', 'ic_fox', 'ic_bear', 'ic_wolf'], rng: ['ic_wisp', 'ic_harpy'], elite: ['el_icebear'], boss: 'tb_frostqueen' },
+  7: { mel: ['rn_ghoul', 'rn_knight', 'rn_scare', 'rn_ghoul'], rng: ['rn_archer', 'rn_wraith'], elite: ['el_mirror'], boss: 'tb_mirrorlord' },
+  8: { mel: ['magmahound', 'fireimp', 'salamander', 'fireimp'], rng: ['ashcultist', 'cinderwraith'], elite: ['el_salamander', 'el_cultist'], boss: 'b_ashlord' },
+  9: { mel: ['sk_fox', 'sk_warrior', 'sk_fox', 'sk_warrior'], rng: ['sk_harpy', 'sk_wisp'], elite: ['el_seraph'], boss: 'tb_skyjudge' },
+  10: { mel: ['ab_wolf', 'ab_ghoul', 'ab_knight', 'ab_ghoul'], rng: ['ab_wraith', 'ab_wisp'], elite: ['el_voidcultist'], boss: 'b_voidmage' },
 };
 const rosterOf = n => ROSTER[BAL.at(n).M] || ROSTER[1];
+// листы перекрашенных злодеев: своя копия анимаций, картинка перекрашивается фильтром при загрузке (loadMul)
+for (const id in VARIANT) {
+  const k = KIND[id], c0 = CHARS[k.chBase];
+  if (!c0 || !c0.mul) continue;
+  const mul = {}; for (const n in c0.mul) { const a = c0.mul[n]; mul[n] = { at: a.at, n: a.n, ms: a.ms, rows: a.rows, foot: a.foot }; }
+  CHARS[id] = { lazy: 1, U: c0.U, top: c0.top, k: c0.k, mul, vfx: c0.vfx, tint: k.tint, at: id };
+}
 // настройки редактора: персонаж, размер и множители скорости, силы, здоровья
 for (const id in KIND) {
   const u = CFG.units[id], k = KIND[id];
@@ -546,6 +629,7 @@ function nextWave() {
     for (let i = q.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [q[i], q[j]] = [q[j], q[i]]; }
     // элита выходит ближе к концу волны, когда рядовые уже потрёпаны
     for (let i = 0; i < BAL.elites(wave); i++) q.splice(Math.floor(q.length * (0.55 + 0.3 * i)), 0, R.elite[(i + wave) % R.elite.length]);
+    if (a.W === 5 && R.mini) q.splice(Math.floor(q.length * 0.6), 0, R.mini);   // мини-босс середины мира
   }
   ROUND.queue = q;
   for (const t of new Set(q)) needChar(CHARS[KIND[t].ch]);   // листы злодеев этой волны — заранее
@@ -701,7 +785,8 @@ function combatUpdate(dt) {
   if (P.act) { P.act.t += dt; if (P.act.t >= P.act.dur || P.dead > 0) P.act = null; }
   if (P.dead > 0) {
     P.dead -= dt;
-    if (P.dead <= 0) { P.dead = 0; P.hp = P.maxHp; P.mp = P.maxMp; P.x = SPAWN.x; P.y = SPAWN.y; }
+    // смерть офлайн — в Междумирье (limbo.js); в онлайне возрождает сервер
+    if (P.dead <= 0) { P.dead = 0; if (typeof LIMBO !== 'undefined' && !(window.NETC && NETC.on)) LIMBO.enter(); else { P.hp = P.maxHp; P.mp = P.maxMp; P.x = SPAWN.x; P.y = SPAWN.y; } }
   } else {
     P.hp = Math.min(P.maxHp, P.hp + 5 * dt);
     P.mp = Math.min(P.maxMp, P.mp + (P.mpRegen || MP_REGEN) * (SHOP.phase === 'rest' ? 3 : 1) * dt);   // между волнами мана копится втрое быстрее
@@ -1105,7 +1190,11 @@ function combatUI() {
     const nm = boss.rage ? bn[0] + ' в ярости' : bn[0] + ', ' + bn[1];
     ctx.strokeText(nm, W / 2, by + bh * 0.62); ctx.fillText(nm, W / 2, by + bh * 0.62);
   }
-  if (P.dead > 0) {
+  if (P.dead > 0 && typeof LIMBO !== 'undefined' && !(window.NETC && NETC.on)) {
+    // офлайн: свет уносит героя в Междумирье (limbo.js) — без счётчика
+    ctx.fillStyle = '#fff3d0'; ctx.textAlign = 'center'; ctx.font = 'bold 26px Georgia, serif'; ctx.globalAlpha = Math.min(1, (2.2 - P.dead) * 1.5);
+    ctx.fillText('Свет уносит тебя…', W / 2, H * 0.3); ctx.globalAlpha = 1;
+  } else if (P.dead > 0) {
     ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = 'bold 26px system-ui, sans-serif';
     ctx.fillText('Возрождение через ' + Math.ceil(P.dead), W / 2, H / 2);

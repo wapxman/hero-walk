@@ -66,7 +66,7 @@ const SHOP = {
       say(P.x, P.y - CH * HS() * 1.35, 'Раунд отбит  +' + bonus, '#ffe9a8');
       SHOP.refresh();
     }
-    if (SHOP.restT > 0) { SHOP.restT -= dt; if (SHOP.restT <= 0 && SHOP.phase === 'rest' && wave > 0 && P.dead <= 0) SHOP.openShop(); }
+    if (SHOP.restT > 0) { SHOP.restT -= dt; if (SHOP.restT <= 0 && SHOP.phase === 'rest' && wave > 0 && P.dead <= 0) SHOP.mapThenShop(); }
     // дроп: монеты сами летят к герою, остальное подбирается касанием
     for (const d of SHOP.drops) {
       d.t += dt;
@@ -143,6 +143,11 @@ const SHOP = {
     }
     snd('coins', 0.45, 0.9);
     SHOP.refresh();
+  },
+  // между раундами — коротко карта «Путь героев» (pathmap.js): свет доползает до пройденного раунда, потом лавка
+  mapThenShop() {
+    if (SHOP.noMap || typeof PATHMAP === 'undefined' || (window.NETC && NETC.on)) { SHOP.noMap = false; return SHOP.openShop(); }
+    PATHMAP.show({ mode: 'short', t0: PATHMAP.tOf((SHOP.roundFrom || wave) - 1), t1: PATHMAP.tOf(wave), onDone: () => { if (SHOP.phase === 'rest' && !SHOP.open) SHOP.openShop(); } });
   },
   openShop() {
     if (SHOP.phase !== 'rest') { say(P.x, P.y - CH * HS() * 1.3, 'Магазин — между волнами', '#ffd28a'); return; }

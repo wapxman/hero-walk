@@ -27,9 +27,9 @@ const { TICK, DT, YK, EV } = NET;
 // ---------- карты миров (data.js WORLDS; мир 1 — арена по умолчанию) ----------
 const A = D.AK;
 const MAPS = [null];
-for (let m = 1; m <= 4; m++) {
+for (let m = 1; m <= D.WORLDS.length; m++) {
   const w = D.WORLDS[m - 1];
-  const M = m === 1
+  const M = !w.walk
     ? { walk: D.WALK, solid: NET.solidsOf(D.DEFAULT_OBJ), hero: D.HERO_SPAWN, portal: D.ENEMY_SPAWN, spawns: D.SPAWNS, W: 1536 * A, H: 1024 * A }
     : { walk: w.walk.map(p => [p[0] * A, p[1] * A]), solid: w.solid.map(c => ({ x: c[0] * A, y: c[1] * A, rx: c[2] * A, ry: c[3] * A })),
       hero: { x: w.hero[0] * A, y: w.hero[1] * A }, portal: { x: w.portal[0] * A, y: w.portal[1] * A },
@@ -312,6 +312,7 @@ function nextWave(r) {
     for (let i = 0; i < nr; i++) q.push(R.rng[i % R.rng.length]);
     for (let i = q.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [q[i], q[j]] = [q[j], q[i]]; }
     for (let i = 0; i < BAL.elites(r.wave); i++) q.splice(Math.floor(q.length * (0.55 + 0.3 * i)), 0, R.elite[(i + r.wave) % R.elite.length]);
+    if (a.W === 5 && R.mini) q.splice(Math.floor(q.length * 0.6), 0, R.mini);
   }
   r.queue = q;
   ev(r, EV.WAVE_START, r.wave, a.W === 10 ? 1 : 0, r.wave === r.endW ? 1 : 0);

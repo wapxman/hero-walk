@@ -8,7 +8,7 @@
   'use strict';
   const TICK = 30, DT = 1 / TICK;          // сервер считает мир 30 раз в секунду
   // версия протокола: клиент и сервер обязаны совпадать (APK может отстать от сайта) — увеличивать при любом изменении формата
-  const PROTO = 10;                        // 3: злодеи, миры, раунды, магазин (v47); 4: Шипокорень (v49); 5: злодеи ChatGPT мира 1 (v50); 6: мир 2 (v51); 7: Фонарщик, Пугало (v52); 8: миры 3–4 (v53); 9: мир 4 целиком, Архимаг Бездны (v54); 10: без злодеев Mixamo, элита ChatGPT (v55)
+  const PROTO = 11;                        // 3: злодеи, миры, раунды, магазин (v47); 4: Шипокорень (v49); 5: злодеи ChatGPT мира 1 (v50); 6: мир 2 (v51); 7: Фонарщик, Пугало (v52); 8: миры 3–4 (v53); 9: мир 4 целиком, Архимаг Бездны (v54); 10: без злодеев Mixamo, элита ChatGPT (v55); 11: 10 миров (v56)
   const YK = 0.72;                         // сжатие по вертикали (наклон камеры), как в combat.js
   const RUN_AT = 0.6, WALK_SPEED = 105, RUN_SPEED = 260;
   const PR = [16, 11];                     // «толщина» героя у земли
@@ -89,7 +89,14 @@
     'bogghoul', 'toadwitch', 'leechworm', 'drownedknight', 'b_toadking', 'wisplantern', 'scarecrow',
     'crowharpy', 'b_reaper', 'werefox', 'autumnbear', 'hollowarcher', 'magmahound', 'b_ashlord',
     'ashcultist', 'fireimp', 'cinderwraith', 'salamander', 'b_voidmage',
-    'el_drowned', 'el_witch', 'el_bear', 'el_salamander', 'el_cultist'];
+    'el_drowned', 'el_witch', 'el_bear', 'el_salamander', 'el_cultist',
+    // ночь 19.11: 10 миров — перекрашенные злодеи, временные боссы, мини-боссы
+    'cs_guard', 'cs_hound', 'cs_brute', 'cs_archer', 'el_castellan', 'tb_blackknight', 'bv_scare', 'tb_plaguelord',
+    'tb_serpentqueen', 'mn_worm', 'mn_boar', 'mn_imp', 'mn_thrower', 'el_forgeman', 'tb_forgegolem', 'ic_wolf',
+    'ic_bear', 'ic_fox', 'ic_wisp', 'ic_harpy', 'el_icebear', 'tb_frostqueen', 'rn_knight', 'rn_scare',
+    'rn_ghoul', 'rn_archer', 'rn_wraith', 'el_mirror', 'tb_mirrorlord', 'sk_fox', 'sk_warrior', 'sk_harpy',
+    'sk_wisp', 'el_seraph', 'tb_skyjudge', 'ab_wolf', 'ab_ghoul', 'ab_knight', 'ab_wraith', 'ab_wisp',
+    'el_voidcultist', 'mb_thornqueen', 'mb_reaper'];
   // реплики врагов над головой (событие SAY с кодом 10 + номер): [текст, цвет]
   const PHRASES = [['Броня!', '#bcd4ff'], ['Прыжок!', '#ffb36a'], ['Таран!', '#ffb36a'], ['Восстаньте!', '#c9a8ff'], ['РЁВ!', '#ff7a5a'],
     ['Яд!', '#9be37a'], ['Сотрясение!', '#ffb347'], ['Жатва!', '#ffb347'], ['За спиной!', '#ff5a3a'], ['Огненный дождь!', '#ff8a4a'],

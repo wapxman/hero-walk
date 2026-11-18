@@ -27,11 +27,12 @@ function progLoad() {
   P.skLv = {}; P.st = {};
   for (const k of SK_IDS) P.skLv[k] = num(d.sk && d.sk[k], 1, SK_MAX, 1);
   for (const s of STATS) P.st[s.id] = num(d.st && d.st[s.id], 0, LVL_MAX * STAT_PER_LVL, 0);
+  P.forge = {}; for (const k of ['q', 'e', 'f', 'r']) P.forge[k] = num(d.fg && d.fg[k], 0, 5, 0);   // закалка кузницы Междумирья
   SHOP.recompute(); P.hp = P.maxHp; P.mp = P.maxMp;
   progUI();
 }
 function progSave() {
-  try { localStorage.setItem(progKey(), JSON.stringify({ lvl: P.lvl, xp: P.xp, sp: P.sp, stp: P.stp, sk: P.skLv, st: P.st })); } catch (e) {}
+  try { localStorage.setItem(progKey(), JSON.stringify({ lvl: P.lvl, xp: P.xp, sp: P.sp, stp: P.stp, sk: P.skLv, st: P.st, fg: P.forge })); } catch (e) {}
 }
 
 // опыт за победу растёт с волной и миром (BAL в data.js)

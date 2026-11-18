@@ -7,7 +7,7 @@ var NETC = { on: false };
   const N = NET;
   // предсказание движения обязано считать столкновения по той же карте, что сервер: мир 1 — карта по умолчанию,
   // миры 2–4 — WALK и SOLID, которые выставил applyWorld (worlds.js)
-  const syncMap = () => { if (WORLD === 1) N.setMap(WALK, DEFAULT_OBJ); else N.useMap(WALK, SOLID); };
+  const syncMap = () => { if (!WORLDS[WORLD - 1].walk) N.setMap(WALK, DEFAULT_OBJ); else N.useMap(WALK, SOLID); };
   syncMap();
   // адрес сервера: ?server=ws://… или по умолчанию тот же компьютер, порт 8790 (локальная проверка)
   const PROD_URL = 'wss://abpartners.uz:30777';   // боевой сервер: хостинг abpartners.uz (webspace.uz, Ташкент)

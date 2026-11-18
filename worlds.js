@@ -14,7 +14,7 @@ function applyWorld(m) {
   const w = WORLDS[m - 1];
   WORLD = m;
   WALK.length = 0; SOLID.length = 0; SPAWNS.length = 0; OBJ.length = 0;
-  if (m === 1) {
+  if (!w.walk) {
     for (const p of W1.walk) WALK.push(p.slice());
     for (const s of W1.solid) SOLID.push(s);
     for (const o of W1.obj) OBJ.push(o);
@@ -53,9 +53,18 @@ SHOP.tick = function (dt) {
   _shopTick(dt);
   if (window.NETC && NETC.on) return;
   if (wasFight && SHOP.phase === 'rest' && BAL.at(wave).W === 10) {
-    worldNext = worldOf(wave + 1); worldT = 3.2; SHOP.restT = 0;
-    const a = BAL.at(wave + 1);
-    say(P.x, P.y - CH * 1.6 * HS(), 'Мир ' + BAL.at(wave).M + ' пройден!', '#ffd95e');
+    worldNext = worldOf(wave + 1); SHOP.restT = 0;
+    const a = BAL.at(wave + 1), a0 = BAL.at(wave);
+    say(P.x, P.y - CH * 1.6 * HS(), 'Мир ' + a0.M + ' пройден!', '#ffd95e');
+    if (typeof PATHMAP !== 'undefined') {
+      // переход в новую главу по карте «Путь героев»: свет бежит к следующему медальону, на вспышке — новый мир
+      const nx = worldNext, t0 = a0.M - 1 + 0.75, t1 = Math.min(9, a.M - 1 + (a.C > a0.C ? 0 : 0));
+      setTimeout(() => PATHMAP.show({ mode: a.M > a0.M ? 'full' : 'short', t0: a.M > a0.M ? t0 : 0, t1: a.M > a0.M ? t1 : 0,
+        onMid: () => { if (WORLD !== nx) applyWorld(nx); },
+        onDone: () => { if (WORLD !== nx) applyWorld(nx); SHOP.noMap = true; SHOP.restT = 0.4; } }), 1400);
+      return;
+    }
+    worldT = 3.2;
     FADE.innerHTML = '<div>' + WORLDS[worldNext - 1].name + '</div><div style="font-size:2.6vh;opacity:.85;margin-top:1vh">мир ' + a.M +
       (a.C > 1 ? ' · круг ' + a.C : '') + '</div>';
     snd('wave_horn', 0.9, 0.8);
@@ -174,3 +183,5 @@ combatUI = function () {
     ctx.restore();
   }
 };
+// ночь 19.11: мир 1 — Королевский замок (большая карта), прежняя арена-поляна больше не мир; игра стартует сразу в нём
+applyWorld(1);
