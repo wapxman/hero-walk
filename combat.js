@@ -439,6 +439,7 @@ function spawnEnemy(type) {
     slowT: 0, slowK: 1, root: 0, dot: 0, atkCd: rnd(0.3, 1.2), flash: 0, bob: rnd(0, 6), slamCd: 2, quakeCd: 7, leapCd: 4, summonCd: 9, jump: 0,
     anim: 'run', animT: rnd(0, 1), runPh: rnd(0, 1), row: 2, act: null,
   };
+  if (k.boss && KIND[type] !== KIND.boss) { e.hp = Math.round(e.hp * BAL.bossHp(wave)); e.dm *= BAL.bossDmg(wave); }
   if (el) { e.hp = Math.round(e.hp * BAL.ELITE.hp); e.dm *= BAL.ELITE.dmg; e.sc *= BAL.ELITE.size; e.rad *= BAL.ELITE.size; }
   e.max = e.hp;
   e.draw = () => drawEnemy(e);

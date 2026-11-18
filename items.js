@@ -7,18 +7,18 @@
 // st: dmg — урон, hp — здоровье, mp — мана, as — скорость атаки, spd — бег, hpr — здоровье/с, mpr — мана/с,
 // arm — снижение входящего урона, sk — сила умений, cd — сокращение перезарядки, ls — вампиризм, crit — шанс крита (×2)
 const PARTS = {
-  sword: { nm: 'Меч ученика', ic: 0, pr: 150, st: { dmg: 0.08 } },
-  bracer: { nm: 'Кожаный наруч', ic: 1, pr: 120, st: { hp: 60 } },
-  crystal: { nm: 'Кристалл маны', ic: 2, pr: 110, st: { mp: 60 } },
-  feather: { nm: 'Перо ветра', ic: 3, pr: 130, st: { as: 0.06 } },
-  boots: { nm: 'Сапоги путника', ic: 4, pr: 100, st: { spd: 0.06 } },
-  lifestone: { nm: 'Камень жизни', ic: 5, pr: 140, st: { hpr: 2 } },
-  rune: { nm: 'Руна мудрости', ic: 6, pr: 130, st: { mpr: 1 } },
-  plate: { nm: 'Железная пластина', ic: 7, pr: 150, st: { arm: 0.05 } },
-  lens: { nm: 'Линза фокуса', ic: 8, pr: 140, st: { sk: 0.06 } },
-  hourglass: { nm: 'Песочные часы', ic: 9, pr: 160, st: { cd: 0.04 } },
-  fang: { nm: 'Клык упыря', ic: 10, pr: 170, st: { ls: 0.04 } },
-  clover: { nm: 'Осколок удачи', ic: 11, pr: 160, st: { crit: 0.05 } },
+  sword: { nm: 'Меч ученика', ic: 0, pr: 300, st: { dmg: 0.08 } },
+  bracer: { nm: 'Кожаный наруч', ic: 1, pr: 240, st: { hp: 60 } },
+  crystal: { nm: 'Кристалл маны', ic: 2, pr: 220, st: { mp: 60 } },
+  feather: { nm: 'Перо ветра', ic: 3, pr: 260, st: { as: 0.06 } },
+  boots: { nm: 'Сапоги путника', ic: 4, pr: 200, st: { spd: 0.06 } },
+  lifestone: { nm: 'Камень жизни', ic: 5, pr: 280, st: { hpr: 2 } },
+  rune: { nm: 'Руна мудрости', ic: 6, pr: 260, st: { mpr: 1 } },
+  plate: { nm: 'Железная пластина', ic: 7, pr: 300, st: { arm: 0.05 } },
+  lens: { nm: 'Линза фокуса', ic: 8, pr: 280, st: { sk: 0.06 } },
+  hourglass: { nm: 'Песочные часы', ic: 9, pr: 320, st: { cd: 0.04 } },
+  fang: { nm: 'Клык упыря', ic: 10, pr: 340, st: { ls: 0.04 } },
+  clover: { nm: 'Осколок удачи', ic: 11, pr: 320, st: { crit: 0.05 } },
 };
 // предметы: from — из чего собирается (части или другие предметы); бонус предмета больше суммы его частей
 const RECIPES = {
@@ -125,10 +125,10 @@ SHOP.recompute = function () {
   const st = P.st || {}, str = st.str || 0, agi = st.agi || 0, int = st.int || 0;
   P.dmgMul = (1 + S.dmg) * (b.power > 0 ? 1.5 : 1) * CFG.units.hero.power * (1 + 0.015 * (P.lvl - 1)) * (1 + 0.006 * str);
   P.spdMul = (1 + S.spd) * (b.swift > 0 ? 1.45 : 1) * (1 + 0.006 * agi);
-  P.atkSpd = (1 + 0.015 * agi) * (1 + S.as);
+  P.atkSpd = (1 + 0.015 * agi) * (1 + Math.min(0.6, S.as));   // предметы — не больше +60 % к атаке
   P.skMul = (1 + 0.015 * int) * (1 + S.sk);
   P.mpRegen = 11 + 0.35 * int + S.mpr;
-  P.hpRegX = S.hpr; P.ls = S.ls; P.crit = Math.min(0.6, S.crit);
+  P.hpRegX = S.hpr; P.ls = S.ls; P.crit = Math.min(0.4, S.crit);
   const mm = 420 + 12 * int + S.mp;
   if (mm !== P.maxMp) { P.mp = Math.min(mm, P.mp + Math.max(0, mm - P.maxMp)); P.maxMp = mm; }
   P.cdMul = 1 - Math.min(0.45, S.cd);

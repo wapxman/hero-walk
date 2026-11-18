@@ -81,7 +81,7 @@ const SHOP = {
     SHOP.hud();
   },
   onKill(e) {
-    const g = Math.round((e.k.gold || KILL_GOLD[e.type] || 8) * (e.elite ? BAL.ELITE.gold : 1) * BAL.gold(wave) * rnd(0.85, 1.2));
+    const g = e.boss ? Math.round(BAL.bossGold(wave)) : Math.max(1, Math.round((e.k.gold || KILL_GOLD[e.type] || 8) * BAL.KILL_GOLD * (e.elite ? BAL.ELITE.gold : 1) * BAL.gold(wave) * rnd(0.85, 1.2)));
     SHOP.drop('coin', null, e.x, e.y, g);
     if (e.boss) SHOP.drop('chest', null, e.x + 40, e.y + 10);
     else if (Math.random() < 0.05) SHOP.drop('chest', null, e.x + rnd(-30, 30), e.y + rnd(-10, 20));

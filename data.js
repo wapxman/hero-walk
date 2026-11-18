@@ -155,15 +155,23 @@ const BAL = {
     n = Math.max(1, n | 0); const per = BAL.WAVES * BAL.WORLDS, m = (n - 1) % per;
     return { C: 1 + Math.floor((n - 1) / per), M: 1 + Math.floor(m / BAL.WAVES), W: 1 + m % BAL.WAVES };
   },
-  hp(n) { const a = BAL.at(n); return Math.pow(1.07, a.W - 1) * Math.pow(1.35, a.M - 1) * Math.pow(1.8, a.C - 1); },
-  dmg(n) { const a = BAL.at(n); return Math.pow(1.055, a.W - 1) * Math.pow(1.28, a.M - 1) * Math.pow(1.5, a.C - 1); },
-  xp(n) { const a = BAL.at(n); return Math.pow(1.05, a.W - 1) * Math.pow(1.2, a.M - 1) * Math.pow(1.3, a.C - 1); },
-  gold(n) { const a = BAL.at(n); return Math.pow(1.04, a.W - 1) * Math.pow(1.25, a.M - 1); },
+  // сквозной номер мира: на втором круге счёт продолжается (5, 6, …) — круг 2 начинается не слабее конца круга 1
+  mw(n) { const a = BAL.at(n); return a.M + BAL.WORLDS * (a.C - 1); },
+  // мир сверх 4-го усиливает мягче: герой к этому времени уже собран, растёт только уровнем
+  wk(n, k1, k2) { const m = BAL.mw(n); return Math.pow(k1, Math.min(m, 4) - 1) * Math.pow(k2, Math.max(0, m - 4)); },
+  hp(n) { return Math.pow(1.07, BAL.at(n).W - 1) * BAL.wk(n, 1.35, 1.12); },
+  dmg(n) { return Math.pow(1.055, BAL.at(n).W - 1) * BAL.wk(n, 1.28, 1.1); },
+  xp(n) { return Math.pow(1.05, BAL.at(n).W - 1) * Math.pow(1.2, BAL.mw(n) - 1); },
+  gold(n) { return Math.pow(1.04, BAL.at(n).W - 1) * BAL.wk(n, 1.25, 1.1); },
+  // боссы миров растут быстрее рядовых: герой с предметами усиливается в разы (расчёт — tools/balance_run.py)
+  bossHp(n) { return 1.45 * BAL.wk(n, 1.68, 1.1); },
+  bossDmg(n) { return BAL.wk(n, 1.17, 1.05); },
   speed(n) { return 1 + Math.min(0.25, 0.02 * (BAL.at(n).W - 1)); },
   count(n) { const a = BAL.at(n); return 12 + 3 * (a.W - 1) + 4 * (a.M - 1); },      // врагов в обычной волне
   elites(n) { const W = BAL.at(n).W; return W < 4 ? 0 : W < 7 ? 1 : 2; },
   waveGold(n) { const a = BAL.at(n); return 20 + 6 * a.W + 10 * (a.M - 1); },        // награда за отбитую волну
-  bossGold(n) { return 100 * Math.pow(1.5, BAL.at(n).M - 1); },
+  bossGold(n) { return 100 * BAL.wk(n, 1.5, 1.1); },
+  KILL_GOLD: 0.4,   // доля прежнего золота за убийство: иначе сумка заполнялась к концу первого мира
 };
 
 function devText() {
