@@ -603,6 +603,7 @@ function combatUpdate(dt) {
   padButtons();
   for (const k in P.cd) if (P.cd[k] > 0) P.cd[k] = Math.max(0, P.cd[k] - dt);
   P.atkCd -= dt; P.cast -= dt; P.hurt -= dt; P.heroT = (P.heroT || 0) + dt;
+  if (P.slowT > 0) P.slowT -= dt;
   if (P.act) { P.act.t += dt; if (P.act.t >= P.act.dur || P.dead > 0) P.act = null; }
   if (P.dead > 0) {
     P.dead -= dt;
@@ -653,6 +654,7 @@ function combatUpdate(dt) {
       }
     } else if (P.dead <= 0 && gdist(s, P) < 30 * HS()) {
       hurtPlayer(s.dmg); s.left = 0;
+      if (s.onHitP) s.onHitP(s);
       snd('enemy_melee', 0.3, 1.2);
       fx.push({ type: 'spark', x: P.x, y: P.y - CH * 0.5 * HS(), t: 0, dur: 0.25, R: 30, rock: true });
     }
@@ -676,7 +678,7 @@ function combatUpdate(dt) {
       if (hit || Math.random() < 0.18) snd('hit', hit ? 0.22 : 0.1, rnd(0.85, 1.2));
     }
     if (f.type === 'tele') {
-      if (P.dead <= 0 && gdist(f, P) < f.R) hurtPlayer(f.dmg);
+      if (P.dead <= 0 && gdist(f, P) < f.R) { hurtPlayer(f.dmg); if (f.onHitP) f.onHitP(f); }
       fx.push({ type: 'quake', x: f.x, y: f.y, t: 0, dur: 0.75, R: f.R });
       snd('boss_slam', f.big ? 0.95 : 0.75, f.big ? 0.85 : 1);
     }
