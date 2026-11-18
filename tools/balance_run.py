@@ -1,7 +1,27 @@
 """Модель забега для баланса магазина: золото по раундам, жадная закупка предметов (items.js), сила героя
 против рядовых и боссов в каждом мире. usage: python tools/balance_run.py [множитель_цен]"""
-import sys, re, json
+import sys, re, json, subprocess
 sys.stdout.reconfigure(encoding='utf-8')
+# враги и ростер миров — прямо из combat.js (как у сервера): опыт, золото, урон рядовых, элиты и босса каждого мира
+_js = open('combat.js', encoding='utf-8').read()
+_js = _js[_js.index('const KIND = {'):_js.index('const rosterOf')]
+KIND, ROSTER = json.loads(subprocess.run(['node', '-e', _js + ';console.log(JSON.stringify([KIND, ROSTER]))'], capture_output=True, text=True, encoding='utf-8').stdout)
+XP0 = {'min': 8, 'war': 18, 'mag': 14, 'rog': 14, 'boss': 150}; G0 = {'min': 8, 'war': 14, 'mag': 12, 'rog': 12}
+def kx(t): return KIND[t].get('xp') or XP0.get(t, 8)
+def kg(t): return KIND[t].get('gold') or G0.get(t, 8)
+def world_mix(M):
+    R = ROSTER[str(M)]; reg = R['mel'] * 3 + R['rng']          # 75 % ближнего боя, 25 % стрелков
+    mean = lambda f, L: sum(f(t) for t in L) / len(L)
+    return mean(kx, reg), mean(kg, reg), mean(kx, R['elite']), mean(kg, R['elite']), mean(lambda t: KIND[t]['hp'], reg), R['boss']
+def boss_dps(b):
+    # урон босса в секунду до множителей: обычный удар + магия (метки: половина попаданий, ядовитая зона — 2 с из её времени)
+    k = KIND[b]
+    if not k.get('spells'): return 45 / 2.2 * 1.6
+    d = (sum(k['dmg']) / 2 / k['cd']) * 0.6 if k.get('mel') else 0
+    for sp in k['spells']:
+        hit = sp['dmg'] * (2 / sp['tick'] if sp.get('tick') else 1) * (3 if sp['how'] == 'multi' else 1)
+        d += 0.5 * hit / sp['cd']
+    return d
 PM = float(sys.argv[1]) if len(sys.argv) > 1 else 1.0
 GM = float(sys.argv[2]) if len(sys.argv) > 2 else 0.4   # множитель золота за убийства
 src = open('items.js', encoding='utf-8').read()
@@ -70,19 +90,22 @@ for rnd in range(56):           # 4 мира по 4 раунда (3+3+3+босс
         C, M, W = at(w)
         if W == 10: add_xp(150 * xpm(w) / 1.05 ** 9); gold += 100 * wk(w, 1.5, 1.1)
         else:
-            k = count(w); add_xp((0.6 * 8 + 0.2 * 18 + 0.2 * 14) * k * xpm(w) + elites(w) * 3 * 13 * xpm(w))
-            gold += GM * (8.0 * k * gom(w) + elites(w) * 4 * 10 * gom(w)) + 20 + 6 * W + 10 * (M - 1)
+            k = count(w); rx, rg, ex, eg, _, _ = world_mix(M)
+            add_xp(rx * k * xpm(w) + elites(w) * 3 * ex * xpm(w))
+            gold += GM * (rg * k * gom(w) + elites(w) * 4 * eg * gom(w)) + 20 + 6 * W + 10 * (M - 1)
     n = last
     gold -= 40          # фласки
     shop()
     C, M, W = at(n)
     if (W == 10 or (M == 1 and C == 1 and W in (3, 9))) and C <= 2:
         dmg, dps, hp, ehp = hero(lvl, bag)
-        zhp, zdm = 120 * hpm(n), 11 * dmm(n)
-        bhp, bdps = 1500 * hpm(n) * 1.45 * wk(n, 1.68, 1.1), 45 * dmm(n) * wk(n, 1.17, 1.05) / 2.2 * 1.6
-        rows.append(f"| {'К2 · ' if C == 2 else ''}М{M} / В{W} | {lvl} | {round(gold)} | {len(bag)}: {', '.join(ALL[i]['nm'] for i in bag)} | {round(dmg)} | {round(dps)} | {round(hp)} | {zhp / dmg:.1f} | {bhp / dps:.0f} с | {ehp / bdps:.0f} с |")
+        _, _, _, _, rhp, b = world_mix(M)
+        zhp, zdm = rhp * hpm(n), 11 * dmm(n)
+        bhp, bdps = KIND[b]['hp'] * hpm(n) * 1.45 * wk(n, 1.68, 1.1), boss_dps(b) * dmm(n) * wk(n, 1.17, 1.05)
+        bn = KIND[b]['nm'][0] if isinstance(KIND[b].get('nm'), list) else b
+        rows.append(f"| {'К2 · ' if C == 2 else ''}М{M} / В{W}{' · ' + bn if W == 10 else ''} | {lvl} | {round(gold)} | {len(bag)}: {', '.join(ALL[i]['nm'] for i in bag)} | {round(dmg)} | {round(dps)} | {round(hp)} | {zhp / dmg:.1f} | {bhp / dps:.0f} с | {ehp / bdps:.0f} с |")
 print(f"Множитель цен: {PM}, золота за убийства: {GM}")
-print("| Мир / волна | Уровень | Золото в запасе | Сумка | Выстрел | Урон/с | HP | Выстрелов на зомби | Босс падает за | Босс убьёт героя за |")
+print("| Мир / волна | Уровень | Золото в запасе | Сумка | Выстрел | Урон/с | HP | Выстрелов на рядового | Босс падает за | Босс убьёт героя за |")
 print("|---|---|---|---|---|---|---|---|---|---|")
 print('\n'.join(rows))
 print('\nЦены предметов:', ', '.join(f"{RECIPES[i]['nm']} {full(i)}" for i in RECIPES))

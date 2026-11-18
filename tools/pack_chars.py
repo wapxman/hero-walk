@@ -18,6 +18,9 @@ SHEETS = {"zombie": 256, "vampire": 256, "mage": 256, "archer": 256, "boss": 320
 # Каждая анимация — свой лист: 8 рядов направлений (как runRow), кадры по столбцам.
 LOSSLESS = {"gf_idle": 384, "gf_run": 384, "gf_attack": 384, "gf_nova": 384, "gf_chains": 384, "gf_hail": 384, "gf_storm": 384, "gf_death": 384,
             "th_walk": 256, "th_attack": 320, "th_death": 320, "th_idle": 256}
+# злодеи из ChatGPT (tools/villains_prep.py дописывает их сюда же)
+_lj = os.path.join(SRC, "lossless.json")
+if os.path.exists(_lj): LOSSLESS.update(json.load(open(_lj, encoding="utf-8")))
 SHEETS.update(LOSSLESS)
 MAXW, PAD = 2048, 2
 # python tools/pack_chars.py gf_idle th_walk … — упаковать только эти листы (остальные атласы не трогать)

@@ -70,7 +70,7 @@ let nextRoom = 1;
 function makeRoom(mode, code) {
   const r = { code: code || String(1000 + (nextRoom++ % 9000)), mode, max: mode === 'duel' ? 2 : 4, clients: new Set(), ents: new Map(),
     shots: [], zones: [], shards: [], tick: 0, wave: TEST_WAVE, phase: 0, nextId: 1, hist: [], events: [],
-    world: 1, map: MAPS[1], queue: [], relT: 0, nextT: 0, endW: 0, roundFrom: 0, worldT: 0, dist: null, distT: 0, duelT: 0 };
+    world: 1, map: MAPS[1], pzones: [], orbs: [], queue: [], relT: 0, nextT: 0, endW: 0, roundFrom: 0, worldT: 0, dist: null, distT: 0, duelT: 0 };
   if (mode === 'coop' && TEST_WAVE) { r.world = BAL.at(TEST_WAVE + 1).M; r.map = MAPS[r.world]; }
   rooms.set(r.code, r);
   return r;
@@ -209,7 +209,7 @@ function stepShot(r, s) {
       ev(r, EV.HIT, s.id, e.id, e.x, e.y);
       hurt(r, e, s.dmg, s.owner, s.kind === 'arrow' ? 2 : 1);
       if (s.kind === 'ice') slow(e, 0.8, 1);
-      if (s.slowHit && e.player) { slow(e, 0.65, 1.8); ev(r, EV.SAY, e.id, 10 + 13); }
+      if (s.slowHit && e.player) { slow(e, s.slowHit, s.slowHit > 0.7 ? 1.2 : 1.8); if (s.slowHit < 0.7) ev(r, EV.SAY, e.id, 10 + 13); }
       if (s.kind === 'arrow' && s.owner.player) { s.owner.focus = Math.min(10, s.owner.focus + 1); s.owner.focusT = 3; }
       return;
     }
@@ -345,7 +345,7 @@ function runRound(r) {
 }
 function setWorld(r, m) {
   r.world = m; r.map = MAPS[m]; r.dist = null;
-  r.shots = []; r.zones = []; r.shards = [];
+  r.shots = []; r.zones = []; r.shards = []; r.pzones = []; r.orbs = [];
   for (const p of r.ents.values()) if (p.player) { const s = spawnPoint(r, p.team); p.x = NET.qpos(s.x); p.y = NET.qpos(s.y); p.kb = null; }
   const a = BAL.at(r.wave + 1);
   ev(r, EV.WORLD, m, a.C);
@@ -451,6 +451,12 @@ const MECH = {
   mremireh(r, e) {
     if (!e.act && e.mt <= 0 && !(e.silT > 0) && r.ents.size < 26) { e.mt = 10; say(r, e, 3); act(e, 1.0, 0.6, () => raise(r, e, 2), true); return true; }
   },
+  shadowwolf(r, e, d, tg) {
+    if (!e.act && e.mt <= 0 && d > 170 && d < 420) { e.mt = 5; leapTo(r, e, tg.x, tg.y, 0.55, 80, 16 * e.dm); return true; }
+  },
+  boarbrute(r, e, d) {
+    if (!e.act && e.mt <= 0 && d < 210) { e.mt = 6; tele(r, e.x, e.y, 160, 0.8, 30 * e.dm); act(e, 0.9, 2, () => {}); return true; }
+  },
   thornroot(r, e, d, tg) {
     if (!e.act && e.mt <= 0 && d > 140 && d < 620) {
       e.mt = 7; say(r, e, 14);
@@ -510,6 +516,32 @@ const MECH = {
     }
   },
 };
+// магия боссов ChatGPT (KIND.<босс>.spells, как spellBoss в enemies.js): метка, урон, картинка эффекта у клиентов (EV.VFX)
+function castSpell(r, e, s, i, tg) {
+  const kid = NET.KINDS.indexOf(e.kind), dm = e.dm, o = R => ({ vfx: [kid, i], vR: R, vt: s.t || 1.2 });
+  if (s.how === 'target') tele(r, tg.x, tg.y, s.R, s.warn, s.dmg * dm, false, Object.assign(o(s.R), s.eff === 'root' ? { root: s.t } : {}));
+  else if (s.how === 'self') tele(r, e.x, e.y, s.R, s.warn, 0, false, Object.assign(o(s.R), s.eff === 'poison' ? { pois: { dmg: s.dmg * dm, tick: s.tick, t: s.t } } : {}));
+  else if (s.how === 'multi') for (let j = 0; j < 3; j++) { const a = rnd(0, 6.283), rr = j ? rnd(90, 220) : 0; tele(r, tg.x + Math.cos(a) * rr, tg.y + Math.sin(a) * rr * YK, s.R, s.warn + j * 0.3, s.dmg * dm, false, Object.assign(o(s.R), { vt: 0.9 })); }
+  else if (s.how === 'moving') {
+    const [dx, dy] = dirTo(e, tg.x, tg.y), b = { x: e.x + dx * 60, y: e.y + dy * 60 * YK, dx, dy, t: 6, dmg: s.dmg * dm, R: s.R, kid, i };
+    r.orbs.push(b); ev(r, EV.VFX, kid, i, b.x, b.y, s.R * 0.6, 600, dx * 1000, dy * 1000);
+  }
+}
+function spellBoss(r, e, d, tg) {
+  const S = e.k.spells;
+  if (!e.scd) e.scd = S.map(s => rnd(2.5, s.cd * 0.6));
+  const cdk = e.phase >= 3 ? 0.6 : e.phase >= 2 ? 0.8 : 1;
+  for (let i = 0; i < S.length; i++) e.scd[i] -= DT;
+  if (e.act) return;
+  for (let i = 0; i < S.length; i++) {
+    const s = S[i];
+    if (e.scd[i] > 0 || (s.how === 'self' ? d > s.R + 60 : d > 950)) continue;
+    e.scd[i] = s.cd * cdk; say(r, e, s.ph);
+    act(e, 1.0, 0.45, t => castSpell(r, e, s, i, t || tg), true);
+    return true;
+  }
+  if (e.phase >= 3 && e.mt2 <= 0 && r.ents.size < 22) { e.mt2 = 14; act(e, 1.0, 0.5, () => raise(r, e, 2, (ROSTER[r.world] || ROSTER[1]).mel[0]), true); return true; }
+}
 function updateEnemy(r, e) {
   e.atkCd -= DT; e.slamCd -= DT; e.quakeCd -= DT; e.leapCd -= DT; e.summonCd -= DT; e.mt -= DT; e.mt2 -= DT; e.mt3 -= DT;
   if (e.arm > 0) e.arm -= DT;
@@ -539,7 +571,7 @@ function updateEnemy(r, e) {
     return;
   }
   if (!tg) return;
-  const m = MECH[e.kind];
+  const m = MECH[e.kind] || (e.k.spells && spellBoss);
   if (m && !(e.silT > 0 && !e.boss) && m(r, e, bd, tg) === true) return;
   const ang = Math.atan2(tg.y - e.y, tg.x - e.x) * 180 / Math.PI;
   if (Math.abs(((ang - (e.row * 45 + 90) + 540) % 360) - 180) > 30) e.row = runRow(tg.x - e.x, tg.y - e.y);
@@ -559,11 +591,15 @@ function updateEnemy(r, e) {
     act(e, 0.55, 0.5, t => {
       if (!t) return;
       let ax = t.x - e.x, ay = (t.y - e.y) / YK; const q = Math.hypot(ax, ay) || 1;
-      const s = shoot(r, e, k.bolt ? 'bolt' : 'fire', ax / q, ay / q, null, rnd(k.dmg[0], k.dmg[1]) * e.dm, k.shot, k.want + 150);
-      if (e.kind === 'zlorp') s.slowHit = true;
+      const a0 = Math.atan2(ay / q, ax / q), nf = k.fan || 1;
+      for (let i = 0; i < nf; i++) {
+        const a = a0 + (i - (nf - 1) / 2) * 0.2;
+        const s = shoot(r, e, k.bolt ? 'bolt' : 'fire', Math.cos(a), Math.sin(a), null, rnd(k.dmg[0], k.dmg[1]) * e.dm, k.shot, k.want + 150);
+        if (e.kind === 'zlorp' || k.slowShot) s.slowHit = k.slowShot ? 0.75 : 0.65;
+      }
     });
   }
-  if (e.boss && !(e.silT > 0)) {
+  if (e.boss && !(e.silT > 0) && !k.spells) {
     if (!e.rage && e.hp < e.max * 0.4) { e.rage = true; e.speed *= 1.35; ev(r, EV.SAY, e.id, 2); }
     const cdk = e.rage ? 0.65 : 1, R = ROSTER[r.world] || ROSTER[1];
     if (e.summonCd <= 0 && r.ents.size < 22) {
@@ -646,13 +682,32 @@ function step(r) {
   for (const z of r.zones) {
     z.t -= DT;
     if (z.tele) {
-      if (z.t <= 0) { for (const p of r.ents.values()) if (p.player && alive(p) && gdist(z, p) < z.R) { hurt(r, p, z.dmg, null); if (z.slow) slow(p, z.slow === true || z.slow === 1 ? 0.7 : z.slow, z.slow < 1 ? 2.2 : 1.5); } ev(r, EV.QUAKE, z.x, z.y, z.R); }
+      if (z.t <= 0) {
+        for (const p of r.ents.values()) if (p.player && alive(p) && gdist(z, p) < z.R) {
+          if (z.dmg) hurt(r, p, z.dmg, null);
+          if (z.slow) slow(p, z.slow === true || z.slow === 1 ? 0.7 : z.slow, z.slow < 1 ? 2.2 : 1.5);
+          if (z.root) { slow(p, 0.02, z.root); ev(r, EV.SAY, p.id, 10 + 16); }
+        }
+        if (z.vfx) ev(r, EV.VFX, z.vfx[0], z.vfx[1], z.x, z.y, z.vR, z.vt * 100, 0, 0); else ev(r, EV.QUAKE, z.x, z.y, z.R);
+        if (z.pois) r.pzones.push({ x: z.x, y: z.y, R: z.R, t: z.pois.t, tick: z.pois.tick, acc: 0, dmg: z.pois.dmg });
+      }
       continue;
     }
     z.tick -= DT;
     while (z.tick <= 0) { z.tick += 0.13; const a = rnd(0, 6.283), rr = Math.sqrt(Math.random()) * z.R; shard(r, z.owner, z.x + Math.cos(a) * rr, z.y + Math.sin(a) * rr * YK, 80, 24 * z.mul, 0.65, 1); }
   }
   r.zones = r.zones.filter(z => z.t > 0);
+  // ядовитые зоны: жгут героев внутри каждые tick секунд
+  for (const z of r.pzones) { z.t -= DT; if ((z.acc -= DT) <= 0) { z.acc = z.tick; for (const p of r.ents.values()) if (p.player && alive(p) && gdist(z, p) < z.R) hurt(r, p, z.dmg, null); } }
+  r.pzones = r.pzones.filter(z => z.t > 0);
+  // летящие сферы боссов: взрыв у героя или в конце пути
+  for (const b of r.orbs) {
+    b.t -= DT; b.x += b.dx * 330 * DT; b.y += b.dy * 330 * YK * DT;
+    let hit = b.t <= 0;
+    for (const p of r.ents.values()) if (p.player && alive(p) && gdist(b, p) < b.R * 0.6 + 20) hit = true;
+    if (hit) { b.t = 0; for (const p of r.ents.values()) if (p.player && alive(p) && gdist(b, p) < b.R) hurt(r, p, b.dmg, null); ev(r, EV.VFX, b.kid, b.i, b.x, b.y, b.R, 90, 0, 0); }
+  }
+  r.orbs = r.orbs.filter(b => b.t > 0);
   for (const s of r.shards) {
     s.t -= DT;
     if (s.t > 0) continue;

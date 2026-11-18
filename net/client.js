@@ -201,7 +201,7 @@ var NETC = { on: false };
       if (t === E.SHOT) {
         const [, id, owner, kind, x, y, dx, dy, sp, tgt] = e, ov = viewOf(owner), mine = owner === S.myId;
         const fromHero = mine || (ov && ov.hero);
-        shots.push({ nid: id, own: fromHero ? 'p' : 'e', arrow: kind === 2, bolt: kind === 4, x, y, dx: dx / 1000, dy: dy / 1000, sp, left: 1600,
+        shots.push({ nid: id, own: fromHero ? 'p' : 'e', arrow: kind === 2, bolt: kind === 4, col: !fromHero && ov && ov.k ? ov.k.pcol : null, x, y, dx: dx / 1000, dy: dy / 1000, sp, left: 1600,
           tgt: tgt >= 0 ? viewOf(tgt) : null, h: fromHero ? CH * 0.55 * HS() : 80, sc: fromHero ? HS() : 1 });
         if (mine) { P.act = { anim: 'atk', t: 0, dur: 0.36, row: runRow(dx, dy) }; P.cast = 0.14; snd(HERO_ID === 'archer' ? 'archer_shot' : 'hero_shot', 0.8); voAttack(); }
         else if (ov && ov.hero) { ov.act = { t: 0, dur: 0.36 }; ov.anim = 'atk'; snd(ov.kind === 'archer' ? 'archer_bow_shot' : 'hero_shot_1', 0.5); }
@@ -263,6 +263,15 @@ var NETC = { on: false };
         applyWorld(e[1]); syncMap(); S.cur = null; S.pending = []; shots.length = 0; zones.length = 0; fx.length = 0;
         setTimeout(() => { FADE.style.transition = 'opacity .9s'; FADE.style.opacity = '0'; }, 1300);
         snd('wave_horn', 0.9, 0.8);
+      } else if (t === E.VFX) {
+        // картинка заклинания босса: [вид, номер магии, x, y, R, длительность ×100, dx, dy] (dx, dy — у летящей сферы)
+        const k = KIND[N.KINDS[e[1]]], ch = k && CHARS[k.ch], vf = ch && ch.vfx && ch.vfx[e[2]];
+        if (vf) {
+          const o = { img: vf.img, x: e[3], y: e[4], R: e[5], dur: e[6] / 100, rot: vf.how === 'self' ? 0.25 : 0 };
+          if (e[7] || e[8]) o.mv = { dx: e[7] / 1000, dy: e[8] / 1000, sp: 330, vis: 1 };
+          spellFx(o);
+          if (!o.mv) snd('boss_slam', 0.6, 0.9);
+        }
       } else if (t === E.HEAL) {
         const v = viewOf(e[1]);
         if (v === P) say(P.x, P.y - CH * HS() * 1.1, '+' + e[2] + (e[3] ? ' маны' : ''), e[3] ? '#8ab8ff' : '#7dff8a');

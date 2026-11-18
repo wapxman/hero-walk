@@ -26,8 +26,78 @@ function raise(e, n, type) {
   }
 }
 
+// ---------- магия боссов ChatGPT: картинка эффекта на земле (вид сверху, сжата по вертикали, как земля) ----------
+// how: target — метка под героем, self — кольцо вокруг босса, multi — три удара вокруг героя, moving — летит от босса.
+// Эффект может держаться t секунд: poison — жжёт героя внутри каждые tick секунд.
+const SPELL_FX = [], SPELL_IMG = {};
+function spellImg(src) { if (!SPELL_IMG[src]) { const im = new Image(); im.src = src + V; SPELL_IMG[src] = im; } return SPELL_IMG[src]; }
+function spellFx(o) { SPELL_FX.push(Object.assign({ t: 0, dur: 1.2, tickT: 0 }, o)); }
+function castSpell(e, s, i) {
+  const img = e.ch.vfx && e.ch.vfx[i] ? e.ch.vfx[i].img : null, dm = e.dm;
+  const v = (R, t) => ({ img, R, dur: t || 1.2, rot: s.how === 'self' ? 0.25 : 0 });
+  if (s.how === 'target') {
+    warn(P.x, P.y, s.R, s.warn, s.dmg * dm, { vfx: v(s.R, s.t), onHitP: () => { if (s.eff === 'root') { slowHero(0.02, s.t); say(P.x, P.y - CH * HS(), 'корни держат!', '#b9e37a'); } } });
+  } else if (s.how === 'self') {
+    warn(e.x, e.y, s.R, s.warn, 0, { vfx: Object.assign(v(s.R, s.t), s.eff === 'poison' ? { pdmg: s.dmg * dm, tick: s.tick } : {}) });
+  } else if (s.how === 'multi') {
+    for (let j = 0; j < 3; j++) { const a = rnd(0, 6.283), r = j ? rnd(90, 220) : 0; warn(P.x + Math.cos(a) * r, P.y + Math.sin(a) * r * YK, s.R, s.warn + j * 0.3, s.dmg * dm, { vfx: v(s.R, 0.9) }); }
+  } else if (s.how === 'moving') {
+    const [dx, dy] = dirTo(e, P.x, P.y);
+    spellFx({ img, R: s.R * 0.6, dur: 6, mv: { dx, dy, sp: 330, dmg: s.dmg * dm, R: s.R }, x: e.x + dx * 60, y: e.y + dy * 60 * YK });
+  }
+}
+// приёмы боссов с магией: заклинания по очереди, по фазам чаще; в последней фазе зовёт свиту
+function spellBoss(e, dt, d) {
+  const S = e.k.spells;
+  if (!e.scd) e.scd = S.map(s => rnd(2.5, s.cd * 0.6));
+  const cdk = e.phase >= 3 ? 0.6 : e.phase >= 2 ? 0.8 : 1;
+  for (let i = 0; i < S.length; i++) e.scd[i] -= dt;
+  if (e.act) return;
+  for (let i = 0; i < S.length; i++) {
+    const s = S[i];
+    if (e.scd[i] > 0 || (s.how === 'self' ? d > s.R + 60 : d > 950)) continue;
+    e.scd[i] = s.cd * cdk; tag(e, s.nm + '!', '#b9e37a');
+    startAct(e, s.an || 'cast', 1.0, 0.45, () => castSpell(e, s, i));
+    return true;
+  }
+  if (e.phase >= 3 && e.mt2 <= 0 && enemies.length < 14) { e.mt2 = 14; startAct(e, 'cast', 1.0, 0.5, () => raise(e, 2, rosterOf(wave).mel[0])); return true; }
+}
+const _cuS = combatUpdate;
+combatUpdate = function (dt) {
+  _cuS(dt);
+  for (const f of SPELL_FX) {
+    f.t += dt;
+    if (f.mv) {   // летящая сфера: взрыв у героя или в конце пути (в онлайне — только картинка, урон считает сервер)
+      f.x += f.mv.dx * f.mv.sp * dt; f.y += f.mv.dy * f.mv.sp * YK * dt;
+      if (!f.mv.vis && P.dead <= 0 && gdist(f, P) < f.R + 20) { f.t = f.dur; warn(f.x, f.y, f.mv.R, 0.01, f.mv.dmg, { vfx: { img: f.img, R: f.mv.R, dur: 0.9 } }); }
+    }
+    if (f.pdmg && P.dead <= 0 && (f.tickT -= dt) <= 0) { f.tickT = f.tick; if (gdist(f, P) < f.R) hurtPlayer(f.pdmg); }
+  }
+  keep(SPELL_FX, f => f.t < f.dur);
+};
+const _cgS = combatGround;
+combatGround = function (t) {
+  _cgS(t);
+  for (const f of SPELL_FX) {
+    const im = f.img && spellImg(f.img);
+    if (!im || !im.complete || !im.naturalWidth) continue;
+    const a = Math.min(1, f.t / 0.15, (f.dur - f.t) / 0.4), w = f.R * 2.3;
+    ctx.save(); ctx.globalAlpha = Math.max(0, a); ctx.translate(f.x, f.y); ctx.scale(1, YK); ctx.rotate(f.t * (f.rot || 0) + (f.mv ? f.t * 3 : 0));
+    ctx.drawImage(im, -w / 2, -w / 2, w, w);
+    ctx.restore();
+  }
+};
+
 // ---------- приёмы видов. d — расстояние до героя. Вернуть true — обычное поведение в этом кадре пропускается ----------
 const MECH = {
+  // Теневой волк: подкрадывается и прыгает с укусом
+  shadowwolf(e, dt, d) {
+    if (!e.act && e.mt <= 0 && d > 170 && d < 420) { e.mt = 5; leapTo(e, P.x, P.y, 0.55, 80, 16 * e.dm, 'atk'); return true; }
+  },
+  // Кабан-громила: удар дубиной так, что трясётся земля
+  boarbrute(e, dt, d) {
+    if (!e.act && e.mt <= 0 && d < 210) { e.mt = 6; warn(e.x, e.y, 160, 0.8, 30 * e.dm); startAct(e, 'atk', 0.9, 2, () => {}); return true; }
+  },
   // зомби-девушка: рывок к герою с короткой дистанции
   zgirl(e, dt, d) {
     if (e.dash > 0) { e.dash -= dt; const [dx, dy] = dirTo(e, P.x, P.y); moveBy(e, dx, dy, e.speed * 2.6, dt); e.anim = 'run'; e.runPh += dt * 2.5; return true; }
@@ -156,6 +226,7 @@ const MECH = {
 // особые попадания снарядов
 const SHOT_HIT = {
   zlorp: () => { slowHero(0.65, 1.8); say(P.x, P.y - CH * HS(), 'замедление', '#9fd0ff'); },
+  sporeshaman: () => { slowHero(0.75, 1.2); },   // ядовитые споры
 };
 KIND.war.steal = 0.6;   // вампир лечится на часть нанесённого урона
 KIND.min.rise = 0.3;    // зомби иногда встаёт после смерти (один раз)
@@ -170,7 +241,7 @@ updateEnemy = function (e, dt) {
     if (ph > (e.phase || 1)) { e.mt = Math.min(e.mt, 1); tag(e, ph === 2 ? 'Вторая фаза' : 'Последняя фаза', '#ff9a6a'); }
     e.phase = Math.max(e.phase || 1, ph);
   }
-  const m = MECH[e.type];
+  const m = MECH[e.type] || (e.k.spells && spellBoss);
   if (m && !e.kb && !(e.root > 0) && !(P.dead > 0) && !e.leap && !(e.silT > 0 && !e.boss)) {
     if (m(e, dt, gdist(P, e)) === true) return;
   }

@@ -318,6 +318,10 @@ function needChar(c) {
   if (!c || c.hero || c.img) return;
   const im = c.img = new Image(); im.onload = () => { c.ok = true; }; im.src = 'chars/at_' + c.at + '.webp' + V;
 }
+// злодеи и боссы из ChatGPT (chars/villains.js, tools/villains_prep.py): рост из roster.py в пикселях листа,
+// VK — единиц мира на пиксель, как у Шипокорня (212 px -> ~240), так что все они в одном масштабе с героем
+const VK = 1.14;
+if (typeof VILLAINS !== 'undefined') for (const id in VILLAINS) { const v = VILLAINS[id]; CHARS[id] = { lazy: 1, U: 100, top: v.size * VK / 100, k: VK, mul: v.mul, vfx: v.vfx }; }
 for (const k in CHARS) { CHARS[k].at = k; if (!CHARS[k].lazy) needChar(CHARS[k]); }
 // Ganfaul в общей таблице: рисуется своими листами (HERO), размеры — как у остальных
 CHARS.ganfaul = { hero: true, U: 118, top: 1.5, get ok() { return HERO.ok; } };
@@ -337,7 +341,7 @@ function loadMul(c) {
 const SKILL_AN = { nova: 1, chains: 1, hail: 1, storm: 1 };
 function mulAnim(c, anim) {
   const M = c.mul;
-  return M[anim] || ((anim === 'cast' || anim === 'leap') && (M.nova || M.atk)) || (SKILL_AN[anim] && (M.cast || M.atk)) || M.idle;
+  return M[anim] || ((anim === 'cast' || anim === 'leap') && (M.cast1 || M.nova || M.atk)) || (SKILL_AN[anim] && (M.cast || M.atk)) || M.idle;
 }
 const mulDur = (c, anim) => { const a = mulAnim(c, anim); return a.n * a.ms / 1000; };
 function drawMulti(c, anim, fi, row, flash) {
@@ -457,9 +461,21 @@ const KIND = {
   warzombie: { nm: 'Зомби-солдат', ch: 'v_warzombie', elite: 1, mel: 1, hp: 190, rad: 26, speed: 120, dmg: [13, 17], cd: 1.1, reach: 70, xp: 14, gold: 10, col: '#5a4a3a' },
   mremireh: { nm: 'Мремире', sz: 1.3, ch: 'v_mremireh', elite: 1, rng: 1, hp: 130, rad: 24, speed: 105, dmg: [13, 17], cd: 1.7, want: 480, shot: 540, xp: 14, gold: 11, col: '#4a3a6a' },
   warrok: { nm: 'Варрок', ch: 'boss', elite: 1, mel: 1, hp: 220, rad: 30, speed: 108, dmg: [15, 19], cd: 1.25, reach: 78, xp: 16, gold: 12, col: '#565a66', sz: 0.9 },
+  // ---- злодеи Лесной поляны из ChatGPT (v50, roster.py). pcol — цвет снаряда стрелка ----
+  shadowwolf: { nm: 'Теневой волк', ch: 'shadowwolf', mel: 1, hp: 95, rad: 24, speed: 205, dmg: [9, 12], cd: 0.8, reach: 68, xp: 8, gold: 6, col: '#3a2a4a' },
+  sporeshaman: { nm: 'Грибной шаман', ch: 'sporeshaman', rng: 1, hp: 110, rad: 20, speed: 100, dmg: [13, 18], cd: 1.8, want: 450, shot: 500, pcol: '120,230,90', slowShot: 1, xp: 12, gold: 9, col: '#8a3a2a' },
+  thornimp: { nm: 'Колючий бес', ch: 'thornimp', rng: 1, hp: 85, rad: 18, speed: 150, dmg: [8, 11], cd: 1.5, want: 520, shot: 720, pcol: '150,170,70', fan: 3, xp: 11, gold: 8, col: '#4a6a2a' },
+  rotdryad: { nm: 'Гнилая дриада', ch: 'rotdryad', mel: 1, hp: 150, rad: 22, speed: 112, dmg: [13, 17], cd: 1.15, reach: 100, xp: 12, gold: 9, col: '#6a6a5a' },
+  boarbrute: { nm: 'Кабан-громила', ch: 'boarbrute', mel: 1, hp: 240, rad: 30, speed: 96, dmg: [22, 28], cd: 1.6, reach: 84, xp: 18, gold: 13, col: '#6a4a2a' },
   // Шипокорень: медленный и толстый, бьёт сильно и с длинной руки, из-под земли выпускает корни
   thornroot: { nm: 'Шипокорень', ch: 'thornroot', elite: 1, mel: 1, hp: 280, rad: 34, speed: 92, dmg: [18, 24], cd: 1.45, reach: 92, xp: 24, gold: 18, col: '#5a4a2a' },
   // ---- боссы миров: на 10-й волне своего мира ----
+  // боссы ChatGPT: обе магии из roster.py — метка на земле, урон, эффект картинкой vfx (how: target / self / multi / moving).
+  // ph — номер реплики в NET.PHRASES, eff: root — держит героя на месте, poison — зона жжёт, пока стоишь в ней
+  b_thornqueen: { nm: ['Королева Колючек', 'хозяйка проклятого леса'], ch: 'b_thornqueen', boss: 1, mel: 1, hp: 2000, rad: 52, speed: 92, dmg: [44, 56], cd: 1.3, reach: 120,
+    xp: 150, gold: 100, col: '#6a2a3a', sz: 1.15, spells: [
+      { nm: 'Корни', ph: 14, how: 'target', R: 130, warn: 1.0, dmg: 60, eff: 'root', t: 1.8, cd: 9, an: 'cast1' },
+      { nm: 'Ядовитый сад', ph: 15, how: 'self', R: 300, warn: 0.8, dmg: 20, tick: 0.5, t: 3.5, eff: 'poison', cd: 13, an: 'cast2' }] },
   mutant: { nm: ['Мутант', 'страж первого мира'], ch: 'v_mutant', boss: 1, hp: 1500, rad: 48, speed: 96, xp: 150, gold: 100, col: '#5a4a3a' },
   maw: { nm: ['Мо', 'пожиратель болот'], ch: 'v_maw', boss: 1, hp: 1500, rad: 52, speed: 90, xp: 150, gold: 100, col: '#4a3a3a' },
   pumpkin: { nm: ['Тыквенный громила', 'хозяин жатвы'], ch: 'v_pumpkin', boss: 1, hp: 1500, rad: 50, speed: 92, xp: 150, gold: 100, col: '#6a4a2a' },
@@ -467,7 +483,7 @@ const KIND = {
 };
 // кто выходит в каком мире: рядовые ближнего и дальнего боя, элита и босс мира
 const ROSTER = {
-  1: { mel: ['min', 'min', 'zgirl', 'war'], rng: ['rog', 'mag'], elite: ['thornroot', 'warrok', 'parasite'], boss: 'mutant' },
+  1: { mel: ['shadowwolf', 'rotdryad', 'shadowwolf', 'boarbrute'], rng: ['sporeshaman', 'thornimp'], elite: ['thornroot'], boss: 'b_thornqueen' },
   2: { mel: ['copz', 'zgirl', 'goblin', 'war'], rng: ['rog', 'zlorp'], elite: ['parasite', 'warzombie'], boss: 'maw' },
   3: { mel: ['goblin', 'copz', 'min', 'war'], rng: ['zlorp', 'mag'], elite: ['thornroot', 'warzombie', 'mremireh'], boss: 'pumpkin' },
   4: { mel: ['copz', 'goblin', 'zgirl', 'war'], rng: ['zlorp', 'mag', 'rog'], elite: ['mremireh', 'warrok', 'parasite'], boss: 'demon' },
@@ -514,7 +530,7 @@ function nextWave() {
   if (a.W === 10) q.push(R.boss);
   else {
     const n = BAL.count(wave), nr = Math.round(n * 0.25);
-    for (let i = 0; i < n - nr; i++) q.push(wave === 1 && i < 6 ? 'min' : R.mel[i % R.mel.length]);
+    for (let i = 0; i < n - nr; i++) q.push(R.mel[(wave === 1 && i < 6 ? 0 : i) % R.mel.length]);
     for (let i = 0; i < nr; i++) q.push(R.rng[i % R.rng.length]);
     for (let i = q.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [q[i], q[j]] = [q[j], q[i]]; }
     // элита выходит ближе к концу волны, когда рядовые уже потрёпаны
@@ -606,12 +622,16 @@ function updateEnemy(e, dt) {
   if (e.rng && !(e.silT > 0) && d < k.want + 40 && e.atkCd <= 0) {
     e.atkCd = k.cd;
     startAct(e, 'atk', 0.55, 0.5, (ax, ay) => {
-      shots.push({ own: 'e', bolt: k.bolt, x: e.x + ax * 20, y: e.y + ay * 20 * YK, dx: ax, dy: ay, sp: k.shot, left: k.want + 150,
-        dmg: rnd(k.dmg[0], k.dmg[1]) * e.dm, h: e.ch.U * 0.75 * e.sc });
+      const a0 = Math.atan2(ay, ax), nf = k.fan || 1;
+      for (let i = 0; i < nf; i++) {
+        const a = a0 + (i - (nf - 1) / 2) * 0.2, dx = Math.cos(a), dy = Math.sin(a);
+        shots.push({ own: 'e', bolt: k.bolt, col: k.pcol, x: e.x + dx * 20, y: e.y + dy * 20 * YK, dx, dy, sp: k.shot, left: k.want + 150,
+          dmg: rnd(k.dmg[0], k.dmg[1]) * e.dm, h: e.ch.U * 0.75 * e.sc * (e.ch.mul ? e.ch.top / 1.6 : 1) });
+      }
       snd(k.bolt ? 'enemy_arrow' : 'enemy_fireball', 0.45, rnd(0.95, 1.05));
     });
   }
-  if (e.boss && !(e.silT > 0)) bossSkills(e, d);
+  if (e.boss && !(e.silT > 0) && !k.spells) bossSkills(e, d);   // у боссов с магией — свои заклинания (enemies.js)
 }
 // Скиллы босса: удар по земле вблизи, прыжок на героя издалека, землетрясение под героем, призыв свиты.
 // Ниже 40% здоровья впадает в ярость: быстрее двигается и чаще применяет скиллы.
@@ -736,8 +756,9 @@ function combatUpdate(dt) {
       if (hit || Math.random() < 0.18) snd('hit', hit ? 0.22 : 0.1, rnd(0.85, 1.2));
     }
     if (f.type === 'tele') {
-      if (P.dead <= 0 && gdist(f, P) < f.R) { hurtPlayer(f.dmg); if (f.onHitP) f.onHitP(f); }
-      fx.push({ type: 'quake', x: f.x, y: f.y, t: 0, dur: 0.75, R: f.R });
+      if (P.dead <= 0 && gdist(f, P) < f.R) { if (f.dmg) hurtPlayer(f.dmg); if (f.onHitP) f.onHitP(f); }
+      if (f.vfx) spellFx(Object.assign({ x: f.x, y: f.y }, f.vfx));
+      else fx.push({ type: 'quake', x: f.x, y: f.y, t: 0, dur: 0.75, R: f.R });
       snd('boss_slam', f.big ? 0.95 : 0.75, f.big ? 0.85 : 1);
     }
   }
@@ -894,14 +915,14 @@ function drawShot(s) {
     return;
   }
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
-  const col = s.own === 'p' ? '150,215,255' : '255,170,90';
+  const col = s.own === 'p' ? '150,215,255' : s.col || '255,170,90';
   const g = ctx.createRadialGradient(s.x, y, 0, s.x, y, 26);
   g.addColorStop(0, 'rgba(' + col + ',0.95)'); g.addColorStop(1, 'rgba(' + col + ',0)');
   ctx.fillStyle = g; ctx.beginPath(); ctx.arc(s.x, y, 26, 0, 7); ctx.fill();
   ctx.strokeStyle = 'rgba(' + col + ',0.5)'; ctx.lineWidth = 7; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(s.x, y); ctx.lineTo(s.x - s.dx * 44, y - s.dy * 44 * YK); ctx.stroke();
   ctx.restore();
-  ctx.fillStyle = s.own === 'p' ? '#f2fbff' : '#6b5a4c';
+  ctx.fillStyle = s.own === 'p' ? '#f2fbff' : s.col ? 'rgb(' + s.col + ')' : '#6b5a4c';
   ctx.beginPath(); ctx.arc(s.x, y, s.own === 'p' ? 7 : 10, 0, 7); ctx.fill();
 }
 // то, что сортируется по глубине вместе с объектами арены
