@@ -38,7 +38,7 @@ function castSpell(e, s, i) {
   if (s.how === 'target') {
     warn(P.x, P.y, s.R, s.warn, s.dmg * dm, { vfx: Object.assign(v(s.R, s.t), s.eff === 'poison' ? { pdmg: (s.pdmg || s.dmg) * dm, tick: s.tick } : {}), onHitP: () => { if (s.eff === 'root') { slowHero(0.02, s.t); say(P.x, P.y - CH * HS(), 'корни держат!', '#b9e37a'); } } });
   } else if (s.how === 'self') {
-    warn(e.x, e.y, s.R, s.warn, 0, { vfx: Object.assign(v(s.R, s.t), s.eff === 'poison' || s.eff === 'slow' ? { pdmg: s.dmg * dm, tick: s.tick, slow: s.slow } : {}) });
+    warn(e.x, e.y, s.R, s.warn, (s.hit || 0) * dm, { vfx: Object.assign(v(s.R, s.t), s.eff === 'poison' || s.eff === 'slow' ? { pdmg: s.dmg * dm, tick: s.tick, slow: s.slow } : {}) });
   } else if (s.how === 'multi') {
     for (let j = 0; j < 3; j++) { const a = rnd(0, 6.283), r = j ? rnd(90, 220) : 0; warn(P.x + Math.cos(a) * r, P.y + Math.sin(a) * r * YK, s.R, s.warn + j * 0.3, s.dmg * dm, { vfx: v(s.R, 0.9) }); }
   } else if (s.how === 'moving') {
@@ -114,6 +114,13 @@ const MECH = {
   // Пугало-жнец: дёргается и режет серпом по кругу
   scarecrow(e, dt, d) {
     if (!e.act && e.mt <= 0 && d < 150) { e.mt = 5; warn(e.x, e.y, 135, 0.6, 24 * e.dm); startAct(e, 'atk', 0.7, 2, () => {}); return true; }
+  },
+  // Осенний медведь: встаёт на дыбы и бьёт лапами — метка перед ним
+  autumnbear(e, dt, d) {
+    if (!e.act && e.mt <= 0 && d < 220) {
+      e.mt = 6; const [dx, dy] = dirTo(e, P.x, P.y);
+      warn(e.x + dx * 85, e.y + dy * 85 * YK, 120, 0.8, 32 * e.dm); startAct(e, 'atk', 0.9, 2, () => {}); return true;
+    }
   },
   // зомби-девушка: рывок к герою с короткой дистанции
   zgirl(e, dt, d) {
@@ -278,3 +285,6 @@ hurtEnemy = function (e, dmg, col) {
   }
   _hurtEnemy(e, dmg, col);
 };
+
+// похожие приёмы: Лис — рывок, как у упыря; Магмовый пёс — прыжок, как у волка; Пустой лучник держит дистанцию, как лучник
+MECH.werefox = MECH.bogghoul; MECH.magmahound = MECH.shadowwolf; MECH.hollowarcher = MECH.rog;

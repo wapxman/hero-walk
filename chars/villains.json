@@ -499,5 +499,296 @@
    }
   },
   "vfx": []
+ },
+ "crowharpy": {
+  "size": 190,
+  "nm": "Ворона-гарпия",
+  "mul": {
+   "run": {
+    "at": "vl_crowharpy_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_crowharpy_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_crowharpy_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_crowharpy_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": []
+ },
+ "b_reaper": {
+  "size": 310,
+  "nm": "Жнец Урожая",
+  "mul": {
+   "run": {
+    "at": "vl_b_reaper_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 344
+   },
+   "atk": {
+    "at": "vl_b_reaper_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 440
+   },
+   "cast1": {
+    "at": "vl_b_reaper_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 440
+   },
+   "cast2": {
+    "at": "vl_b_reaper_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 440
+   },
+   "die": {
+    "at": "vl_b_reaper_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 440
+   },
+   "idle": {
+    "at": "vl_b_reaper_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 344
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_b_reaper_1.webp",
+    "how": "moving"
+   },
+   {
+    "img": "fx/vfx_b_reaper_2.webp",
+    "how": "multi"
+   }
+  ]
+ },
+ "werefox": {
+  "size": 175,
+  "nm": "Лис-оборотень",
+  "mul": {
+   "run": {
+    "at": "vl_werefox_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_werefox_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_werefox_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_werefox_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": []
+ },
+ "autumnbear": {
+  "size": 230,
+  "nm": "Осенний медведь",
+  "mul": {
+   "run": {
+    "at": "vl_autumnbear_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 376
+   },
+   "atk": {
+    "at": "vl_autumnbear_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 440
+   },
+   "die": {
+    "at": "vl_autumnbear_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 440
+   },
+   "idle": {
+    "at": "vl_autumnbear_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 376
+   }
+  },
+  "vfx": []
+ },
+ "hollowarcher": {
+  "size": 195,
+  "nm": "Пустой лучник",
+  "mul": {
+   "run": {
+    "at": "vl_hollowarcher_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_hollowarcher_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_hollowarcher_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_hollowarcher_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": []
+ },
+ "magmahound": {
+  "size": 150,
+  "nm": "Магмовый пёс",
+  "mul": {
+   "run": {
+    "at": "vl_magmahound_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 262
+   },
+   "atk": {
+    "at": "vl_magmahound_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 326
+   },
+   "die": {
+    "at": "vl_magmahound_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 326
+   },
+   "idle": {
+    "at": "vl_magmahound_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 262
+   }
+  },
+  "vfx": []
+ },
+ "b_ashlord": {
+  "size": 320,
+  "nm": "Владыка Пепла",
+  "mul": {
+   "run": {
+    "at": "vl_b_ashlord_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 344
+   },
+   "atk": {
+    "at": "vl_b_ashlord_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 440
+   },
+   "cast1": {
+    "at": "vl_b_ashlord_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 440
+   },
+   "cast2": {
+    "at": "vl_b_ashlord_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 440
+   },
+   "die": {
+    "at": "vl_b_ashlord_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 440
+   },
+   "idle": {
+    "at": "vl_b_ashlord_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 344
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_b_ashlord_1.webp",
+    "how": "multi"
+   },
+   {
+    "img": "fx/vfx_b_ashlord_2.webp",
+    "how": "self"
+   }
+  ]
  }
 }

@@ -475,6 +475,12 @@ const KIND = {
   wisplantern: { nm: 'Фонарщик', ch: 'wisplantern', rng: 1, hp: 115, rad: 22, speed: 92, dmg: [18, 24], cd: 2.0, want: 520, shot: 430, pcol: '110,240,210', xp: 14, gold: 11, col: '#2a5a5a' },
   // ---- Осенняя долина (мир 3) ----
   scarecrow: { nm: 'Пугало-жнец', ch: 'scarecrow', mel: 1, hp: 175, rad: 24, speed: 128, dmg: [13, 18], cd: 0.9, reach: 80, xp: 13, gold: 10, col: '#7a5a2a' },
+  werefox: { nm: 'Лис-оборотень', ch: 'werefox', mel: 1, hp: 140, rad: 22, speed: 165, dmg: [9, 12], cd: 0.55, reach: 64, xp: 12, gold: 9, col: '#8a4a1a' },
+  autumnbear: { nm: 'Осенний медведь', ch: 'autumnbear', mel: 1, hp: 360, rad: 32, speed: 92, dmg: [24, 31], cd: 1.5, reach: 92, xp: 20, gold: 15, col: '#6a3a1a' },
+  crowharpy: { nm: 'Ворона-гарпия', ch: 'crowharpy', rng: 1, hp: 120, rad: 22, speed: 140, dmg: [11, 15], cd: 1.5, want: 480, shot: 700, pcol: '60,50,80', fan: 2, xp: 13, gold: 10, col: '#2a2a3a' },
+  hollowarcher: { nm: 'Пустой лучник', ch: 'hollowarcher', rng: 1, hp: 130, rad: 21, speed: 118, dmg: [16, 21], cd: 1.45, want: 540, shot: 820, pcol: '255,150,60', xp: 14, gold: 11, col: '#6a4a2a' },
+  // ---- Пепельные земли (мир 4) ----
+  magmahound: { nm: 'Магмовый пёс', ch: 'magmahound', mel: 1, hp: 150, rad: 24, speed: 200, dmg: [12, 16], cd: 0.8, reach: 68, xp: 12, gold: 9, col: '#8a2a0a' },
   // Шипокорень: медленный и толстый, бьёт сильно и с длинной руки, из-под земли выпускает корни
   thornroot: { nm: 'Шипокорень', ch: 'thornroot', elite: 1, mel: 1, hp: 280, rad: 34, speed: 92, dmg: [18, 24], cd: 1.45, reach: 92, xp: 24, gold: 18, col: '#5a4a2a' },
   // ---- боссы миров: на 10-й волне своего мира ----
@@ -489,6 +495,16 @@ const KIND = {
     xp: 150, gold: 100, col: '#4a5a2a', sz: 1.15, spells: [
       { nm: 'Кислотный плевок', ph: 17, how: 'target', R: 125, warn: 1.0, dmg: 50, eff: 'poison', tick: 0.5, pdmg: 14, t: 3.5, cd: 8, an: 'cast1' },
       { nm: 'Трясина', ph: 18, how: 'self', R: 320, warn: 0.8, dmg: 10, tick: 0.5, eff: 'slow', slow: 0.45, t: 4.5, cd: 14, an: 'cast2' }] },
+  // Жнец Урожая: огненный вихрь из листьев летит в героя; горящие тыквы падают вокруг героя
+  b_reaper: { nm: ['Жнец Урожая', 'хозяин Осенней долины'], ch: 'b_reaper', boss: 1, mel: 1, hp: 1900, rad: 56, speed: 96, dmg: [50, 62], cd: 1.3, reach: 135,
+    xp: 150, gold: 100, col: '#6a3a0a', sz: 1.15, spells: [
+      { nm: 'Вихрь листьев', ph: 19, how: 'moving', R: 140, warn: 0, dmg: 80, cd: 7, an: 'cast1' },
+      { nm: 'Тыквенные бомбы', ph: 20, how: 'multi', R: 115, warn: 1.1, dmg: 58, cd: 11, an: 'cast2' }] },
+  // Владыка Пепла: метеоры по трём отмеченным кругам; огненное кольцо — удар вокруг и огонь ещё горит (hit — удар сразу, dmg — ожог)
+  b_ashlord: { nm: ['Владыка Пепла', 'повелитель Пепельных земель'], ch: 'b_ashlord', boss: 1, mel: 1, hp: 1750, rad: 58, speed: 92, dmg: [54, 66], cd: 1.35, reach: 135,
+    xp: 150, gold: 100, col: '#7a1a0a', sz: 1.15, spells: [
+      { nm: 'Метеоритный дождь', ph: 21, how: 'multi', R: 125, warn: 1.1, dmg: 50, cd: 9, an: 'cast1' },
+      { nm: 'Огненное кольцо', ph: 22, how: 'self', R: 300, warn: 0.9, hit: 55, dmg: 14, tick: 0.5, eff: 'poison', t: 2.5, cd: 13, an: 'cast2' }] },
   mutant: { nm: ['Мутант', 'страж первого мира'], ch: 'v_mutant', boss: 1, hp: 1500, rad: 48, speed: 96, xp: 150, gold: 100, col: '#5a4a3a' },
   maw: { nm: ['Мо', 'пожиратель болот'], ch: 'v_maw', boss: 1, hp: 1500, rad: 52, speed: 90, xp: 150, gold: 100, col: '#4a3a3a' },
   pumpkin: { nm: ['Тыквенный громила', 'хозяин жатвы'], ch: 'v_pumpkin', boss: 1, hp: 1500, rad: 50, speed: 92, xp: 150, gold: 100, col: '#6a4a2a' },
@@ -498,8 +514,8 @@ const KIND = {
 const ROSTER = {
   1: { mel: ['shadowwolf', 'rotdryad', 'shadowwolf', 'boarbrute'], rng: ['sporeshaman', 'thornimp'], elite: ['thornroot'], boss: 'b_thornqueen' },
   2: { mel: ['bogghoul', 'leechworm', 'bogghoul', 'drownedknight'], rng: ['toadwitch', 'wisplantern'], elite: ['parasite', 'warzombie'], boss: 'b_toadking' },
-  3: { mel: ['scarecrow', 'goblin', 'scarecrow', 'war'], rng: ['zlorp', 'mag'], elite: ['thornroot', 'warzombie', 'mremireh'], boss: 'pumpkin' },
-  4: { mel: ['copz', 'goblin', 'zgirl', 'war'], rng: ['zlorp', 'mag', 'rog'], elite: ['mremireh', 'warrok', 'parasite'], boss: 'demon' },
+  3: { mel: ['scarecrow', 'werefox', 'autumnbear', 'werefox'], rng: ['crowharpy', 'hollowarcher'], elite: ['thornroot', 'warzombie', 'mremireh'], boss: 'b_reaper' },
+  4: { mel: ['magmahound', 'goblin', 'magmahound', 'war'], rng: ['zlorp', 'mag', 'rog'], elite: ['mremireh', 'warrok', 'parasite'], boss: 'b_ashlord' },
 };
 const rosterOf = n => ROSTER[BAL.at(n).M] || ROSTER[1];
 // настройки редактора: персонаж, размер и множители скорости, силы, здоровья

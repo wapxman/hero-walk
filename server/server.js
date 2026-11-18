@@ -419,6 +419,12 @@ const MECH = {
   scarecrow(r, e, d) {
     if (!e.act && e.mt <= 0 && d < 150) { e.mt = 5; tele(r, e.x, e.y, 135, 0.6, 24 * e.dm); act(e, 0.7, 2, () => {}); return true; }
   },
+  autumnbear(r, e, d, tg) {
+    if (!e.act && e.mt <= 0 && d < 220) {
+      e.mt = 6; const [dx, dy] = dirTo(e, tg.x, tg.y);
+      tele(r, e.x + dx * 85, e.y + dy * 85 * YK, 120, 0.8, 32 * e.dm); act(e, 0.9, 2, () => {}); return true;
+    }
+  },
   bogghoul(r, e, d, tg) {
     if (e.dash > 0) { e.dash -= DT; const [dx, dy] = dirTo(e, tg.x, tg.y); moveBy(e, dx, dy, e.speed * 2.4); return true; }
     if (!e.act && e.mt <= 0 && d > 150 && d < 360) { e.dash = 0.45; e.mt = 4.5; }
@@ -533,7 +539,7 @@ const MECH = {
 function castSpell(r, e, s, i, tg) {
   const kid = NET.KINDS.indexOf(e.kind), dm = e.dm, o = R => ({ vfx: [kid, i], vR: R, vt: s.t || 1.2 });
   if (s.how === 'target') tele(r, tg.x, tg.y, s.R, s.warn, s.dmg * dm, false, Object.assign(o(s.R), s.eff === 'root' ? { root: s.t } : s.eff === 'poison' ? { pois: { dmg: (s.pdmg || s.dmg) * dm, tick: s.tick, t: s.t } } : {}));
-  else if (s.how === 'self') tele(r, e.x, e.y, s.R, s.warn, 0, false, Object.assign(o(s.R), s.eff === 'poison' || s.eff === 'slow' ? { pois: { dmg: s.dmg * dm, tick: s.tick, t: s.t, slow: s.slow } } : {}));
+  else if (s.how === 'self') tele(r, e.x, e.y, s.R, s.warn, (s.hit || 0) * dm, false, Object.assign(o(s.R), s.eff === 'poison' || s.eff === 'slow' ? { pois: { dmg: s.dmg * dm, tick: s.tick, t: s.t, slow: s.slow } } : {}));
   else if (s.how === 'multi') for (let j = 0; j < 3; j++) { const a = rnd(0, 6.283), rr = j ? rnd(90, 220) : 0; tele(r, tg.x + Math.cos(a) * rr, tg.y + Math.sin(a) * rr * YK, s.R, s.warn + j * 0.3, s.dmg * dm, false, Object.assign(o(s.R), { vt: 0.9 })); }
   else if (s.how === 'moving') {
     const [dx, dy] = dirTo(e, tg.x, tg.y), b = { x: e.x + dx * 60, y: e.y + dy * 60 * YK, dx, dy, t: 6, dmg: s.dmg * dm, R: s.R, kid, i };
@@ -555,6 +561,7 @@ function spellBoss(r, e, d, tg) {
   }
   if (e.phase >= 3 && e.mt2 <= 0 && r.ents.size < 22) { e.mt2 = 14; act(e, 1.0, 0.5, () => raise(r, e, 2, (ROSTER[r.world] || ROSTER[1]).mel[0]), true); return true; }
 }
+MECH.werefox = MECH.bogghoul; MECH.magmahound = MECH.shadowwolf; MECH.hollowarcher = MECH.rog;
 function updateEnemy(r, e) {
   e.atkCd -= DT; e.slamCd -= DT; e.quakeCd -= DT; e.leapCd -= DT; e.summonCd -= DT; e.mt -= DT; e.mt2 -= DT; e.mt3 -= DT;
   if (e.arm > 0) e.arm -= DT;
