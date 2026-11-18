@@ -8,7 +8,7 @@
   'use strict';
   const TICK = 30, DT = 1 / TICK;          // сервер считает мир 30 раз в секунду
   // версия протокола: клиент и сервер обязаны совпадать (APK может отстать от сайта) — увеличивать при любом изменении формата
-  const PROTO = 8;                        // 3: злодеи, миры, раунды, магазин (v47); 4: Шипокорень (v49); 5: злодеи ChatGPT мира 1 (v50); 6: мир 2 (v51); 7: Фонарщик, Пугало (v52); 8: миры 3–4 (v53)
+  const PROTO = 9;                        // 3: злодеи, миры, раунды, магазин (v47); 4: Шипокорень (v49); 5: злодеи ChatGPT мира 1 (v50); 6: мир 2 (v51); 7: Фонарщик, Пугало (v52); 8: миры 3–4 (v53); 9: мир 4 целиком, Архимаг Бездны (v54)
   const YK = 0.72;                         // сжатие по вертикали (наклон камеры), как в combat.js
   const RUN_AT = 0.6, WALK_SPEED = 105, RUN_SPEED = 260;
   const PR = [16, 11];                     // «толщина» героя у земли
@@ -88,13 +88,15 @@
   const KINDS = ['mage', 'archer', 'min', 'war', 'mag', 'rog', 'boss', 'zgirl', 'copz', 'goblin', 'zlorp', 'parasite', 'warzombie', 'mremireh', 'warrok',
     'mutant', 'maw', 'pumpkin', 'demon', 'thornroot', 'shadowwolf', 'sporeshaman', 'thornimp', 'rotdryad', 'boarbrute', 'b_thornqueen',
     'bogghoul', 'toadwitch', 'leechworm', 'drownedknight', 'b_toadking', 'wisplantern', 'scarecrow',
-    'crowharpy', 'b_reaper', 'werefox', 'autumnbear', 'hollowarcher', 'magmahound', 'b_ashlord'];
+    'crowharpy', 'b_reaper', 'werefox', 'autumnbear', 'hollowarcher', 'magmahound', 'b_ashlord',
+    'ashcultist', 'fireimp', 'cinderwraith', 'salamander', 'b_voidmage'];
   // реплики врагов над головой (событие SAY с кодом 10 + номер): [текст, цвет]
   const PHRASES = [['Броня!', '#bcd4ff'], ['Прыжок!', '#ffb36a'], ['Таран!', '#ffb36a'], ['Восстаньте!', '#c9a8ff'], ['РЁВ!', '#ff7a5a'],
     ['Яд!', '#9be37a'], ['Сотрясение!', '#ffb347'], ['Жатва!', '#ffb347'], ['За спиной!', '#ff5a3a'], ['Огненный дождь!', '#ff8a4a'],
     ['Вторая фаза', '#ff9a6a'], ['Последняя фаза', '#ff9a6a'], ['Встаёт!', '#c9ff9a'], ['замедление', '#9fd0ff'], ['Корни!', '#b9e37a'],
     ['Ядовитый сад!', '#9be37a'], ['корни держат!', '#b9e37a'], ['Кислотный плевок!', '#d4e04a'], ['Трясина!', '#8a9a5a'],
-    ['Вихрь листьев!', '#ff9a3a'], ['Тыквенные бомбы!', '#ff8a2a'], ['Метеоритный дождь!', '#ff6a2a'], ['Огненное кольцо!', '#ff5a2a']];
+    ['Вихрь листьев!', '#ff9a3a'], ['Тыквенные бомбы!', '#ff8a2a'], ['Метеоритный дождь!', '#ff6a2a'], ['Огненное кольцо!', '#ff5a2a'],
+    ['Сфера Бездны!', '#c9a8ff'], ['Разлом!', '#b07aff']];
 
   function encInput(seq, ax, ay, btn) {
     const b = new ArrayBuffer(6), v = new DataView(b);

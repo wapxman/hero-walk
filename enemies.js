@@ -43,7 +43,7 @@ function castSpell(e, s, i) {
     for (let j = 0; j < 3; j++) { const a = rnd(0, 6.283), r = j ? rnd(90, 220) : 0; warn(P.x + Math.cos(a) * r, P.y + Math.sin(a) * r * YK, s.R, s.warn + j * 0.3, s.dmg * dm, { vfx: v(s.R, 0.9) }); }
   } else if (s.how === 'moving') {
     const [dx, dy] = dirTo(e, P.x, P.y);
-    spellFx({ img, R: s.R * 0.6, dur: 6, mv: { dx, dy, sp: 330, dmg: s.dmg * dm, R: s.R }, x: e.x + dx * 60, y: e.y + dy * 60 * YK });
+    spellFx({ img, R: s.R * 0.6, dur: 6, mv: { dx, dy, sp: s.sp || 330, dmg: s.dmg * dm, R: s.R }, x: e.x + dx * 60, y: e.y + dy * 60 * YK });
   }
 }
 // приёмы боссов с магией: заклинания по очереди, по фазам чаще; в последней фазе зовёт свиту
@@ -287,4 +287,6 @@ hurtEnemy = function (e, dmg, col) {
 };
 
 // похожие приёмы: Лис — рывок, как у упыря; Магмовый пёс — прыжок, как у волка; Пустой лучник держит дистанцию, как лучник
-MECH.werefox = MECH.bogghoul; MECH.magmahound = MECH.shadowwolf; MECH.hollowarcher = MECH.rog;
+MECH.werefox = MECH.bogghoul; MECH.magmahound = MECH.bogghoul; MECH.hollowarcher = MECH.rog;
+// Огненный бес прыгает, как волк; Саламандра закрывается щитом, как коп-зомби
+MECH.fireimp = MECH.shadowwolf; MECH.salamander = MECH.copz;

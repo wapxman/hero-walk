@@ -268,7 +268,7 @@ var NETC = { on: false };
         const k = KIND[N.KINDS[e[1]]], ch = k && CHARS[k.ch], vf = ch && ch.vfx && ch.vfx[e[2]];
         if (vf) {
           const o = { img: vf.img, x: e[3], y: e[4], R: e[5], dur: e[6] / 100, rot: vf.how === 'self' ? 0.25 : 0 };
-          if (e[7] || e[8]) o.mv = { dx: e[7] / 1000, dy: e[8] / 1000, sp: 330, vis: 1 };
+          if (e[7] || e[8]) o.mv = { dx: e[7] / 1000, dy: e[8] / 1000, sp: (k.spells && k.spells[e[2]] && k.spells[e[2]].sp) || 330, vis: 1 };
           spellFx(o);
           if (!o.mv) snd('boss_slam', 0.6, 0.9);
         }

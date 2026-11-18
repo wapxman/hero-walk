@@ -307,6 +307,7 @@ function startRound(r) { r.endW = roundEnd(r.wave + 1); r.roundFrom = r.wave + 1
 function nextWave(r) {
   r.wave++; r.nextT = 0; r.relT = 0.4;
   const a = BAL.at(r.wave), R = ROSTER[a.M] || ROSTER[1], q = [];
+  r.fin = a.W === 10 && R.final ? R.final : null; r.finT = 0;     // финальный босс после босса мира
   if (a.W === 10) q.push(R.boss);
   else {
     const n = Math.round(BAL.count(r.wave) * (1 + 0.5 * (nPlayers(r) - 1))), nr = Math.round(n * 0.25);
@@ -337,6 +338,8 @@ function runRound(r) {
     }
   } else if (r.wave < r.endW) {
     if (alive <= 3 && (r.nextT += DT) > 2.2) nextWave(r);
+  } else if (!alive && r.fin) {
+    if ((r.finT += DT) > 2.5) { r.queue.push(r.fin); r.fin = null; r.relT = 0.3; }
   } else if (!alive) {
     let gold = 0; for (let n = r.roundFrom; n <= r.wave; n++) gold += BAL.waveGold(n);
     r.phase = 0; ev(r, EV.WAVE_END, r.wave, Math.round(gold), BAL.at(r.wave).W === 10 ? 1 : 0);
@@ -542,7 +545,7 @@ function castSpell(r, e, s, i, tg) {
   else if (s.how === 'self') tele(r, e.x, e.y, s.R, s.warn, (s.hit || 0) * dm, false, Object.assign(o(s.R), s.eff === 'poison' || s.eff === 'slow' ? { pois: { dmg: s.dmg * dm, tick: s.tick, t: s.t, slow: s.slow } } : {}));
   else if (s.how === 'multi') for (let j = 0; j < 3; j++) { const a = rnd(0, 6.283), rr = j ? rnd(90, 220) : 0; tele(r, tg.x + Math.cos(a) * rr, tg.y + Math.sin(a) * rr * YK, s.R, s.warn + j * 0.3, s.dmg * dm, false, Object.assign(o(s.R), { vt: 0.9 })); }
   else if (s.how === 'moving') {
-    const [dx, dy] = dirTo(e, tg.x, tg.y), b = { x: e.x + dx * 60, y: e.y + dy * 60 * YK, dx, dy, t: 6, dmg: s.dmg * dm, R: s.R, kid, i };
+    const [dx, dy] = dirTo(e, tg.x, tg.y), b = { x: e.x + dx * 60, y: e.y + dy * 60 * YK, dx, dy, t: 6, dmg: s.dmg * dm, R: s.R, kid, i, sp: s.sp || 330 };
     r.orbs.push(b); ev(r, EV.VFX, kid, i, b.x, b.y, s.R * 0.6, 600, dx * 1000, dy * 1000);
   }
 }
@@ -561,7 +564,7 @@ function spellBoss(r, e, d, tg) {
   }
   if (e.phase >= 3 && e.mt2 <= 0 && r.ents.size < 22) { e.mt2 = 14; act(e, 1.0, 0.5, () => raise(r, e, 2, (ROSTER[r.world] || ROSTER[1]).mel[0]), true); return true; }
 }
-MECH.werefox = MECH.bogghoul; MECH.magmahound = MECH.shadowwolf; MECH.hollowarcher = MECH.rog;
+MECH.werefox = MECH.bogghoul; MECH.magmahound = MECH.bogghoul; MECH.hollowarcher = MECH.rog; MECH.fireimp = MECH.shadowwolf; MECH.salamander = MECH.copz;
 function updateEnemy(r, e) {
   e.atkCd -= DT; e.slamCd -= DT; e.quakeCd -= DT; e.leapCd -= DT; e.summonCd -= DT; e.mt -= DT; e.mt2 -= DT; e.mt3 -= DT;
   if (e.arm > 0) e.arm -= DT;
@@ -729,7 +732,7 @@ function step(r) {
   r.pzones = r.pzones.filter(z => z.t > 0);
   // летящие сферы боссов: взрыв у героя или в конце пути
   for (const b of r.orbs) {
-    b.t -= DT; b.x += b.dx * 330 * DT; b.y += b.dy * 330 * YK * DT;
+    b.t -= DT; b.x += b.dx * b.sp * DT; b.y += b.dy * b.sp * YK * DT;
     let hit = b.t <= 0;
     for (const p of r.ents.values()) if (p.player && alive(p) && gdist(b, p) < b.R * 0.6 + 20) hit = true;
     if (hit) { b.t = 0; for (const p of r.ents.values()) if (p.player && alive(p) && gdist(b, p) < b.R) hurt(r, p, b.dmg, null); ev(r, EV.VFX, b.kid, b.i, b.x, b.y, b.R, 90, 0, 0); }

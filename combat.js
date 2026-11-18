@@ -481,6 +481,10 @@ const KIND = {
   hollowarcher: { nm: 'Пустой лучник', ch: 'hollowarcher', rng: 1, hp: 130, rad: 21, speed: 118, dmg: [16, 21], cd: 1.45, want: 540, shot: 820, pcol: '255,150,60', xp: 14, gold: 11, col: '#6a4a2a' },
   // ---- Пепельные земли (мир 4) ----
   magmahound: { nm: 'Магмовый пёс', ch: 'magmahound', mel: 1, hp: 150, rad: 24, speed: 200, dmg: [12, 16], cd: 0.8, reach: 68, xp: 12, gold: 9, col: '#8a2a0a' },
+  fireimp: { nm: 'Огненный бес', ch: 'fireimp', mel: 1, hp: 120, rad: 19, speed: 185, dmg: [10, 14], cd: 0.7, reach: 70, xp: 11, gold: 8, col: '#9a3a0a' },
+  salamander: { nm: 'Саламандра-воин', ch: 'salamander', mel: 1, hp: 380, rad: 30, speed: 95, dmg: [22, 28], cd: 1.3, reach: 100, xp: 20, gold: 15, col: '#8a4a1a' },
+  ashcultist: { nm: 'Пепельный культист', ch: 'ashcultist', rng: 1, hp: 135, rad: 22, speed: 100, dmg: [17, 22], cd: 1.7, want: 500, shot: 560, pcol: '255,110,40', xp: 14, gold: 11, col: '#5a2a1a' },
+  cinderwraith: { nm: 'Пепельный призрак', ch: 'cinderwraith', rng: 1, hp: 125, rad: 22, speed: 135, dmg: [12, 16], cd: 1.5, want: 480, shot: 640, pcol: '255,80,40', fan: 3, xp: 14, gold: 11, col: '#4a3a3a' },
   // Шипокорень: медленный и толстый, бьёт сильно и с длинной руки, из-под земли выпускает корни
   thornroot: { nm: 'Шипокорень', ch: 'thornroot', elite: 1, mel: 1, hp: 280, rad: 34, speed: 92, dmg: [18, 24], cd: 1.45, reach: 92, xp: 24, gold: 18, col: '#5a4a2a' },
   // ---- боссы миров: на 10-й волне своего мира ----
@@ -505,6 +509,12 @@ const KIND = {
     xp: 150, gold: 100, col: '#7a1a0a', sz: 1.15, spells: [
       { nm: 'Метеоритный дождь', ph: 21, how: 'multi', R: 125, warn: 1.1, dmg: 50, cd: 9, an: 'cast1' },
       { nm: 'Огненное кольцо', ph: 22, how: 'self', R: 300, warn: 0.9, hit: 55, dmg: 14, tick: 0.5, eff: 'poison', t: 2.5, cd: 13, an: 'cast2' }] },
+  // Архимаг Бездны — финальный босс: выходит после Владыки Пепла на 10-й волне 4-го мира (ROSTER[4].final).
+  // Сфера Бездны летит медленно (sp) и взрывается у героя; Разлом — три метки трещин вокруг героя
+  b_voidmage: { nm: ['Архимаг Бездны', 'финальный босс'], ch: 'b_voidmage', boss: 1, mel: 1, hp: 2600, rad: 54, speed: 96, dmg: [56, 70], cd: 1.4, reach: 140,
+    xp: 300, gold: 250, col: '#3a1a5a', sz: 1.15, spells: [
+      { nm: 'Сфера Бездны', ph: 23, how: 'moving', R: 170, warn: 0, dmg: 110, sp: 200, cd: 8, an: 'cast1' },
+      { nm: 'Разлом', ph: 24, how: 'multi', R: 120, warn: 1.0, dmg: 60, cd: 10, an: 'cast2' }] },
   mutant: { nm: ['Мутант', 'страж первого мира'], ch: 'v_mutant', boss: 1, hp: 1500, rad: 48, speed: 96, xp: 150, gold: 100, col: '#5a4a3a' },
   maw: { nm: ['Мо', 'пожиратель болот'], ch: 'v_maw', boss: 1, hp: 1500, rad: 52, speed: 90, xp: 150, gold: 100, col: '#4a3a3a' },
   pumpkin: { nm: ['Тыквенный громила', 'хозяин жатвы'], ch: 'v_pumpkin', boss: 1, hp: 1500, rad: 50, speed: 92, xp: 150, gold: 100, col: '#6a4a2a' },
@@ -515,7 +525,7 @@ const ROSTER = {
   1: { mel: ['shadowwolf', 'rotdryad', 'shadowwolf', 'boarbrute'], rng: ['sporeshaman', 'thornimp'], elite: ['thornroot'], boss: 'b_thornqueen' },
   2: { mel: ['bogghoul', 'leechworm', 'bogghoul', 'drownedknight'], rng: ['toadwitch', 'wisplantern'], elite: ['parasite', 'warzombie'], boss: 'b_toadking' },
   3: { mel: ['scarecrow', 'werefox', 'autumnbear', 'werefox'], rng: ['crowharpy', 'hollowarcher'], elite: ['thornroot', 'warzombie', 'mremireh'], boss: 'b_reaper' },
-  4: { mel: ['magmahound', 'goblin', 'magmahound', 'war'], rng: ['zlorp', 'mag', 'rog'], elite: ['mremireh', 'warrok', 'parasite'], boss: 'b_ashlord' },
+  4: { mel: ['magmahound', 'fireimp', 'salamander', 'fireimp'], rng: ['ashcultist', 'cinderwraith'], elite: ['mremireh', 'warrok', 'parasite'], boss: 'b_ashlord', final: 'b_voidmage' },
 };
 const rosterOf = n => ROSTER[BAL.at(n).M] || ROSTER[1];
 // настройки редактора: персонаж, размер и множители скорости, силы, здоровья
@@ -556,6 +566,8 @@ function spawnWave() { ROUND.endW = roundEnd(wave + 1); nextWave(); }
 function nextWave() {
   wave++; ROUND.nextT = 0; ROUND.relT = 0.4;
   const a = BAL.at(wave), R = rosterOf(wave), q = [];
+  ROUND.fin = a.W === 10 && R.final ? R.final : null; ROUND.finT = 0;
+  if (ROUND.fin) needChar(CHARS[KIND[ROUND.fin].ch]);
   if (a.W === 10) q.push(R.boss);
   else {
     const n = BAL.count(wave), nr = Math.round(n * 0.25);
@@ -592,9 +604,13 @@ function runTick(dt) {
   } else if (wave < ROUND.endW) {
     let alive = 0; for (const e of enemies) if (!e.dieT) alive++;
     if (alive <= 3 && (ROUND.nextT += dt) > 2.2) nextWave();
+  } else if (ROUND.fin && !enemies.some(e => !e.dieT) && (ROUND.finT += dt) > 2.5) {
+    // Владыка Пепла пал — из Бездны выходит финальный босс
+    ROUND.queue.push(ROUND.fin); ROUND.fin = null; ROUND.relT = 0.3;
+    say(P.x, P.y - CH * 1.3 * HS(), 'ФИНАЛ — Архимаг Бездны!', '#c9a8ff'); snd('wave_horn', 0.6, 0.8);
   }
 }
-const roundActive = () => ROUND.queue.length > 0 || wave < ROUND.endW;
+const roundActive = () => ROUND.queue.length > 0 || wave < ROUND.endW || !!ROUND.fin;
 // действие с замахом: анимация длится dur, удар срабатывает в момент at (доля от dur)
 function startAct(e, anim, dur, at, fn) { e.act = { anim, dur, at, fn, t: 0, hit: false }; e.anim = anim; e.animT = 0; }
 function updateEnemy(e, dt) {
