@@ -416,6 +416,16 @@ function raise(r, e, n, type) {
 function fireball(r, e, dx, dy, dmg, sp) { shoot(r, e, 'fire', dx, dy, null, dmg, sp || 480, 900); }
 // приёмы видов (enemies.js MECH): вернуть true — обычное поведение в этом тике пропускается
 const MECH = {
+  bogghoul(r, e, d, tg) {
+    if (e.dash > 0) { e.dash -= DT; const [dx, dy] = dirTo(e, tg.x, tg.y); moveBy(e, dx, dy, e.speed * 2.4); return true; }
+    if (!e.act && e.mt <= 0 && d > 150 && d < 360) { e.dash = 0.45; e.mt = 4.5; }
+  },
+  drownedknight(r, e, d, tg) {
+    if (!e.act && e.mt <= 0 && d < 230) {
+      e.mt = 6.5; const [dx, dy] = dirTo(e, tg.x, tg.y);
+      tele(r, e.x + dx * 95, e.y + dy * 95 * YK, 115, 0.85, 34 * e.dm); act(e, 0.95, 2, () => {}); return true;
+    }
+  },
   zgirl(r, e, d, tg) {
     if (e.dash > 0) { e.dash -= DT; const [dx, dy] = dirTo(e, tg.x, tg.y); moveBy(e, dx, dy, e.speed * 2.6); return true; }
     if (!e.act && e.mt <= 0 && d > 160 && d < 380) { e.dash = 0.45; e.mt = 4; }
@@ -519,8 +529,8 @@ const MECH = {
 // магия боссов ChatGPT (KIND.<босс>.spells, как spellBoss в enemies.js): метка, урон, картинка эффекта у клиентов (EV.VFX)
 function castSpell(r, e, s, i, tg) {
   const kid = NET.KINDS.indexOf(e.kind), dm = e.dm, o = R => ({ vfx: [kid, i], vR: R, vt: s.t || 1.2 });
-  if (s.how === 'target') tele(r, tg.x, tg.y, s.R, s.warn, s.dmg * dm, false, Object.assign(o(s.R), s.eff === 'root' ? { root: s.t } : {}));
-  else if (s.how === 'self') tele(r, e.x, e.y, s.R, s.warn, 0, false, Object.assign(o(s.R), s.eff === 'poison' ? { pois: { dmg: s.dmg * dm, tick: s.tick, t: s.t } } : {}));
+  if (s.how === 'target') tele(r, tg.x, tg.y, s.R, s.warn, s.dmg * dm, false, Object.assign(o(s.R), s.eff === 'root' ? { root: s.t } : s.eff === 'poison' ? { pois: { dmg: (s.pdmg || s.dmg) * dm, tick: s.tick, t: s.t } } : {}));
+  else if (s.how === 'self') tele(r, e.x, e.y, s.R, s.warn, 0, false, Object.assign(o(s.R), s.eff === 'poison' || s.eff === 'slow' ? { pois: { dmg: s.dmg * dm, tick: s.tick, t: s.t, slow: s.slow } } : {}));
   else if (s.how === 'multi') for (let j = 0; j < 3; j++) { const a = rnd(0, 6.283), rr = j ? rnd(90, 220) : 0; tele(r, tg.x + Math.cos(a) * rr, tg.y + Math.sin(a) * rr * YK, s.R, s.warn + j * 0.3, s.dmg * dm, false, Object.assign(o(s.R), { vt: 0.9 })); }
   else if (s.how === 'moving') {
     const [dx, dy] = dirTo(e, tg.x, tg.y), b = { x: e.x + dx * 60, y: e.y + dy * 60 * YK, dx, dy, t: 6, dmg: s.dmg * dm, R: s.R, kid, i };
@@ -584,7 +594,11 @@ function updateEnemy(r, e) {
   }
   if (k.mel && d < k.reach + 12 && e.atkCd <= 0) {
     e.atkCd = k.cd;
-    act(e, 0.5, 0.55, t => { if (t && alive(t) && gdist(t, e) < k.reach + 34) hurt(r, t, rnd(k.dmg[0], k.dmg[1]) * e.dm, e); });
+    act(e, 0.5, 0.55, t => {
+      if (!t || !alive(t) || gdist(t, e) >= k.reach + 34) return;
+      const hd = rnd(k.dmg[0], k.dmg[1]) * e.dm; hurt(r, t, hd, e);
+      if (k.leech) e.hp = Math.min(e.max, e.hp + hd * k.leech);   // Пиявец пьёт кровь
+    });
   }
   if (k.rng && !(e.silT > 0) && d < k.want + 40 && e.atkCd <= 0) {
     e.atkCd = k.cd;
@@ -689,7 +703,7 @@ function step(r) {
           if (z.root) { slow(p, 0.02, z.root); ev(r, EV.SAY, p.id, 10 + 16); }
         }
         if (z.vfx) ev(r, EV.VFX, z.vfx[0], z.vfx[1], z.x, z.y, z.vR, z.vt * 100, 0, 0); else ev(r, EV.QUAKE, z.x, z.y, z.R);
-        if (z.pois) r.pzones.push({ x: z.x, y: z.y, R: z.R, t: z.pois.t, tick: z.pois.tick, acc: 0, dmg: z.pois.dmg });
+        if (z.pois) r.pzones.push({ x: z.x, y: z.y, R: z.R, t: z.pois.t, tick: z.pois.tick, acc: 0, dmg: z.pois.dmg, slow: z.pois.slow });
       }
       continue;
     }
@@ -698,7 +712,10 @@ function step(r) {
   }
   r.zones = r.zones.filter(z => z.t > 0);
   // ядовитые зоны: жгут героев внутри каждые tick секунд
-  for (const z of r.pzones) { z.t -= DT; if ((z.acc -= DT) <= 0) { z.acc = z.tick; for (const p of r.ents.values()) if (p.player && alive(p) && gdist(z, p) < z.R) hurt(r, p, z.dmg, null); } }
+  for (const z of r.pzones) {
+    z.t -= DT; const tk = (z.acc -= DT) <= 0; if (tk) z.acc = z.tick;
+    for (const p of r.ents.values()) if (p.player && alive(p) && gdist(z, p) < z.R) { if (tk) hurt(r, p, z.dmg, null); if (z.slow) slow(p, z.slow, 0.35); }
+  }
   r.pzones = r.pzones.filter(z => z.t > 0);
   // летящие сферы боссов: взрыв у героя или в конце пути
   for (const b of r.orbs) {

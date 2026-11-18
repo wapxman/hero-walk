@@ -36,9 +36,9 @@ function castSpell(e, s, i) {
   const img = e.ch.vfx && e.ch.vfx[i] ? e.ch.vfx[i].img : null, dm = e.dm;
   const v = (R, t) => ({ img, R, dur: t || 1.2, rot: s.how === 'self' ? 0.25 : 0 });
   if (s.how === 'target') {
-    warn(P.x, P.y, s.R, s.warn, s.dmg * dm, { vfx: v(s.R, s.t), onHitP: () => { if (s.eff === 'root') { slowHero(0.02, s.t); say(P.x, P.y - CH * HS(), 'корни держат!', '#b9e37a'); } } });
+    warn(P.x, P.y, s.R, s.warn, s.dmg * dm, { vfx: Object.assign(v(s.R, s.t), s.eff === 'poison' ? { pdmg: (s.pdmg || s.dmg) * dm, tick: s.tick } : {}), onHitP: () => { if (s.eff === 'root') { slowHero(0.02, s.t); say(P.x, P.y - CH * HS(), 'корни держат!', '#b9e37a'); } } });
   } else if (s.how === 'self') {
-    warn(e.x, e.y, s.R, s.warn, 0, { vfx: Object.assign(v(s.R, s.t), s.eff === 'poison' ? { pdmg: s.dmg * dm, tick: s.tick } : {}) });
+    warn(e.x, e.y, s.R, s.warn, 0, { vfx: Object.assign(v(s.R, s.t), s.eff === 'poison' || s.eff === 'slow' ? { pdmg: s.dmg * dm, tick: s.tick, slow: s.slow } : {}) });
   } else if (s.how === 'multi') {
     for (let j = 0; j < 3; j++) { const a = rnd(0, 6.283), r = j ? rnd(90, 220) : 0; warn(P.x + Math.cos(a) * r, P.y + Math.sin(a) * r * YK, s.R, s.warn + j * 0.3, s.dmg * dm, { vfx: v(s.R, 0.9) }); }
   } else if (s.how === 'moving') {
@@ -72,6 +72,7 @@ combatUpdate = function (dt) {
       if (!f.mv.vis && P.dead <= 0 && gdist(f, P) < f.R + 20) { f.t = f.dur; warn(f.x, f.y, f.mv.R, 0.01, f.mv.dmg, { vfx: { img: f.img, R: f.mv.R, dur: 0.9 } }); }
     }
     if (f.pdmg && P.dead <= 0 && (f.tickT -= dt) <= 0) { f.tickT = f.tick; if (gdist(f, P) < f.R) hurtPlayer(f.pdmg); }
+    if (f.slow && P.dead <= 0 && gdist(f, P) < f.R) slowHero(f.slow, 0.35);   // трясина: вязнешь, пока стоишь в ней
   }
   keep(SPELL_FX, f => f.t < f.dur);
 };
@@ -97,6 +98,18 @@ const MECH = {
   // Кабан-громила: удар дубиной так, что трясётся земля
   boarbrute(e, dt, d) {
     if (!e.act && e.mt <= 0 && d < 210) { e.mt = 6; warn(e.x, e.y, 160, 0.8, 30 * e.dm); startAct(e, 'atk', 0.9, 2, () => {}); return true; }
+  },
+  // Болотный упырь: налетает рывком и рвёт когтями
+  bogghoul(e, dt, d) {
+    if (e.dash > 0) { e.dash -= dt; const [dx, dy] = dirTo(e, P.x, P.y); moveBy(e, dx, dy, e.speed * 2.4, dt); e.anim = 'run'; e.runPh += dt * 2.5; return true; }
+    if (!e.act && e.mt <= 0 && d > 150 && d < 360) { e.dash = 0.45; e.mt = 4.5; }
+  },
+  // Утопленник: двуручный меч сверху — метка перед ним, удар с брызгами
+  drownedknight(e, dt, d) {
+    if (!e.act && e.mt <= 0 && d < 230) {
+      e.mt = 6.5; const [dx, dy] = dirTo(e, P.x, P.y);
+      warn(e.x + dx * 95, e.y + dy * 95 * YK, 115, 0.85, 34 * e.dm); startAct(e, 'atk', 0.95, 2, () => {}); return true;
+    }
   },
   // зомби-девушка: рывок к герою с короткой дистанции
   zgirl(e, dt, d) {

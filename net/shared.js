@@ -8,7 +8,7 @@
   'use strict';
   const TICK = 30, DT = 1 / TICK;          // сервер считает мир 30 раз в секунду
   // версия протокола: клиент и сервер обязаны совпадать (APK может отстать от сайта) — увеличивать при любом изменении формата
-  const PROTO = 5;                        // 3: злодеи, миры, раунды, магазин (v47); 4: Шипокорень (v49); 5: злодеи ChatGPT мира 1 (v50)
+  const PROTO = 6;                        // 3: злодеи, миры, раунды, магазин (v47); 4: Шипокорень (v49); 5: злодеи ChatGPT мира 1 (v50); 6: мир 2 (v51)
   const YK = 0.72;                         // сжатие по вертикали (наклон камеры), как в combat.js
   const RUN_AT = 0.6, WALK_SPEED = 105, RUN_SPEED = 260;
   const PR = [16, 11];                     // «толщина» героя у земли
@@ -86,12 +86,13 @@
   const F_DEAD = 1, F_ROOT = 2, F_SIL = 4, F_SLOW = 8, F_SHIELD = 16, F_CAST = 32, F_ATK = 64, F_RAGE = 128;
   // виды сущностей
   const KINDS = ['mage', 'archer', 'min', 'war', 'mag', 'rog', 'boss', 'zgirl', 'copz', 'goblin', 'zlorp', 'parasite', 'warzombie', 'mremireh', 'warrok',
-    'mutant', 'maw', 'pumpkin', 'demon', 'thornroot', 'shadowwolf', 'sporeshaman', 'thornimp', 'rotdryad', 'boarbrute', 'b_thornqueen'];
+    'mutant', 'maw', 'pumpkin', 'demon', 'thornroot', 'shadowwolf', 'sporeshaman', 'thornimp', 'rotdryad', 'boarbrute', 'b_thornqueen',
+    'bogghoul', 'toadwitch', 'leechworm', 'drownedknight', 'b_toadking'];
   // реплики врагов над головой (событие SAY с кодом 10 + номер): [текст, цвет]
   const PHRASES = [['Броня!', '#bcd4ff'], ['Прыжок!', '#ffb36a'], ['Таран!', '#ffb36a'], ['Восстаньте!', '#c9a8ff'], ['РЁВ!', '#ff7a5a'],
     ['Яд!', '#9be37a'], ['Сотрясение!', '#ffb347'], ['Жатва!', '#ffb347'], ['За спиной!', '#ff5a3a'], ['Огненный дождь!', '#ff8a4a'],
     ['Вторая фаза', '#ff9a6a'], ['Последняя фаза', '#ff9a6a'], ['Встаёт!', '#c9ff9a'], ['замедление', '#9fd0ff'], ['Корни!', '#b9e37a'],
-    ['Ядовитый сад!', '#9be37a'], ['корни держат!', '#b9e37a']];
+    ['Ядовитый сад!', '#9be37a'], ['корни держат!', '#b9e37a'], ['Кислотный плевок!', '#d4e04a'], ['Трясина!', '#8a9a5a']];
 
   function encInput(seq, ax, ay, btn) {
     const b = new ArrayBuffer(6), v = new DataView(b);

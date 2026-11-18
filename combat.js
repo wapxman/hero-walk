@@ -467,6 +467,11 @@ const KIND = {
   thornimp: { nm: 'Колючий бес', ch: 'thornimp', rng: 1, hp: 85, rad: 18, speed: 150, dmg: [8, 11], cd: 1.5, want: 520, shot: 720, pcol: '150,170,70', fan: 3, xp: 11, gold: 8, col: '#4a6a2a' },
   rotdryad: { nm: 'Гнилая дриада', ch: 'rotdryad', mel: 1, hp: 150, rad: 22, speed: 112, dmg: [13, 17], cd: 1.15, reach: 100, xp: 12, gold: 9, col: '#6a6a5a' },
   boarbrute: { nm: 'Кабан-громила', ch: 'boarbrute', mel: 1, hp: 240, rad: 30, speed: 96, dmg: [22, 28], cd: 1.6, reach: 84, xp: 18, gold: 13, col: '#6a4a2a' },
+  // ---- Проклятое болото (мир 2) ----
+  bogghoul: { nm: 'Болотный упырь', ch: 'bogghoul', mel: 1, hp: 125, rad: 22, speed: 172, dmg: [10, 14], cd: 0.75, reach: 66, xp: 10, gold: 7, col: '#4a5a3a' },
+  toadwitch: { nm: 'Жабья ведьма', ch: 'toadwitch', rng: 1, hp: 125, rad: 22, speed: 104, dmg: [15, 20], cd: 1.7, want: 470, shot: 540, pcol: '190,220,60', xp: 14, gold: 11, col: '#5a7a2a' },
+  leechworm: { nm: 'Пиявец', ch: 'leechworm', mel: 1, hp: 140, rad: 24, speed: 135, dmg: [9, 12], cd: 0.7, reach: 64, leech: 0.6, xp: 11, gold: 8, col: '#5a2a3a' },
+  drownedknight: { nm: 'Утопленник', ch: 'drownedknight', mel: 1, hp: 330, rad: 30, speed: 88, dmg: [24, 30], cd: 1.6, reach: 96, xp: 20, gold: 15, col: '#2a4a5a' },
   // Шипокорень: медленный и толстый, бьёт сильно и с длинной руки, из-под земли выпускает корни
   thornroot: { nm: 'Шипокорень', ch: 'thornroot', elite: 1, mel: 1, hp: 280, rad: 34, speed: 92, dmg: [18, 24], cd: 1.45, reach: 92, xp: 24, gold: 18, col: '#5a4a2a' },
   // ---- боссы миров: на 10-й волне своего мира ----
@@ -476,6 +481,11 @@ const KIND = {
     xp: 150, gold: 100, col: '#6a2a3a', sz: 1.15, spells: [
       { nm: 'Корни', ph: 14, how: 'target', R: 130, warn: 1.0, dmg: 60, eff: 'root', t: 1.8, cd: 9, an: 'cast1' },
       { nm: 'Ядовитый сад', ph: 15, how: 'self', R: 300, warn: 0.8, dmg: 20, tick: 0.5, t: 3.5, eff: 'poison', cd: 13, an: 'cast2' }] },
+  // Король-Жаб: кислотный плевок оставляет под героем едкую лужу; трясина вокруг него жжёт и замедляет (eff: slow)
+  b_toadking: { nm: ['Король-Жаб', 'владыка Проклятого болота'], ch: 'b_toadking', boss: 1, mel: 1, hp: 2200, rad: 58, speed: 84, dmg: [48, 60], cd: 1.45, reach: 125,
+    xp: 150, gold: 100, col: '#4a5a2a', sz: 1.15, spells: [
+      { nm: 'Кислотный плевок', ph: 17, how: 'target', R: 125, warn: 1.0, dmg: 50, eff: 'poison', tick: 0.5, pdmg: 14, t: 3.5, cd: 8, an: 'cast1' },
+      { nm: 'Трясина', ph: 18, how: 'self', R: 320, warn: 0.8, dmg: 10, tick: 0.5, eff: 'slow', slow: 0.45, t: 4.5, cd: 14, an: 'cast2' }] },
   mutant: { nm: ['Мутант', 'страж первого мира'], ch: 'v_mutant', boss: 1, hp: 1500, rad: 48, speed: 96, xp: 150, gold: 100, col: '#5a4a3a' },
   maw: { nm: ['Мо', 'пожиратель болот'], ch: 'v_maw', boss: 1, hp: 1500, rad: 52, speed: 90, xp: 150, gold: 100, col: '#4a3a3a' },
   pumpkin: { nm: ['Тыквенный громила', 'хозяин жатвы'], ch: 'v_pumpkin', boss: 1, hp: 1500, rad: 50, speed: 92, xp: 150, gold: 100, col: '#6a4a2a' },
@@ -484,7 +494,7 @@ const KIND = {
 // кто выходит в каком мире: рядовые ближнего и дальнего боя, элита и босс мира
 const ROSTER = {
   1: { mel: ['shadowwolf', 'rotdryad', 'shadowwolf', 'boarbrute'], rng: ['sporeshaman', 'thornimp'], elite: ['thornroot'], boss: 'b_thornqueen' },
-  2: { mel: ['copz', 'zgirl', 'goblin', 'war'], rng: ['rog', 'zlorp'], elite: ['parasite', 'warzombie'], boss: 'maw' },
+  2: { mel: ['bogghoul', 'leechworm', 'bogghoul', 'drownedknight'], rng: ['toadwitch'], elite: ['parasite', 'warzombie'], boss: 'b_toadking' },
   3: { mel: ['goblin', 'copz', 'min', 'war'], rng: ['zlorp', 'mag'], elite: ['thornroot', 'warzombie', 'mremireh'], boss: 'pumpkin' },
   4: { mel: ['copz', 'goblin', 'zgirl', 'war'], rng: ['zlorp', 'mag', 'rog'], elite: ['mremireh', 'warrok', 'parasite'], boss: 'demon' },
 };
@@ -614,7 +624,8 @@ function updateEnemy(e, dt) {
     e.atkCd = k.cd;
     startAct(e, 'atk', 0.5, 0.55, () => {
       if (gdist(P, e) < k.reach + 34 && P.dead <= 0) {
-        hurtPlayer(rnd(k.dmg[0], k.dmg[1]) * e.dm);
+        const hd = rnd(k.dmg[0], k.dmg[1]) * e.dm; hurtPlayer(hd);
+        if (k.leech) { e.hp = Math.min(e.max, e.hp + hd * k.leech); say(e.x, e.y - 60, '+' + Math.round(hd * k.leech), '#e05a6a'); }   // Пиявец пьёт кровь
         snd('enemy_melee', 0.5, rnd(0.9, 1.1));
       }
     });
