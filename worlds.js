@@ -27,6 +27,9 @@ function applyWorld(m) {
     HERO_SPAWN.x = w.hero[0] * AK; HERO_SPAWN.y = w.hero[1] * AK;
     ENEMY_SPAWN.x = w.portal[0] * AK; ENEMY_SPAWN.y = w.portal[1] * AK;
   }
+  // миры 2–4 — большие карты (size — размер картинки в пикселях), мир 1 — прежняя арена
+  WORLD_W = (w.size ? w.size[0] : 1536) * AK; WORLD_H = (w.size ? w.size[1] : 1024) * AK;
+  NAV.build();
   if (w.ground !== curGround) {
     curGround = w.ground;
     const g = new Image(); g.onload = () => { img.ground = g; }; g.src = w.ground + V;
@@ -62,5 +65,112 @@ SHOP.tick = function (dt) {
     if (worldT < 1.6 && FADE.style.opacity !== '1') FADE.style.opacity = '1';
     if (worldT <= 0.9 && WORLD !== worldNext) applyWorld(worldNext);
     if (worldT <= 0) { FADE.style.opacity = '0'; SHOP.restT = 1.2; }
+  }
+};
+
+// ---------- обход препятствий ----------
+// Сетка клеток по карте: клетка проходима, если её центр внутри WALK и не внутри препятствия.
+// Раз в 0,25 с считаем от клетки героя расстояния до всех клеток (волна по соседям);
+// враг, который не видит героя напрямую, идёт к клетке на 3 шага ближе к герою.
+const NAV = {
+  S: 56, w: 0, h: 0, ok: null, d: null, t: 0, hc: -1,
+  build() {
+    const S = this.S; this.w = Math.ceil(WORLD_W / S); this.h = Math.ceil(WORLD_H / S);
+    const n = this.w * this.h; this.ok = new Uint8Array(n); this.d = new Int32Array(n).fill(1e9); this.hc = -1;
+    for (let j = 0; j < this.h; j++) for (let i = 0; i < this.w; i++) {
+      const x = (i + 0.5) * S, y = (j + 0.5) * S;
+      let free = inWalk(x, y);
+      if (free) for (const o of SOLID) {
+        const dx = (x - o.x) / (o.rx + PR[0] + 6), dy = (y - o.y) / (o.ry + PR[1] + 6);
+        if (dx * dx + dy * dy < 1) { free = false; break; }
+      }
+      this.ok[j * this.w + i] = free ? 1 : 0;
+    }
+  },
+  cell(x, y) {
+    const i = Math.max(0, Math.min(this.w - 1, Math.floor(x / this.S))), j = Math.max(0, Math.min(this.h - 1, Math.floor(y / this.S)));
+    return j * this.w + i;
+  },
+  near(c) {   // ближайшая проходимая клетка (герой или враг мог встать на край клетки-препятствия)
+    if (this.ok[c]) return c;
+    const ci = c % this.w, cj = (c / this.w) | 0;
+    for (let r = 1; r < 4; r++) for (let j = cj - r; j <= cj + r; j++) for (let i = ci - r; i <= ci + r; i++)
+      if (i >= 0 && j >= 0 && i < this.w && j < this.h && this.ok[j * this.w + i]) return j * this.w + i;
+    return c;
+  },
+  update(dt) {
+    if (!this.ok) this.build();
+    this.t -= dt;
+    const hc = this.near(this.cell(P.x, P.y));
+    if (this.t > 0 && hc === this.hc) return;
+    this.t = 0.25; this.hc = hc;
+    const d = this.d, W = this.w, ok = this.ok; d.fill(1e9); d[hc] = 0;
+    const q = new Int32Array(W * this.h); let qh = 0, qt = 0; q[qt++] = hc;
+    while (qh < qt) {
+      const c = q[qh++], ci = c % W, cj = (c / W) | 0, nd = d[c] + 1;
+      for (let k = 0; k < 8; k++) {
+        const i = ci + NB[k][0], j = cj + NB[k][1];
+        if (i < 0 || j < 0 || i >= W || j >= this.h) continue;
+        const n = j * W + i;
+        if (!ok[n] || d[n] <= nd) continue;
+        if (k >= 4 && (!ok[cj * W + i] || !ok[j * W + ci])) continue;   // не срезаем угол препятствия
+        d[n] = nd; q[qt++] = n;
+      }
+    }
+  },
+  clear(x0, y0, x1, y1) {   // прямая от врага к герою свободна?
+    const L = Math.hypot(x1 - x0, y1 - y0), n = Math.ceil(L / (this.S * 0.5));
+    for (let k = 1; k < n; k++) if (!this.ok[this.cell(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n)]) return false;
+    return true;
+  },
+};
+const NB = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+function navDir(e) {
+  if (!NAV.ok) return null;
+  e.navT = (e.navT || 0) - 1 / 60;
+  if (e.navT > 0) return e.navV;
+  e.navT = 0.2;
+  if (NAV.clear(e.x, e.y, P.x, P.y)) { e.navV = null; return null; }
+  let c = NAV.near(NAV.cell(e.x, e.y));
+  for (let s = 0; s < 3; s++) {   // три шага под горку расстояний
+    const ci = c % NAV.w, cj = (c / NAV.w) | 0; let best = c;
+    for (const [a, b] of NB) {
+      const i = ci + a, j = cj + b;
+      if (i < 0 || j < 0 || i >= NAV.w || j >= NAV.h) continue;
+      const n = j * NAV.w + i; if (NAV.d[n] < NAV.d[best]) best = n;
+    }
+    if (best === c) break; c = best;
+  }
+  const tx = (c % NAV.w + 0.5) * NAV.S, ty = (((c / NAV.w) | 0) + 0.5) * NAV.S;
+  let dx = tx - e.x, dy = (ty - e.y) / YK; const m = Math.hypot(dx, dy);
+  if (m < 1 || NAV.d[c] >= 1e9) { e.navV = null; return null; }
+  e.navV = [dx / m, dy / m]; return e.navV;
+}
+const _cu = combatUpdate;
+combatUpdate = function (dt) { NAV.update(dt); _cu(dt); };
+
+// ---------- стрелки к врагам за краем экрана ----------
+// На большой карте босс и группы врагов часто вне экрана: у края показываем стрелку в их сторону
+// (стрелка — картинка ui/arrow.webp из ChatGPT, та же, что в дереве сборки магазина).
+const ARW = new Image(), ARW_ROT = Math.PI / 2; ARW.src = 'ui/arrow.webp' + V;   // стрелка на картинке смотрит вверх
+const _cui = combatUI;
+combatUI = function () {
+  _cui();
+  if (!cam.z || !ARW.complete || !ARW.naturalWidth) return;
+  const pad = Math.min(W, H) * 0.09, sz = Math.min(W, H) * 0.11;
+  let shown = 0;
+  for (const e of enemies) {
+    if (e.dieT != null || shown > 8) continue;
+    const sx = (e.x - cam.x) * cam.z, sy = (e.y - cam.y) * cam.z;
+    if (sx > -10 && sx < W + 10 && sy > -10 && sy < H + 10) continue;
+    shown++;
+    const cx = W / 2, cy = H / 2, dx = sx - cx, dy = sy - cy;
+    const k = Math.min((W / 2 - pad) / Math.abs(dx || 1e-6), (H / 2 - pad) / Math.abs(dy || 1e-6));
+    const s = sz * (e.boss ? 1.5 : e.elite ? 1.2 : 0.9);
+    ctx.save(); ctx.translate(cx + dx * k, cy + dy * k); ctx.rotate(Math.atan2(dy, dx) + ARW_ROT);
+    ctx.globalAlpha = e.boss ? 1 : 0.85;
+    if (e.boss) { ctx.shadowColor = '#ff3020'; ctx.shadowBlur = s * 0.6; }
+    ctx.drawImage(ARW, -s * 0.31, -s / 2, s * 0.62, s);
+    ctx.restore();
   }
 };

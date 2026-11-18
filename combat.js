@@ -532,7 +532,9 @@ function updateEnemy(e, dt) {
   const d = gdist(P, e), sp = e.speed * sk;
   const want = e.rng ? k.want : e.boss ? 105 : k.reach - 10;
   if (d > want) {
-    e.x += dx * sp * dt; e.y += dy * sp * YK * dt; collide(e); e.anim = 'run';
+    // обход препятствий: если герой не виден напрямую, идём по сетке проходимости (navDir в worlds.js)
+    const nv = typeof navDir === 'function' ? navDir(e) : null, mx = nv ? nv[0] : dx, my = nv ? nv[1] : dy;
+    e.x += mx * sp * dt; e.y += my * sp * YK * dt; collide(e); e.anim = 'run';
     // темп шагов привязан к скорости: один цикл бега покрывает около 2,3 метра модели
     e.runPh += dt * Math.max(0.8 * sk, Math.min(1.5, sp / (2.3 * e.ch.U)));
   }

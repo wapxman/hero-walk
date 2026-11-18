@@ -22,10 +22,10 @@
 <canvas id="c"></canvas>
 <div id="hud"><b>Duel Arena</b> · <span id="tip">стик — движение, кнопки справа — огонь и скилы (ПК: WASD, пробел, Q E F R, фласки 1–4, Enter — волна, B — магазин)</span><br>
 <span id="snd">🔇 коснитесь экрана, чтобы включить звук</span> <span id="pad">🎮 геймпад подключён</span></div>
-<script src="data.js?v=45"></script>
-<script src="chars/atlas.js?v=45"></script>
+<script src="data.js?v=46"></script>
+<script src="chars/atlas.js?v=46"></script>
 <script>
-const V = '?v=45';
+const V = '?v=46';
 const cv = document.getElementById('c');
 const ctx = cv.getContext('2d');
 // Чёткость: холст рисуется не больше чем в 2 точки на точку экрана. Если телефон не успевает
@@ -371,7 +371,7 @@ function frame(now) {
   // адрес с #map показывает всю арену целиком (для проверки расстановки)
   // камера не показывает больше арены, чем есть (на низких экранах иначе по бокам видны чёрные поля)
   const Z = location.hash === '#map' ? Math.min(W / WORLD_W, H / WORLD_H) : Math.max(charScr / CH, W / WORLD_W, H / WORLD_H);
-  const vw = W / Z, vh = H / Z;
+  const vw = W / Z, vh = H / Z; cam.z = Z; cam.vw = vw; cam.vh = vh;
   let tx = P.x - vw / 2, ty = P.y - CH * 0.45 * CFG.units.hero.scale - vh / 2;
   tx = vw >= WORLD_W ? (WORLD_W - vw) / 2 : Math.max(0, Math.min(WORLD_W - vw, tx));
   ty = vh >= WORLD_H ? (WORLD_H - vh) / 2 : Math.max(0, Math.min(WORLD_H - vh, ty));
@@ -454,15 +454,15 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 </script>
-<script src="combat.js?v=45"></script>
-<script src="shop.js?v=45"></script>
-<script src="heroes.js?v=45"></script>
-<script src="progress.js?v=45"></script>
-<script src="worlds.js?v=45"></script>
-<script src="enemies.js?v=45"></script>
-<script src="items.js?v=45"></script>
-<script src="net/shared.js?v=45"></script>
-<script src="net/client.js?v=45"></script>
-<script src="menu.js?v=45"></script>
+<script src="combat.js?v=46"></script>
+<script src="shop.js?v=46"></script>
+<script src="heroes.js?v=46"></script>
+<script src="progress.js?v=46"></script>
+<script src="worlds.js?v=46"></script>
+<script src="enemies.js?v=46"></script>
+<script src="items.js?v=46"></script>
+<script src="net/shared.js?v=46"></script>
+<script src="net/client.js?v=46"></script>
+<script src="menu.js?v=46"></script>
 </body>
 </html>
