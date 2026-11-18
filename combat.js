@@ -80,7 +80,7 @@ function musicStart() {
 }
 function musicLabel() { if (typeof SHOP !== 'undefined' && SHOP.pauseLabels) SHOP.pauseLabels(); }
 function musicLoad() {
-  mus.el.src = 'music/' + MUSIC[mus.i][0] + '.mp3' + V;
+  mus.el.src = 'music/' + MUSIC[mus.i][0] + '.m4a' + V;   // AAC 80 кбит/с: звучит как MP3 128, а весит меньше (APK до 49 МБ)
   mus.g.gain.cancelScheduledValues(AC.currentTime); mus.g.gain.value = 0; mus.v = 0;
   if (mus.on) mus.el.play().catch(() => {});
   store('hw_mus_i', mus.i);

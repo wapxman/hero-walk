@@ -56,7 +56,7 @@ for name, cell in SHEETS.items():
     # обрезаем лишнюю ширину справа
     used = max(m[0] + m[2] for m in meta if m)
     out = out.crop((0, 0, used, AH))
-    out.save(os.path.join(OUT, "at_" + name + ".webp"), quality=92, method=6, alpha_quality=100)
+    out.save(os.path.join(OUT, "at_" + name + ".webp"), quality=85, method=6, alpha_quality=90)
     atlas[name] = {"cell": cell, "gc": gc, "f": meta}
     print(name, im.size, "->", out.size, round(im.width * im.height * 4 / 1e6, 1), "->",
           round(out.width * out.height * 4 / 1e6, 1), "MB")
