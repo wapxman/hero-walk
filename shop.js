@@ -57,7 +57,8 @@ const SHOP = {
   },
   tick(dt) {
     for (const k in SHOP.buffs) if (SHOP.buffs[k] > 0) { SHOP.buffs[k] -= dt; if (SHOP.buffs[k] <= 0) { SHOP.buffs[k] = 0; SHOP.recompute(); } }
-    if (SHOP.phase === 'fight' && !enemies.length && !(typeof roundActive === 'function' && roundActive())) {
+    // в онлайне конец раунда и награду присылает сервер (net/client.js)
+    if (SHOP.phase === 'fight' && !(window.NETC && NETC.on) && !enemies.length && !(typeof roundActive === 'function' && roundActive())) {
       SHOP.phase = 'rest'; SHOP.restT = 1.3;
       // награда — за каждую волну раунда
       let bonus = 0; for (let w = SHOP.roundFrom || wave; w <= wave; w++) bonus += BAL.waveGold(w);

@@ -9,15 +9,47 @@ const NET = require('../net/shared.js');
 
 const PORT = +(process.argv[2] || process.env.PORT || 8790);
 const LAG = +(process.env.LAG || 0), JITTER = +(process.env.JITTER || 0);
+// только для проверки: TEST_WAVE — с какой волны начинает новая комната, TEST_HP — множитель здоровья врагов
+const TEST_WAVE = +(process.env.TEST_WAVE || 0), TEST_HP = +(process.env.TEST_HP || 1);
 
 // ---------- карта из data.js (та же, что у игры) ----------
 const box = { location: { port: '', pathname: '/' }, localStorage: { getItem: () => null, setItem() {} }, console };
 vm.createContext(box);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'data.js'), 'utf8') +
-  '\n;this.D = { WALK, DEFAULT_OBJ, HERO_SPAWN, ENEMY_SPAWN, BAL };', box);
+  '\n;this.D = { WALK, DEFAULT_OBJ, HERO_SPAWN, ENEMY_SPAWN, SPAWNS, WORLDS, AK, BAL };', box);
 const D = box.D, BAL = D.BAL;
-NET.setMap(D.WALK, D.DEFAULT_OBJ);
+// виды врагов и кто выходит в каком мире — та же таблица, что в одиночной игре (combat.js), без копии
+const CS = fs.readFileSync(path.join(__dirname, '..', 'combat.js'), 'utf8');
+vm.runInContext(CS.slice(CS.indexOf('const KIND = {'), CS.indexOf('const rosterOf')) + '\n;this.K = { KIND, ROSTER };', box);
+const KIND = box.K.KIND, ROSTER = box.K.ROSTER;
+const XP0 = { min: 8, war: 18, mag: 14, rog: 14, boss: 150 };
+KIND.war.steal = 0.6;   // как в enemies.js: вампир лечится, зомби может встать
+KIND.min.rise = 0.3;
 const { TICK, DT, YK, EV } = NET;
+// ---------- карты миров (data.js WORLDS; мир 1 — арена по умолчанию) ----------
+const A = D.AK;
+const MAPS = [null];
+for (let m = 1; m <= 4; m++) {
+  const w = D.WORLDS[m - 1];
+  const M = m === 1
+    ? { walk: D.WALK, solid: NET.solidsOf(D.DEFAULT_OBJ), hero: D.HERO_SPAWN, portal: D.ENEMY_SPAWN, spawns: D.SPAWNS, W: 1536 * A, H: 1024 * A }
+    : { walk: w.walk.map(p => [p[0] * A, p[1] * A]), solid: w.solid.map(c => ({ x: c[0] * A, y: c[1] * A, rx: c[2] * A, ry: c[3] * A })),
+      hero: { x: w.hero[0] * A, y: w.hero[1] * A }, portal: { x: w.portal[0] * A, y: w.portal[1] * A },
+      spawns: w.spawns.map(s => ({ x: s[0] * A, y: s[1] * A, w: s[2] })), W: (w.size ? w.size[0] : 1536) * A, H: (w.size ? w.size[1] : 1024) * A };
+  M.nav = buildNav(M);
+  MAPS.push(M);
+}
+NET.useMap(MAPS[1].walk, MAPS[1].solid);
+// сетка проходимости для обхода препятствий (как NAV в worlds.js)
+function buildNav(M) {
+  const S = 56, w = Math.ceil(M.W / S), h = Math.ceil(M.H / S), ok = new Uint8Array(w * h);
+  NET.useMap(M.walk, M.solid);
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const x = (i + 0.5) * S, y = (j + 0.5) * S;
+    ok[j * w + i] = NET.inWalk(x, y) && !M.solid.some(o => ((x - o.x) / (o.rx + 22)) ** 2 + ((y - o.y) / (o.ry + 17)) ** 2 < 1) ? 1 : 0;
+  }
+  return { S, w, h, ok };
+}
 const rnd = (a, b) => a + Math.random() * (b - a);
 const gdist = (a, b) => Math.hypot(a.x - b.x, (a.y - b.y) / YK);
 
@@ -27,14 +59,6 @@ const HERO = {
   archer: { hp: 520, range: 720, cd: { q: 9, e: 6, f: 15, r: 0 }, mana: { q: 70, e: 60, f: 90, r: 0 }, atkCd: 0.6 },
 };
 const PVP_DMG = 0.5;   // в дуэли урон по герою вдвое меньше, чтобы бой не кончался за секунды
-// враги — как в одиночной игре (combat.js KIND)
-const KIND = {
-  min: { mel: 1, hp: 120, rad: 20, speed: 150, dmg: [9, 13], cd: 0.9, reach: 62, xp: 8 },
-  war: { mel: 1, hp: 300, rad: 26, speed: 112, dmg: [20, 26], cd: 1.25, reach: 72, xp: 18 },
-  mag: { rng: 1, hp: 150, rad: 22, speed: 100, dmg: [18, 24], cd: 1.9, want: 430, shot: 520, xp: 14 },
-  rog: { rng: 1, hp: 120, rad: 21, speed: 125, dmg: [13, 16], cd: 1.35, want: 500, shot: 820, bolt: 1, xp: 14 },
-  boss: { boss: 1, hp: 1500, rad: 46, speed: 92, xp: 150 },
-};
 const SHOT_KIND = { ice: 1, arrow: 2, fire: 3, bolt: 4 };
 const SKILL = { nova: 1, chains: 2, hail: 3, storm: 4, gust: 5, shield: 6, volley: 7 };
 
@@ -45,7 +69,9 @@ const rooms = new Map();
 let nextRoom = 1;
 function makeRoom(mode, code) {
   const r = { code: code || String(1000 + (nextRoom++ % 9000)), mode, max: mode === 'duel' ? 2 : 4, clients: new Set(), ents: new Map(),
-    shots: [], zones: [], shards: [], tick: 0, wave: 0, phase: 0, nextId: 1, hist: [], events: [] };
+    shots: [], zones: [], shards: [], tick: 0, wave: TEST_WAVE, phase: 0, nextId: 1, hist: [], events: [],
+    world: 1, map: MAPS[1], queue: [], relT: 0, nextT: 0, endW: 0, roundFrom: 0, worldT: 0, dist: null, distT: 0, duelT: 0 };
+  if (mode === 'coop' && TEST_WAVE) { r.world = BAL.at(TEST_WAVE + 1).M; r.map = MAPS[r.world]; }
   rooms.set(r.code, r);
   return r;
 }
@@ -55,13 +81,17 @@ const hostile = (a, b) => a.team !== b.team;
 const alive = e => e.hp > 0 && !(e.dead > 0);
 
 // ---------- герой игрока ----------
+// характеристики: уровень, очки и предметы сумки (it — сумма предметов и действующие фласки, как SHOP.recompute)
 function heroStats(p) {
-  const s = p.prog, st = s.st, h = HERO[p.kind];
-  p.dmgMul = (1 + 0.015 * (s.lvl - 1)) * (1 + 0.006 * st.str);
-  p.spdMul = 1 + 0.006 * st.agi; p.atkSpd = 1 + 0.015 * st.agi; p.skMul = 1 + 0.015 * st.int;
-  p.mpRegen = 11 + 0.35 * st.int;
-  const mh = h.hp + 10 * (s.lvl - 1) + 8 * st.str, mm = 420 + 12 * st.int;
+  const s = p.prog, st = s.st, h = HERO[p.kind], it = s.it;
+  p.dmgMul = (1 + it.dmg) * (it.pow ? 1.5 : 1) * (1 + 0.015 * (s.lvl - 1)) * (1 + 0.006 * st.str);
+  p.spdMul = (1 + it.spd) * (it.swift ? 1.45 : 1) * (1 + 0.006 * st.agi);
+  p.atkSpd = (1 + 0.015 * st.agi) * (1 + Math.min(0.6, it.as)); p.skMul = (1 + 0.015 * st.int) * (1 + it.sk);
+  p.mpRegen = 11 + 0.35 * st.int + it.mpr; p.hpReg = 5 + it.hpr;
+  p.ls = it.ls; p.crit = Math.min(0.4, it.crit); p.cdMul = 1 - Math.min(0.45, it.cd); p.armMul = 1 - Math.min(0.6, it.arm);
+  const mh = h.hp + it.hp + 10 * (s.lvl - 1) + 8 * st.str, mm = 420 + 12 * st.int + it.mp;
   if (p.max && mh > p.max) p.hp += mh - p.max;
+  if (p.maxMp && mm > p.maxMp) p.mp += mm - p.maxMp;
   p.max = mh; p.maxMp = mm; p.hp = Math.min(p.hp == null ? mh : p.hp, mh); p.mp = Math.min(p.mp == null ? mm : p.mp, mm);
 }
 const skLv = (p, id) => p.prog.sk[id] || 1;
@@ -70,11 +100,16 @@ const skCd = (p, id) => 1 - 0.03 * (skLv(p, id) - 1);
 function cleanProg(m) {
   const n = (v, lo, hi, d) => (typeof v === 'number' && v >= lo && v <= hi ? Math.floor(v) : d);
   const st = m.st || {}, sk = m.sk || {};
+  const it = m.it || {}, f = (v, hi) => (typeof v === 'number' && v >= 0 ? Math.min(v, hi) : 0);
   return { lvl: n(m.lvl, 1, 100, 1), st: { str: n(st.str, 0, 300, 0), agi: n(st.agi, 0, 300, 0), int: n(st.int, 0, 300, 0) },
-    sk: { q: n(sk.q, 1, 10, 1), e: n(sk.e, 1, 10, 1), f: n(sk.f, 1, 10, 1), r: n(sk.r, 1, 10, 1) } };
+    sk: { q: n(sk.q, 1, 10, 1), e: n(sk.e, 1, 10, 1), f: n(sk.f, 1, 10, 1), r: n(sk.r, 1, 10, 1) },
+    // предметы: значения ограничены сверху (6 ячеек сумки), чтобы чужой клиент не прислал бессмертие
+    it: { dmg: f(it.dmg, 2), hp: f(it.hp, 2500), mp: f(it.mp, 1500), as: f(it.as, 1), spd: f(it.spd, 0.6), hpr: f(it.hpr, 40), mpr: f(it.mpr, 30),
+      arm: f(it.arm, 0.8), sk: f(it.sk, 2), cd: f(it.cd, 0.6), ls: f(it.ls, 0.4), crit: f(it.crit, 0.6), pow: it.pow ? 1 : 0, swift: it.swift ? 1 : 0 } };
 }
 function spawnPoint(r, team) {
-  const s = r.mode === 'duel' && team === 2 ? D.ENEMY_SPAWN : D.HERO_SPAWN;
+  const s = r.mode === 'duel' && team === 2 ? r.map.portal : r.map.hero;
+  NET.useMap(r.map.walk, r.map.solid);
   const p = { x: s.x + rnd(-40, 40), y: s.y + rnd(-25, 25) };
   NET.collide(p);
   return p;
@@ -93,8 +128,13 @@ function addPlayer(r, c, hero, prog) {
 // ---------- урон ----------
 function hurt(r, e, dmg, src, col) {
   if (!alive(e)) return;
-  if (src && src.player) dmg *= src.dmgMul;
+  if (src && src.player) { dmg *= src.dmgMul; if (src.crit && Math.random() < src.crit) { dmg *= 2; col = 3; } }
   if (e.player && src && src.player) dmg *= PVP_DMG;
+  if (e.player) dmg *= e.armMul || 1;
+  if (!e.player && e.arm > 0) dmg *= 0.35;    // коп-зомби под бронёй
+  // зомби иногда встаёт после смерти (один раз)
+  if (!e.player && e.k.rise && !e.risen && e.hp - dmg <= 0 && Math.random() < e.k.rise) { e.risen = true; e.hp = Math.round(e.max * 0.35); say(r, e, 12); return; }
+  const hp0 = e.hp;
   if (e.shieldT > 0 && e.shield > 0) {
     const a = Math.min(e.shield, dmg); e.shield -= a; dmg -= a;
     if (e.shield <= 0) { e.shieldT = 0; ev(r, EV.SAY, e.id, 1); }
@@ -102,18 +142,27 @@ function hurt(r, e, dmg, src, col) {
   }
   e.hp -= dmg;
   ev(r, EV.DMG, e.id, dmg, col || 0);
+  const dealt = hp0 - Math.max(0, e.hp);
+  if (src && src.player && src.ls && alive(src)) src.hp = Math.min(src.max, src.hp + dealt * src.ls);   // вампиризм от предметов
+  if (e.player && src && !src.player) {
+    if (src.k.steal && alive(src)) src.hp = Math.min(src.max, src.hp + dealt * src.k.steal);
+    if (src.kind === 'goblin') src.ret = 0.6;    // гоблин ударил — отскакивает
+  }
   if (e.hp <= 0) {
     e.hp = 0;
     ev(r, EV.DIE, e.id, src ? src.id : 0);
-    if (e.player) { e.dead = 3; e.ult = 0; e.focus = 0; e.shield = 0; e.shieldT = 0; if (src && src.player) src.kills++; }
-    else {
+    if (e.player) {
+      e.dead = 3; e.ult = 0; e.focus = 0; e.shield = 0; e.shieldT = 0;
+      if (src && src.player) { src.kills++; ev(r, EV.LVL, 80 + 10 * src.prog.lvl, src.id); }   // дуэль: опыт победителю
+    } else {
       e.dieT = 0;
       // опыт за врага — всем игрокам комнаты (общий опыт в кооперативе), растёт с волной
-      const xp = Math.round((KIND[e.kind].xp || 8) * BAL.xp(r.wave));
-      ev(r, EV.LVL, xp);
+      const xp = Math.round((e.k.xp || XP0[e.kind] || 8) * BAL.xp(r.wave) * (e.elite ? BAL.ELITE.xp : 1));
+      ev(r, EV.LVL, xp, 0);
     }
   }
 }
+const say = (r, e, i) => ev(r, EV.SAY, e.id, 10 + i);
 function slow(e, k, t) { e.slowK = Math.min(e.slowT > 0 ? e.slowK : 1, k); e.slowT = Math.max(e.slowT, t); }
 function targetsOf(r, p) { const out = []; for (const e of r.ents.values()) if (hostile(p, e) && alive(e)) out.push(e); return out; }
 function nearest(r, p, range) {
@@ -160,6 +209,7 @@ function stepShot(r, s) {
       ev(r, EV.HIT, s.id, e.id, e.x, e.y);
       hurt(r, e, s.dmg, s.owner, s.kind === 'arrow' ? 2 : 1);
       if (s.kind === 'ice') slow(e, 0.8, 1);
+      if (s.slowHit && e.player) { slow(e, 0.65, 1.8); ev(r, EV.SAY, e.id, 10 + 13); }
       if (s.kind === 'arrow' && s.owner.player) { s.owner.focus = Math.min(10, s.owner.focus + 1); s.owner.focusT = 3; }
       return;
     }
@@ -217,7 +267,7 @@ function cast(r, p, id) {
       ev(r, EV.CAST, p.id, SKILL.shield, 600);
     }
   }
-  p.cd[id] = h.cd[id] * skCd(p, id); p.mp -= h.mana[id]; p.castT = 0.5;
+  p.cd[id] = h.cd[id] * skCd(p, id) * (p.cdMul || 1); p.mp -= h.mana[id]; p.castT = 0.5;
 }
 function attack(r, p) {
   const h = HERO[p.kind], range = p.kind === 'archer' ? h.range * (1 + 0.03 * p.focus) : h.range;
@@ -237,33 +287,236 @@ function attack(r, p) {
 function shard(r, owner, x, y, R, dmg, sk, st) { r.shards.push({ owner, x, y, R, dmg, sk, st, t: 0.28 }); ev(r, EV.SHARD, x, y, R); }
 
 // ---------- враги (кооператив) ----------
+// Как в одиночной игре: рост по BAL, элита и боссы миров, раунды по 3 волны, 10-я — босс мира, затем следующий мир.
+const nPlayers = r => Math.max(1, [...r.clients].length);
 function spawnEnemy(r, type, x, y) {
-  const k = KIND[type];
-  const e = { id: newId(r), kind: type, team: 2, k, boss: !!k.boss, x: x != null ? x : D.ENEMY_SPAWN.x + rnd(-90, 90), y: y != null ? y : D.ENEMY_SPAWN.y + rnd(-30, 90),
-    hp: Math.round(k.hp * BAL.hp(r.wave)), dm: BAL.dmg(r.wave), rad: k.rad, speed: k.speed * BAL.speed(r.wave), row: 2,
-    slowT: 0, slowK: 1, root: 0, silT: 0, atkCd: rnd(0.3, 1.2), slamCd: 2, quakeCd: 7, leapCd: 4, summonCd: 9, jump: 0, act: null };
+  const k = KIND[type], np = nPlayers(r);
+  const e = { id: newId(r), kind: type, team: 2, k, boss: !!k.boss, elite: !!k.elite, x: x != null ? x : r.map.portal.x + rnd(-90, 90), y: y != null ? y : r.map.portal.y + rnd(-30, 90),
+    hp: Math.round(k.hp * BAL.hp(r.wave) * (1 + 0.35 * (np - 1)) * TEST_HP), dm: BAL.dmg(r.wave), rad: k.rad * (k.sz || 1), speed: k.speed * BAL.speed(r.wave), row: 2,
+    slowT: 0, slowK: 1, root: 0, silT: 0, atkCd: rnd(0.3, 1.2), slamCd: 2, quakeCd: 7, leapCd: 4, summonCd: 9, jump: 0, act: null,
+    mt: rnd(1.5, 4), mt2: 0, mt3: 0, phase: 1 };
+  if (k.boss && type !== 'boss') { e.hp = Math.round(e.hp * BAL.bossHp(r.wave)); e.dm *= BAL.bossDmg(r.wave); }
+  if (e.elite) { e.hp = Math.round(e.hp * BAL.ELITE.hp); e.dm *= BAL.ELITE.dmg; e.rad *= BAL.ELITE.size; }
   e.max = e.hp; NET.collide(e);
   r.ents.set(e.id, e);
+  return e;
 }
-function spawnWave(r) {
-  r.wave++; r.phase = 1;
-  const bossWave = r.wave % 3 === 0, np = Math.max(1, [...r.clients].length), more = 1 + 0.5 * (np - 1);
-  const nm = Math.round(Math.min(3 + r.wave, 9) * (bossWave ? 0.5 : 1) * more);
-  for (let i = 0; i < nm; i++) spawnEnemy(r, r.wave >= 2 && i % 3 === 2 ? 'war' : 'min');
-  const nr = Math.round(Math.min(1 + Math.floor(r.wave / 2), 4) * (bossWave ? 0.5 : 1) * more);
-  for (let i = 0; i < nr; i++) spawnEnemy(r, (i + r.wave) % 2 ? 'mag' : 'rog');
-  if (bossWave) spawnEnemy(r, 'boss');
-  ev(r, EV.WAVE_START, r.wave, bossWave ? 1 : 0);
+const roundEnd = n => { const W = BAL.at(n).W; return W >= 10 ? n : n + 2 - (W - 1) % 3; };
+const aliveFoes = r => { let n = 0; for (const e of r.ents.values()) if (!e.player && e.hp > 0) n++; return n; };
+function startRound(r) { r.endW = roundEnd(r.wave + 1); r.roundFrom = r.wave + 1; r.phase = 1; nextWave(r); }
+function nextWave(r) {
+  r.wave++; r.nextT = 0; r.relT = 0.4;
+  const a = BAL.at(r.wave), R = ROSTER[a.M] || ROSTER[1], q = [];
+  if (a.W === 10) q.push(R.boss);
+  else {
+    const n = Math.round(BAL.count(r.wave) * (1 + 0.5 * (nPlayers(r) - 1))), nr = Math.round(n * 0.25);
+    for (let i = 0; i < n - nr; i++) q.push(r.wave === 1 && i < 6 ? 'min' : R.mel[i % R.mel.length]);
+    for (let i = 0; i < nr; i++) q.push(R.rng[i % R.rng.length]);
+    for (let i = q.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [q[i], q[j]] = [q[j], q[i]]; }
+    for (let i = 0; i < BAL.elites(r.wave); i++) q.splice(Math.floor(q.length * (0.55 + 0.3 * i)), 0, R.elite[(i + r.wave) % R.elite.length]);
+  }
+  r.queue = q;
+  ev(r, EV.WAVE_START, r.wave, a.W === 10 ? 1 : 0, r.wave === r.endW ? 1 : 0);
 }
+function pickSpawn(r) {
+  const L = r.map.spawns; let s = 0; for (const p of L) s += p.w;
+  let x = Math.random() * s;
+  for (const p of L) { x -= p.w; if (x <= 0) return p; }
+  return L[0];
+}
+// выпуск врагов группами из входов карты, переход к следующей волне, конец раунда и смена мира
+function runRound(r) {
+  if (r.phase !== 1) return;
+  const alive = aliveFoes(r);
+  if (r.queue.length) {
+    r.relT -= DT;
+    if (r.relT <= 0 && alive < 16 + 4 * (nPlayers(r) - 1)) {
+      const sp = pickSpawn(r), n = Math.min(r.queue.length, 1 + Math.floor(Math.random() * 3));
+      for (let i = 0; i < n; i++) spawnEnemy(r, r.queue.shift(), sp.x + rnd(-70, 70), sp.y + rnd(-40, 40));
+      r.relT = rnd(0.9, 1.8) * (alive > 10 ? 1.4 : 1);
+    }
+  } else if (r.wave < r.endW) {
+    if (alive <= 3 && (r.nextT += DT) > 2.2) nextWave(r);
+  } else if (!alive) {
+    let gold = 0; for (let n = r.roundFrom; n <= r.wave; n++) gold += BAL.waveGold(n);
+    r.phase = 0; ev(r, EV.WAVE_END, r.wave, Math.round(gold), BAL.at(r.wave).W === 10 ? 1 : 0);
+    if (BAL.at(r.wave).W === 10) r.worldT = 3.2;    // мир пройден: через 3 с — следующий
+  }
+}
+function setWorld(r, m) {
+  r.world = m; r.map = MAPS[m]; r.dist = null;
+  r.shots = []; r.zones = []; r.shards = [];
+  for (const p of r.ents.values()) if (p.player) { const s = spawnPoint(r, p.team); p.x = NET.qpos(s.x); p.y = NET.qpos(s.y); p.kb = null; }
+  const a = BAL.at(r.wave + 1);
+  ev(r, EV.WORLD, m, a.C);
+}
+
+// ---------- обход препятствий: расстояния по сетке от ближайшего героя ----------
+const NB = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+function navCell(N, x, y) { return Math.max(0, Math.min(N.h - 1, Math.floor(y / N.S))) * N.w + Math.max(0, Math.min(N.w - 1, Math.floor(x / N.S))); }
+function navNear(N, c) {
+  if (N.ok[c]) return c;
+  const ci = c % N.w, cj = (c / N.w) | 0;
+  for (let k = 1; k < 4; k++) for (let j = cj - k; j <= cj + k; j++) for (let i = ci - k; i <= ci + k; i++)
+    if (i >= 0 && j >= 0 && i < N.w && j < N.h && N.ok[j * N.w + i]) return j * N.w + i;
+  return c;
+}
+function navField(r) {
+  const N = r.map.nav;
+  if ((r.distT -= DT) > 0 && r.dist) return;
+  r.distT = 0.3;
+  if (!r.dist || r.dist.length !== N.ok.length) r.dist = new Int32Array(N.ok.length);
+  const d = r.dist, q = new Int32Array(N.ok.length); let qh = 0, qt = 0;
+  d.fill(1e9);
+  for (const p of r.ents.values()) if (p.player && alive(p)) { const c = navNear(N, navCell(N, p.x, p.y)); if (d[c]) { d[c] = 0; q[qt++] = c; } }
+  while (qh < qt) {
+    const c = q[qh++], ci = c % N.w, cj = (c / N.w) | 0, nd = d[c] + 1;
+    for (let k = 0; k < 8; k++) {
+      const i = ci + NB[k][0], j = cj + NB[k][1];
+      if (i < 0 || j < 0 || i >= N.w || j >= N.h) continue;
+      const n = j * N.w + i;
+      if (!N.ok[n] || d[n] <= nd) continue;
+      if (k >= 4 && (!N.ok[cj * N.w + i] || !N.ok[j * N.w + ci])) continue;
+      d[n] = nd; q[qt++] = n;
+    }
+  }
+}
+function navDir(r, e, tg) {
+  const N = r.map.nav;
+  if ((e.navT = (e.navT || 0) - DT) > 0) return e.navV;
+  e.navT = 0.2; e.navV = null;
+  const L = Math.hypot(tg.x - e.x, tg.y - e.y), n = Math.ceil(L / (N.S * 0.5));
+  let clear = true;
+  for (let k = 1; k < n && clear; k++) if (!N.ok[navCell(N, e.x + (tg.x - e.x) * k / n, e.y + (tg.y - e.y) * k / n)]) clear = false;
+  if (clear || !r.dist) return null;
+  let c = navNear(N, navCell(N, e.x, e.y));
+  for (let s = 0; s < 3; s++) {
+    const ci = c % N.w, cj = (c / N.w) | 0; let best = c;
+    for (const [a, b] of NB) { const i = ci + a, j = cj + b; if (i >= 0 && j >= 0 && i < N.w && j < N.h && r.dist[j * N.w + i] < r.dist[best]) best = j * N.w + i; }
+    if (best === c) break; c = best;
+  }
+  if (r.dist[c] >= 1e9) return null;
+  const dx = ((c % N.w) + 0.5) * N.S - e.x, dy = ((((c / N.w) | 0) + 0.5) * N.S - e.y) / YK, m = Math.hypot(dx, dy);
+  if (m < 1) return null;
+  e.navV = [dx / m, dy / m]; return e.navV;
+}
+
 function act(e, dur, at, fn, cast) { e.act = { dur, at, fn, t: 0, hit: false, cast: !!cast }; }
-function tele(r, x, y, R, dur, dmg, big) { r.zones.push({ tele: true, x, y, R, t: dur, dmg, big }); ev(r, EV.TELE, x, y, R, dur * 100, big ? 1 : 0); }
+// предупреждение на земле: через dur по кругу R бьёт dmg (o.slow — ещё и замедляет)
+function tele(r, x, y, R, dur, dmg, big, o) { r.zones.push(Object.assign({ tele: true, x, y, R, t: dur, dmg, big }, o)); ev(r, EV.TELE, x, y, R, dur * 100, big ? 1 : 0); }
+const dirTo = (e, x, y) => { const dx = x - e.x, dy = (y - e.y) / YK, m = Math.hypot(dx, dy) || 1; return [dx / m, dy / m, m]; };
+function moveBy(e, dx, dy, sp) { e.x += dx * sp * DT; e.y += dy * sp * YK * DT; NET.collide(e); e.moving = true; }
+function leapTo(r, e, x, y, dur, R, dmg) { tele(r, x, y, R, dur, dmg); e.leap = { x0: e.x, y0: e.y, x1: x, y1: y, t: 0, dur }; act(e, dur + 0.05, 2, () => {}, true); }
+function raise(r, e, n, type) {
+  for (let i = 0; i < n; i++) {
+    const a = rnd(0, 6.283), m = spawnEnemy(r, type || 'min', e.x + Math.cos(a) * 90, e.y + Math.sin(a) * 90 * YK);
+    ev(r, EV.QUAKE, m.x, m.y, 50);
+  }
+}
+function fireball(r, e, dx, dy, dmg, sp) { shoot(r, e, 'fire', dx, dy, null, dmg, sp || 480, 900); }
+// приёмы видов (enemies.js MECH): вернуть true — обычное поведение в этом тике пропускается
+const MECH = {
+  zgirl(r, e, d, tg) {
+    if (e.dash > 0) { e.dash -= DT; const [dx, dy] = dirTo(e, tg.x, tg.y); moveBy(e, dx, dy, e.speed * 2.6); return true; }
+    if (!e.act && e.mt <= 0 && d > 160 && d < 380) { e.dash = 0.45; e.mt = 4; }
+  },
+  goblin(r, e, d, tg) { if (e.ret > 0) { e.ret -= DT; const [dx, dy] = dirTo(e, tg.x, tg.y); moveBy(e, -dx, -dy, e.speed * 1.2); return true; } },
+  copz(r, e) { if (e.mt <= 0) { e.mt = 7; e.arm = 2.5; say(r, e, 0); } },
+  rog(r, e, d, tg) {
+    if (!e.act && d < 230) { const [dx, dy] = dirTo(e, tg.x, tg.y); moveBy(e, -dx, -dy, e.speed * (e.slowT > 0 ? e.slowK : 1)); return true; }
+  },
+  mag(r, e, d, tg) {
+    if (!e.act && e.mt <= 0 && d < 600 && !(e.silT > 0)) { e.mt = 8; tele(r, tg.x, tg.y, 105, 1.1, 30 * e.dm); act(e, 0.6, 0.5, () => {}); return true; }
+  },
+  parasite(r, e, d, tg) {
+    if (!e.act && e.mt <= 0 && d > 200 && d < 560) { e.mt = 6; leapTo(r, e, tg.x, tg.y, 0.8, 105, 28 * e.dm); say(r, e, 1); return true; }
+  },
+  warzombie(r, e, d, tg) {
+    if (e.chg) {
+      const c = e.chg; c.t -= DT;
+      if (c.aim) { e.moving = false; if (c.t <= 0) { c.aim = false; c.t = 0.9; } return true; }
+      moveBy(e, c.dx, c.dy, e.speed * 3.4);
+      for (const p of r.ents.values()) if (p.player && alive(p) && !c.hit && gdist(p, e) < e.rad + 40) {
+        c.hit = true; hurt(r, p, 26 * e.dm, e);
+        p.kb = { vx: c.dx * 120 / 0.2, vy: c.dy * 120 * YK / 0.2, t: 0.2 }; ev(r, EV.QUAKE, p.x, p.y, 70);
+      }
+      if (c.t <= 0) e.chg = null;
+      return true;
+    }
+    if (!e.act && e.mt <= 0 && d > 220 && d < 650) {
+      const [dx, dy] = dirTo(e, tg.x, tg.y); e.chg = { aim: true, t: 0.65, dx, dy }; e.mt = 7; e.row = runRow(tg.x - e.x, tg.y - e.y); say(r, e, 2);
+      return true;
+    }
+  },
+  mremireh(r, e) {
+    if (!e.act && e.mt <= 0 && !(e.silT > 0) && r.ents.size < 26) { e.mt = 10; say(r, e, 3); act(e, 1.0, 0.6, () => raise(r, e, 2), true); return true; }
+  },
+  warrok(r, e, d) {
+    if (!e.act && e.mt <= 0 && d < 200) { e.mt = 5; tele(r, e.x, e.y, 150, 0.75, 34 * e.dm); act(e, 0.85, 2, () => {}); return true; }
+  },
+  // ---- боссы миров ----
+  mutant(r, e, d) {
+    if (e.phase >= 2 && !e.act && e.mt <= 0 && d < 520) {
+      e.mt = e.phase >= 3 ? 7 : 11; say(r, e, 4);
+      act(e, 1.1, 0.45, () => {
+        for (const p of r.ents.values()) if (p.player && alive(p) && gdist(p, e) < 520) { slow(p, 0.5, 2.5); ev(r, EV.SAY, p.id, 10 + 13); }
+        ev(r, EV.QUAKE, e.x, e.y, 260);
+      }, true);
+      return true;
+    }
+  },
+  maw(r, e, d, tg) {
+    if (!e.act && e.mt <= 0 && d < 900) {
+      e.mt = e.phase >= 2 ? 7 : 10; say(r, e, 5);
+      act(e, 1.0, 0.4, () => {
+        const n = e.phase >= 3 ? 5 : 3;
+        for (let i = 0; i < n; i++) { const a = rnd(0, 6.283), rr = i ? rnd(80, 220) : 0; tele(r, tg.x + Math.cos(a) * rr, tg.y + Math.sin(a) * rr * YK, 95, 1.0 + i * 0.35, 22 * e.dm, false, { slow: 1 }); }
+      }, true);
+      return true;
+    }
+  },
+  pumpkin(r, e, d) {
+    if (!e.act && e.mt <= 0 && d < 520) {
+      e.mt = e.phase >= 2 ? 8 : 11; say(r, e, 6);
+      act(e, 1.3, 0.3, () => { [[150, 0.6], [270, 1.0], [400, 1.45]].forEach(([R, t], i) => tele(r, e.x, e.y, R, t, (30 - i * 6) * e.dm, i === 2)); }, true);
+      return true;
+    }
+    if (e.phase >= 3 && !e.act && e.mt2 <= 0 && r.ents.size < 22) { e.mt2 = 14; say(r, e, 7); act(e, 1.0, 0.5, () => raise(r, e, 3, 'goblin'), true); return true; }
+  },
+  demon(r, e, d, tg) {
+    if (e.act) return;
+    if (e.phase >= 3 && e.mt2 <= 0 && d > 350) {
+      e.mt2 = 9; const [dx, dy] = dirTo(e, tg.x, tg.y);
+      ev(r, EV.QUAKE, e.x, e.y, 90);
+      e.x = tg.x + dx * 150; e.y = tg.y + dy * 150 * YK; NET.collide(e);
+      ev(r, EV.QUAKE, e.x, e.y, 90); say(r, e, 8);
+    }
+    if (e.phase >= 2 && e.mt3 <= 0) {
+      e.mt3 = 7;
+      act(e, 0.9, 0.55, () => { for (let i = 0; i < 12; i++) { const a = i / 12 * 6.283; fireball(r, e, Math.cos(a), Math.sin(a), 24 * e.dm, 420); } }, true);
+      return true;
+    }
+    if (e.mt <= 0 && d < 1000) {
+      e.mt = 9; say(r, e, 9);
+      act(e, 1.2, 0.35, () => { for (let i = 0; i < 6; i++) { const a = rnd(0, 6.283), rr = i ? rnd(60, 260) : 0; tele(r, tg.x + Math.cos(a) * rr, tg.y + Math.sin(a) * rr * YK, 90, 0.9 + i * 0.22, 30 * e.dm); } }, true);
+      return true;
+    }
+  },
+};
 function updateEnemy(r, e) {
-  e.atkCd -= DT; e.slamCd -= DT; e.quakeCd -= DT; e.leapCd -= DT; e.summonCd -= DT;
+  e.atkCd -= DT; e.slamCd -= DT; e.quakeCd -= DT; e.leapCd -= DT; e.summonCd -= DT; e.mt -= DT; e.mt2 -= DT; e.mt3 -= DT;
+  if (e.arm > 0) e.arm -= DT;
   if (e.slowT > 0) e.slowT -= DT;
   if (e.silT > 0) e.silT -= DT;
+  e.moving = false;
   if (e.kb) { const q = Math.min(DT, e.kb.t); e.x += e.kb.vx * q; e.y += e.kb.vy * q; e.kb.t -= DT; NET.collide(e); if (e.kb.t <= 0) e.kb = null; return; }
-  if (e.root > 0) { e.root -= DT; e.act = null; if (e.dot) { e.dotAcc = (e.dotAcc || 0) + e.dot * DT; if (e.dotAcc >= 15) { hurt(r, e, e.dotAcc, e.dotSrc, 1); e.dotAcc = 0; } } return; }
+  if (e.root > 0) { e.root -= DT; e.act = null; if (e.leap) { e.leap = null; e.jump = 0; NET.collide(e); } if (e.dot) { e.dotAcc = (e.dotAcc || 0) + e.dot * DT; if (e.dotAcc >= 15) { hurt(r, e, e.dotAcc, e.dotSrc, 1); e.dotAcc = 0; } } return; }
   const sk = e.slowT > 0 ? e.slowK : 1;
+  if (e.boss) {
+    // фазы босса: ниже 60 % — новые приёмы, ниже 25 % — все сразу и чаще
+    const ph = e.hp < e.max * 0.25 ? 3 : e.hp < e.max * 0.6 ? 2 : 1;
+    if (ph > e.phase) { e.mt = Math.min(e.mt, 1); say(r, e, ph === 2 ? 10 : 11); e.phase = ph; }
+  }
   // цель — ближайший живой герой
   let tg = null, bd = 1e9;
   for (const p of r.ents.values()) if (p.player && alive(p)) { const d = gdist(p, e); if (d < bd) { bd = d; tg = p; } }
@@ -279,13 +532,17 @@ function updateEnemy(r, e) {
     return;
   }
   if (!tg) return;
+  const m = MECH[e.kind];
+  if (m && !(e.silT > 0 && !e.boss) && m(r, e, bd, tg) === true) return;
   const ang = Math.atan2(tg.y - e.y, tg.x - e.x) * 180 / Math.PI;
   if (Math.abs(((ang - (e.row * 45 + 90) + 540) % 360) - 180) > 30) e.row = runRow(tg.x - e.x, tg.y - e.y);
   const k = e.k, d = bd, sp = e.speed * sk;
-  let dx = tg.x - e.x, dy = (tg.y - e.y) / YK; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m;
+  let dx = tg.x - e.x, dy = (tg.y - e.y) / YK; const mm = Math.hypot(dx, dy) || 1; dx /= mm; dy /= mm;
   const want = k.rng ? k.want : e.boss ? 105 : k.reach - 10;
-  e.moving = d > want;
-  if (e.moving) { e.x += dx * sp * DT; e.y += dy * sp * YK * DT; NET.collide(e); }
+  if (d > want) {
+    const nv = navDir(r, e, tg), mx = nv ? nv[0] : dx, my = nv ? nv[1] : dy;
+    e.x += mx * sp * DT; e.y += my * sp * YK * DT; NET.collide(e); e.moving = true;
+  }
   if (k.mel && d < k.reach + 12 && e.atkCd <= 0) {
     e.atkCd = k.cd;
     act(e, 0.5, 0.55, t => { if (t && alive(t) && gdist(t, e) < k.reach + 34) hurt(r, t, rnd(k.dmg[0], k.dmg[1]) * e.dm, e); });
@@ -294,24 +551,23 @@ function updateEnemy(r, e) {
     e.atkCd = k.cd;
     act(e, 0.55, 0.5, t => {
       if (!t) return;
-      let ax = t.x - e.x, ay = (t.y - e.y) / YK; const mm = Math.hypot(ax, ay) || 1;
-      shoot(r, e, k.bolt ? 'bolt' : 'fire', ax / mm, ay / mm, null, rnd(k.dmg[0], k.dmg[1]) * e.dm, k.shot, k.want + 150);
+      let ax = t.x - e.x, ay = (t.y - e.y) / YK; const q = Math.hypot(ax, ay) || 1;
+      const s = shoot(r, e, k.bolt ? 'bolt' : 'fire', ax / q, ay / q, null, rnd(k.dmg[0], k.dmg[1]) * e.dm, k.shot, k.want + 150);
+      if (e.kind === 'zlorp') s.slowHit = true;
     });
   }
   if (e.boss && !(e.silT > 0)) {
     if (!e.rage && e.hp < e.max * 0.4) { e.rage = true; e.speed *= 1.35; ev(r, EV.SAY, e.id, 2); }
-    const cdk = e.rage ? 0.65 : 1;
-    if (e.summonCd <= 0 && r.ents.size < 18) {
+    const cdk = e.rage ? 0.65 : 1, R = ROSTER[r.world] || ROSTER[1];
+    if (e.summonCd <= 0 && r.ents.size < 22) {
       e.summonCd = 17 * cdk;
-      act(e, 1.2, 0.55, () => { for (let i = 0; i < 3; i++) { const a = rnd(0, 6.283); spawnEnemy(r, 'min', e.x + Math.cos(a) * 110, e.y + Math.sin(a) * 110 * YK); } ev(r, EV.SAY, e.id, 3); }, true);
+      act(e, 1.2, 0.55, () => { raise(r, e, 3, R.mel[0]); ev(r, EV.SAY, e.id, 3); }, true);
     } else if (e.quakeCd <= 0) {
       e.quakeCd = 12 * cdk;
       act(e, 1.3, 0.25, t => { if (t) tele(r, t.x, t.y, 290, 1.6, 120 * e.dm, true); }, true);
     } else if (d > 300 && d < 900 && e.leapCd <= 0) {
       e.leapCd = 8 * cdk;
-      tele(r, tg.x, tg.y, 175, 0.95, 70 * e.dm);
-      e.leap = { x0: e.x, y0: e.y, x1: tg.x, y1: tg.y, t: 0, dur: 0.95 };
-      act(e, 1.0, 2, () => {});
+      leapTo(r, e, tg.x, tg.y, 0.95, 175, 70 * e.dm);
     } else if (d < 150 && e.slamCd <= 0) {
       e.slamCd = 2.6 * cdk;
       tele(r, e.x, e.y, 155, 0.75, 55 * e.dm);
@@ -323,6 +579,7 @@ function updateEnemy(r, e) {
 // ---------- тик комнаты ----------
 function step(r) {
   r.tick++;
+  NET.useMap(r.map.walk, r.map.solid);     // у комнаты своя карта (мир)
   const players = [...r.ents.values()].filter(e => e.player);
   for (const p of players) {
     // ввод: каждый принятый пакет — один тик движения клиента; не больше 4 за тик сервера (защита от ускорения)
@@ -341,7 +598,7 @@ function step(r) {
       if (pressed & NET.B_E) cast(r, p, 'e');
       if (pressed & NET.B_F) cast(r, p, 'f');
       if (pressed & NET.B_R) cast(r, p, 'r');
-      if ((pressed & NET.B_WAVE) && r.mode === 'coop' && r.phase === 0) spawnWave(r);
+      if ((pressed & NET.B_WAVE) && r.mode === 'coop' && r.phase === 0 && r.worldT <= 0) startRound(r);
     }
     for (const k in p.cd) if (p.cd[k] > 0) p.cd[k] = Math.max(0, p.cd[k] - DT);
     // скорость, с которой герой идёт сейчас (её же получает клиент для предсказания)
@@ -358,7 +615,7 @@ function step(r) {
       if (p.dead <= 0) { const s = spawnPoint(r, p.team); p.dead = 0; p.x = NET.qpos(s.x); p.y = NET.qpos(s.y); p.hp = p.max; p.mp = p.maxMp; ev(r, EV.SAY, p.id, 4); }
       continue;
     }
-    p.hp = Math.min(p.max, p.hp + 5 * DT);
+    p.hp = Math.min(p.max, p.hp + (p.hpReg || 5) * DT);
     p.mp = Math.min(p.maxMp, p.mp + p.mpRegen * (r.mode === 'coop' && r.phase === 0 ? 3 : 1) * DT);
     if ((p.btn & NET.B_ATK) && p.atkCd <= 0) attack(r, p);
     if (p.ult > 0) {
@@ -366,6 +623,10 @@ function step(r) {
       while (p.ultTick <= 0) { p.ultTick += 0.11; const a = rnd(0, 6.283), rr = rnd(90, 400); shard(r, p, p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr * YK, 100, 60 * p.ultMul, 0.4, 2); }
     }
   }
+  if (r.mode === 'coop') { runRound(r); navField(r); }
+  if (r.worldT > 0 && (r.worldT -= DT) <= 0) setWorld(r, BAL.at(r.wave + 1).M);
+  // дуэль: опыт идёт со временем, чтобы было что прокачивать между схватками
+  if (r.mode === 'duel' && (r.duelT += DT) >= 4) { r.duelT = 0; ev(r, EV.LVL, 12, 0); }
   for (const e of r.ents.values()) if (!e.player && alive(e)) updateEnemy(r, e);
   // враги не слипаются
   const en = [...r.ents.values()].filter(e => !e.player && alive(e));
@@ -378,7 +639,7 @@ function step(r) {
   for (const z of r.zones) {
     z.t -= DT;
     if (z.tele) {
-      if (z.t <= 0) { for (const p of r.ents.values()) if (p.player && alive(p) && gdist(z, p) < z.R) hurt(r, p, z.dmg, null); ev(r, EV.QUAKE, z.x, z.y, z.R); }
+      if (z.t <= 0) { for (const p of r.ents.values()) if (p.player && alive(p) && gdist(z, p) < z.R) { hurt(r, p, z.dmg, null); if (z.slow) slow(p, 0.7, 1.5); } ev(r, EV.QUAKE, z.x, z.y, z.R); }
       continue;
     }
     z.tick -= DT;
@@ -393,15 +654,12 @@ function step(r) {
   r.shards = r.shards.filter(s => s.t > 0);
   // погибшие враги исчезают через 2,2 с (клиент успевает показать падение)
   for (const e of [...r.ents.values()]) if (!e.player && e.hp <= 0) { e.dieT += DT; if (e.dieT > 2.2) r.ents.delete(e.id); }
-  if (r.mode === 'coop' && r.phase === 1 && ![...r.ents.values()].some(e => !e.player && e.hp > 0)) {
-    r.phase = 0; ev(r, EV.WAVE_END, r.wave, BAL.waveGold(r.wave));
-  }
   recordHistory(r);
   // рассылка: флаги и доп. поле, затем снимок каждому клиенту (дельта к тому, что он уже знает) и события
   for (const e of r.ents.values()) {
     e.flags = (e.dead > 0 || e.hp <= 0 ? NET.F_DEAD : 0) | (e.root > 0 ? NET.F_ROOT : 0) | (e.silT > 0 ? NET.F_SIL : 0) | (e.slowT > 0 ? NET.F_SLOW : 0) |
       (e.shieldT > 0 ? NET.F_SHIELD : 0) | ((e.castT > 0 || (e.act && e.act.cast)) ? NET.F_CAST : 0) | ((e.atkT > 0 || (e.act && !e.act.cast)) ? NET.F_ATK : 0) | (e.rage ? NET.F_RAGE : 0);
-    e.ex = e.player ? (e.focus & 15) | ((e.kills & 255) << 8) | (e.ult > 0 ? 16 : 0) | (e.moving ? 32 : 0) | (e.running ? 64 : 0) : Math.round(e.jump || 0) | (e.moving ? 1024 : 0);
+    e.ex = e.player ? (e.focus & 15) | ((e.kills & 255) << 8) | (e.ult > 0 ? 16 : 0) | (e.moving ? 32 : 0) | (e.running ? 64 : 0) : Math.min(1023, Math.round(e.jump || 0)) | (e.moving ? 1024 : 0) | (e.elite ? 2048 : 0);
   }
   const ents = [...r.ents.values()];
   const evBuf = r.events.length ? NET.encEvents(r.events) : null;
@@ -439,12 +697,19 @@ function onMessage(c, data, isBin) {
       const p = addPlayer(r, c, m.hero, m.prog);
       p.name = String(m.name || 'Игрок').slice(0, 16);
       c.room = r; c.player = p; c.base = new Map(); r.clients.add(c);
-      c.ws.send(JSON.stringify({ t: 'joined', id: p.id, room: r.code, mode, team: p.team, tick: r.tick, rate: TICK,
+      c.ws.send(JSON.stringify({ t: 'joined', id: p.id, room: r.code, mode, team: p.team, tick: r.tick, rate: TICK, world: r.world,
         players: [...r.clients].map(x => ({ id: x.player.id, name: x.player.name, hero: x.player.kind })) }));
       for (const x of r.clients) if (x !== c) x.ws.send(JSON.stringify({ t: 'peer', id: p.id, name: p.name, hero: p.kind }));
       log('join', r.code, mode, p.name, p.kind, 'игроков', r.clients.size);
     } else if (m.t === 'prog' && c.player) {
       c.player.prog = cleanProg(m.prog || {}); heroStats(c.player);
+    } else if (m.t === 'use' && c.player && alive(c.player)) {
+      const p = c.player, now = Date.now();
+      if (now - (p.useAt || 0) < 400) return;      // не чаще 2,5 раза в секунду
+      p.useAt = now;
+      if (m.id === 'heal') { const h = Math.min(280, p.max - p.hp); p.hp += h; ev(c.room, EV.HEAL, p.id, h, 0); }
+      else if (m.id === 'mana') { const h = Math.min(220, p.maxMp - p.mp); p.mp += h; ev(c.room, EV.HEAL, p.id, h, 1); }
+      else if (m.id === 'frost') { for (const k in p.cd) p.cd[k] = 0; }
     }
     return;
   }

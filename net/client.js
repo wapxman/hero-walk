@@ -5,7 +5,10 @@
 var NETC = { on: false };
 (function () {
   const N = NET;
-  N.setMap(WALK, DEFAULT_OBJ);     // сервер считает столкновения по карте по умолчанию — предсказание обязано по ней же
+  // предсказание движения обязано считать столкновения по той же карте, что сервер: мир 1 — карта по умолчанию,
+  // миры 2–4 — WALK и SOLID, которые выставил applyWorld (worlds.js)
+  const syncMap = () => { if (WORLD === 1) N.setMap(WALK, DEFAULT_OBJ); else N.useMap(WALK, SOLID); };
+  syncMap();
   // адрес сервера: ?server=ws://… или по умолчанию тот же компьютер, порт 8790 (локальная проверка)
   const PROD_URL = 'wss://abpartners.uz:30777';   // боевой сервер: хостинг abpartners.uz (webspace.uz, Ташкент)
   const qs = new URLSearchParams(location.search);
@@ -85,18 +88,24 @@ var NETC = { on: false };
     ws.onclose = () => { if (NETC.on) { status('Связь с сервером потеряна'); NETC.on = false; } else status('Сервер недоступен (' + SERVER + ')'); };
     ws.onerror = () => {};
   }
-  const progOf = () => ({ lvl: P.lvl, st: P.st, sk: P.skLv });
+  // уровень, очки и предметы: сервер считает урон, здоровье и ману героя по ним же (it — как SHOP.recompute)
+  const progOf = () => ({ lvl: P.lvl, st: P.st, sk: P.skLv,
+    it: Object.assign(bagStats(), { pow: SHOP.buffs.power > 0 ? 1 : 0, swift: SHOP.buffs.swift > 0 ? 1 : 0 }) });
   function onJson(m) {
     if (m.t === 'joined') {
       S.myId = m.id; S.room = m.room; S.modeOn = m.mode; S.team = m.team;
       for (const p of m.players) S.names[p.id] = p;
       NETC.on = true;
       document.getElementById('hSel').style.display = 'none';
+      const mm = document.getElementById('mMain'); if (mm) mm.style.display = 'none';
       enemies.length = 0; corpses.length = 0; shots.length = 0; fx.length = 0; zones.length = 0; texts.length = 0;
       SHOP.drops.length = 0; SHOP.closeShop();
       S.pending = []; S.seq = 0; S.clkOk = false; S.known.clear(); S.views.clear(); S.cur = null;
       wave = 0; SHOP.phase = 'rest'; SHOP.refresh();
       for (const id in HEROES) loadHero(HEROES[id].def);      // соперник может играть другим героем
+      // мир комнаты: в кооперативе друзья могли уже уйти дальше; дуэль — всегда на первой арене
+      if (WORLD !== (m.world || 1)) applyWorld(m.world || 1);
+      syncMap(); S.cur = null;
       say(P.x, P.y - CH * 1.3 * HS(), m.mode === 'duel' ? 'Дуэль! Комната ' + m.room : 'Кооператив, комната ' + m.room, '#ffe9a8');
     } else if (m.t === 'peer') { S.names[m.id] = m; say(P.x, P.y - CH * 1.2 * HS(), (m.name || 'Игрок') + ' в комнате', '#bfe6ff'); }
     else if (m.t === 'left') { S.views.delete(m.id); say(P.x, P.y - CH * 1.2 * HS(), 'Игрок вышел', '#ffd28a'); }
@@ -162,7 +171,10 @@ var NETC = { on: false };
     if (hero) {
       v.ch = { ok: true, top: 1.5, U: 118 }; v.rad = 22; v.sc = 1; v.k = {}; v.draw = () => drawHeroView(v);
     } else {
-      const k = KIND[f.kind]; v.ch = CHARS[k.ch]; v.rad = k.rad; v.sc = k.sc || 1; v.k = k; v.boss = f.kind === 'boss';
+      const k = KIND[f.kind], el = !!(f.ex & 2048); needChar(CHARS[k.ch]);
+      v.ch = CHARS[k.ch]; v.k = k; v.type = f.kind; v.boss = !!k.boss; v.elite = el;
+      v.sc = (k.sc || 1) * (el ? BAL.ELITE.size : 1); v.rad = k.rad * (el ? BAL.ELITE.size : 1);
+      v.bob = rnd(0, 6); v.col = k.col; v.eye = k.boss ? '#ffb347' : '#ffe27a';
       v.draw = () => drawEnemy(v);
     }
     return v;
@@ -175,7 +187,7 @@ var NETC = { on: false };
     if ((atk || cast) && !v.act) v.act = { t: 0, dur: cast ? (v.boss ? 1.2 : 0.6) : 0.5, cast }, v.anim = cast ? 'cast' : 'atk';
     if (!atk && !cast && v.act) v.act = null;
     if (v.hero) { v.ult = f.ex & 16; v.focus = f.ex & 15; v.kills = f.ex >> 8; v.moving = !!(f.ex & 32); v.running = !!(f.ex & 64); v.shield = f.flags & N.F_SHIELD; v.dead = f.flags & N.F_DEAD; }
-    else { v.jump = f.ex & 1023; v.moving = !!(f.ex & 1024); }
+    else { v.jump = f.ex & 1023; v.moving = !!(f.ex & 1024); v.elite = !!(f.ex & 2048); }
     if ((f.flags & N.F_DEAD) && v.dieT == null && !v.hero) { v.dieT = 0; v.anim = 'die'; v.act = null; }
   }
 
@@ -205,13 +217,19 @@ var NETC = { on: false };
         const [, id, dmg, col] = e, v = viewOf(id);
         if (!v) continue;
         const top = v === P ? CH * 1.05 * HS() : (v.ch && v.ch.ok ? v.ch.top * v.ch.U * (v.sc || 1) * 0.8 : 60);
-        say(v.x + rnd(-14, 14), v.y - top, (v === P ? '-' : '') + Math.round(dmg), v === P ? '#ff8a7a' : col === 2 ? '#d9ffb0' : '#bfe6ff');
+        say(v.x + rnd(-14, 14), v.y - top, (v === P ? '-' : '') + Math.round(dmg), v === P ? '#ff8a7a' : col === 3 ? '#ffd23a' : col === 2 ? '#d9ffb0' : '#bfe6ff');
         if (v === P) { P.hurt = 0.25; vo('hurt', 0.25, 3); } else v.flash = 0.08;
       } else if (t === E.DIE) {
         const [, id] = e, v = viewOf(id);
         if (v === P) { P.dead = 3; snd('hero_death', 0.75); }
-        else if (v && !v.hero) { v.dieT = 0; v.anim = 'die'; v.act = null; snd('enemy_death', v.boss ? 1 : 0.45); snd('coins', 0.4); if (e[2] === S.myId) kills++; }
-        else if (v) { v.dead = 1; snd(v.kind === 'archer' ? 'archer_death' : 'hero_death_1', 0.6); }
+        else if (v && !v.hero) {
+          v.dieT = 0; v.anim = 'die'; v.act = null; snd('enemy_death', v.boss ? 1 : 0.45);
+          if (e[2] === S.myId) { kills++; SHOP.onKill(v); }      // золото, сундук и фласки — тому, кто добил
+        }
+        else if (v) {
+          v.dead = 1; snd(v.kind === 'archer' ? 'archer_death' : 'hero_death_1', 0.6);
+          if (e[2] === S.myId) { SHOP.addGold(150); say(P.x, P.y - CH * HS() * 1.3, 'Победа в схватке: +150 золота', '#ffd95e'); snd('coins', 0.6); }
+        }
       } else if (t === E.CAST) {
         const [, owner, sk, a, b, c] = e, ov = viewOf(owner), mine = owner === S.myId;
         const [hero, slot] = SK_OF[sk] || [];
@@ -231,10 +249,24 @@ var NETC = { on: false };
       } else if (t === E.QUAKE) {
         fx.push({ type: 'quake', x: e[1], y: e[2], t: 0, dur: 0.75, R: e[3] }); snd('boss_slam', 0.85);
       } else if (t === E.WAVE_START) {
-        say(P.x, P.y - CH * 1.3 * HS(), e[2] ? 'Волна ' + e[1] + ' — БОСС' : 'Волна ' + e[1], e[2] ? '#ff9a6a' : '#ffe9a8'); snd('wave_horn', 0.8);
+        say(P.x, P.y - CH * 1.3 * HS(), e[2] ? 'Волна ' + e[1] + ' — БОСС МИРА' : 'Волна ' + e[1] + (e[3] ? '' : '  · дальше без передышки'), e[2] ? '#ff9a6a' : '#ffe9a8'); snd('wave_horn', 0.8);
       } else if (t === E.WAVE_END) {
-        say(P.x, P.y - CH * HS() * 1.35, 'Волна ' + e[1] + ' отбита', '#ffe9a8');
+        // раунд отбит: награда за все его волны — каждому игроку
+        SHOP.addGold(e[2]); snd('coins', 0.6);
+        say(P.x, P.y - CH * HS() * 1.35, (e[3] ? 'Мир ' + BAL.at(e[1]).M + ' пройден!' : 'Раунд отбит') + '  +' + e[2] + ' золота', '#ffe9a8');
+      } else if (t === E.WORLD) {
+        // следующий мир: затемнение, новая карта, герой у базы (позицию пришлёт сервер)
+        const a = BAL.at(wave + 1);
+        FADE.innerHTML = '<div>' + WORLDS[e[1] - 1].name + '</div><div style="font-size:2.6vh;opacity:.85;margin-top:1vh">мир ' + e[1] + (e[2] > 1 ? ' · круг ' + e[2] : '') + '</div>';
+        FADE.style.transition = 'none'; FADE.style.opacity = '1';
+        applyWorld(e[1]); syncMap(); S.cur = null; S.pending = []; shots.length = 0; zones.length = 0; fx.length = 0;
+        setTimeout(() => { FADE.style.transition = 'opacity .9s'; FADE.style.opacity = '0'; }, 1300);
+        snd('wave_horn', 0.9, 0.8);
+      } else if (t === E.HEAL) {
+        const v = viewOf(e[1]);
+        if (v === P) say(P.x, P.y - CH * HS() * 1.1, '+' + e[2] + (e[3] ? ' маны' : ''), e[3] ? '#8ab8ff' : '#7dff8a');
       } else if (t === E.LVL) {
+        if (e[2] && e[2] !== S.myId) continue;     // опыт за победу в дуэли — только победителю
         const lv = P.lvl; gainXp(e[1]);
         if (P.lvl !== lv) sendProg();
       } else if (t === E.SAY) {
@@ -245,6 +277,7 @@ var NETC = { on: false };
         else if (code === 2) { say(v.x, v.y - top, 'ЯРОСТЬ!', '#ff5a3a'); snd('boss_roar', 1); }
         else if (code === 3) { say(v.x, v.y - top, 'Ко мне!', '#ffb36a'); snd('boss_roar', 0.8, 1.12); }
         else if (code === 4 && v === P) { P.dead = 0; }
+        else if (code >= 10 && N.PHRASES[code - 10]) { const [txt, col] = N.PHRASES[code - 10]; say(v.x, v.y - top, txt, col); if (code === 14) snd('boss_roar', 1, 0.9); }
       }
     }
   }
@@ -269,8 +302,19 @@ var NETC = { on: false };
     if (!NETC.on) return _startWave();
     if (S.modeOn === 'coop' && SHOP.phase === 'rest') S.latch |= N.B_WAVE;
   };
-  const _openShop = SHOP.openShop;
-  SHOP.openShop = function () { if (NETC.on) { say(P.x, P.y - CH * HS() * 1.3, 'В онлайне магазина пока нет', '#ffd28a'); return; } _openShop(); };
+  // магазин работает и в онлайне: золото и сумка — у игрока, а характеристики от предметов уходят на сервер
+  const _recompute = SHOP.recompute;
+  SHOP.recompute = function () { _recompute(); if (NETC.on) sendProg(); };
+  // фласки лечения, маны и холода применяет сервер; скорость и сила — бафф у игрока (уходит вместе с предметами)
+  const _use = SHOP.use;
+  SHOP.use = function (id) {
+    if (!NETC.on || (id !== 'heal' && id !== 'mana' && id !== 'frost')) return _use(id);
+    if (P.dead > 0 || !SHOP.flasks[id]) return;
+    if ((id === 'heal' && P.hp >= P.maxHp) || (id === 'mana' && P.mp >= P.maxMp)) return;
+    if (S.ws && S.ws.readyState === 1) S.ws.send(JSON.stringify({ t: 'use', id }));
+    if (id === 'frost') { for (const k in P.cd) P.cd[k] = 0; say(P.x, P.y - CH * HS() * 1.1, 'Скиллы готовы', '#bfe6ff'); }
+    SHOP.flasks[id]--; SHOP.refresh(); snd('flask', 0.7);
+  };
 
   // ---------- кадр онлайн-игры ----------
   NETC.frame = function (dt, paused) {
@@ -309,10 +353,13 @@ var NETC = { on: false };
     // пинг раз в секунду
     if (S.ws && S.ws.readyState === 1 && performance.now() - S.pingT > 1000) { S.pingT = performance.now(); S.ws.send(N.encPing(S.pingT)); }
     if (!paused) { localUpdate(dt); heroVoiceTick(); }
-    SHOP.hud();
+    if (!paused) SHOP.tick(dt); else SHOP.hud();     // дроп монет, сундуков и фласок, время баффов, панель
     const mode = S.modeOn === 'duel' ? 'Дуэль' : 'Вместе', other = [...S.views.values()].filter(v => v.hero);
     let line = mode + ' · комната ' + S.room + ' · пинг ' + Math.round(S.rtt) + ' мс · игроков ' + (1 + other.length);
     if (S.modeOn === 'duel') {
+      // в дуэли золото капает со временем (2 в секунду) — на магазин между схватками
+      S.goldAcc = (S.goldAcc || 0) + dt * 2;
+      if (S.goldAcc >= 1) { const g = Math.floor(S.goldAcc); S.goldAcc -= g; SHOP.gold += g; }
       line += ' · счёт ' + (P.kills || 0) + ' : ' + (other[0] ? other[0].kills || 0 : 0);
       // в дуэли вместо волн — счёт на табличке
       const E = SHOP.el, txt = 'ДУЭЛЬ  ' + (P.kills || 0) + ' : ' + (other[0] ? other[0].kills || 0 : 0);

@@ -100,7 +100,7 @@
   function hideMain() { main.style.display = 'none'; }
   // магазин из меню: после закрытия — обратно в меню, пока бой не начат
   const _close = SHOP.closeShop;
-  SHOP.closeShop = function () { _close(); if (wave === 0 && !started) showMain(); };
+  SHOP.closeShop = function () { _close(); if (wave === 0 && !started && !NETC.on) showMain(); };
   let started = false;
   sel.querySelector('.go').addEventListener('pointerdown', () => { started = true; });
   const _start = SHOP.startWave;
