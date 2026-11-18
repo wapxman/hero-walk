@@ -51,15 +51,18 @@ const SHOP = {
   // ----- волны -----
   startWave() {
     if (SHOP.phase !== 'rest' || P.dead > 0) return;
+    SHOP.roundFrom = wave + 1;
     SHOP.closeShop(); spawnWave(); SHOP.phase = 'fight'; SHOP.refresh();
     snd('wave_horn', 0.8);
   },
   tick(dt) {
     for (const k in SHOP.buffs) if (SHOP.buffs[k] > 0) { SHOP.buffs[k] -= dt; if (SHOP.buffs[k] <= 0) { SHOP.buffs[k] = 0; SHOP.recompute(); } }
-    if (SHOP.phase === 'fight' && !enemies.length) {
+    if (SHOP.phase === 'fight' && !enemies.length && !(typeof roundActive === 'function' && roundActive())) {
       SHOP.phase = 'rest'; SHOP.restT = 1.3;
-      const bonus = BAL.waveGold(wave); SHOP.addGold(bonus);
-      say(P.x, P.y - CH * HS() * 1.35, 'Волна ' + wave + ' отбита  +' + bonus, '#ffe9a8');
+      // награда — за каждую волну раунда
+      let bonus = 0; for (let w = SHOP.roundFrom || wave; w <= wave; w++) bonus += BAL.waveGold(w);
+      SHOP.addGold(bonus);
+      say(P.x, P.y - CH * HS() * 1.35, 'Раунд отбит  +' + bonus, '#ffe9a8');
       SHOP.refresh();
     }
     if (SHOP.restT > 0) { SHOP.restT -= dt; if (SHOP.restT <= 0 && SHOP.phase === 'rest' && wave > 0 && P.dead <= 0) SHOP.openShop(); }

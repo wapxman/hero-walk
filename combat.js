@@ -444,19 +444,56 @@ function spawnEnemy(type) {
   e.draw = () => drawEnemy(e);
   enemies.push(e);
 }
-function spawnWave() {
-  wave++;
-  const bossWave = wave % 3 === 0;
-  // на волне босса свиты меньше: главный противник — он сам
-  const nm = Math.round(Math.min(3 + wave, 9) * (bossWave ? 0.5 : 1));
-  const R = rosterOf(wave);
-  for (let i = 0; i < nm; i++) spawnEnemy(wave >= 2 ? R.mel[i % R.mel.length] : 'min');
-  const nr = Math.round(Math.min(1 + Math.floor(wave / 2), 4) * (bossWave ? 0.5 : 1));
-  for (let i = 0; i < nr; i++) spawnEnemy(R.rng[(i + wave) % R.rng.length]);
-  for (let i = 0; i < BAL.elites(wave); i++) spawnEnemy(R.elite[(i + wave) % R.elite.length]);
-  if (bossWave) spawnEnemy(R.boss);
-  say(P.x, P.y - CH * 1.3 * HS(), bossWave ? 'Волна ' + wave + ' — БОСС' : 'Волна ' + wave, bossWave ? '#ff9a6a' : '#ffe9a8');
+// ---------- раунды ----------
+// Раунд — несколько волн подряд без перерыва на магазин: волны 1–3, 4–6, 7–9 мира, 10-я — босс мира один.
+// Враги не появляются все сразу: выходят группами по 1–3 из разных входов карты (SPAWNS), на арене одновременно
+// не больше MAX_ALIVE. Следующая волна раунда начинается, когда очередь пуста и живых осталось двое-трое.
+const ROUND = { queue: [], relT: 0, nextT: 0, endW: 0 };
+const MAX_ALIVE = 16;
+function roundEnd(n) { const W = BAL.at(n).W; return W >= 10 ? n : n + 2 - (W - 1) % 3; }
+function spawnWave() { ROUND.endW = roundEnd(wave + 1); nextWave(); }
+function nextWave() {
+  wave++; ROUND.nextT = 0; ROUND.relT = 0.4;
+  const a = BAL.at(wave), R = rosterOf(wave), q = [];
+  if (a.W === 10) q.push(R.boss);
+  else {
+    const n = BAL.count(wave), nr = Math.round(n * 0.25);
+    for (let i = 0; i < n - nr; i++) q.push(wave === 1 && i < 6 ? 'min' : R.mel[i % R.mel.length]);
+    for (let i = 0; i < nr; i++) q.push(R.rng[i % R.rng.length]);
+    for (let i = q.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [q[i], q[j]] = [q[j], q[i]]; }
+    // элита выходит ближе к концу волны, когда рядовые уже потрёпаны
+    for (let i = 0; i < BAL.elites(wave); i++) q.splice(Math.floor(q.length * (0.55 + 0.3 * i)), 0, R.elite[(i + wave) % R.elite.length]);
+  }
+  ROUND.queue = q;
+  for (const t of new Set(q)) needChar(CHARS[KIND[t].ch]);   // листы злодеев этой волны — заранее
+  const boss = a.W === 10, last = wave === ROUND.endW;
+  say(P.x, P.y - CH * 1.3 * HS(), boss ? 'Волна ' + wave + ' — БОСС МИРА' : 'Волна ' + wave + (last ? '' : '  · дальше без передышки'), boss ? '#ff9a6a' : '#ffe9a8');
+  if (wave > 1 && !boss) snd('wave_horn', 0.5, 1.1);
 }
+function pickSpawn() {
+  let s = 0; for (const p of SPAWNS) s += p.w;
+  let r = Math.random() * s;
+  for (const p of SPAWNS) { r -= p.w; if (r <= 0) return p; }
+  return SPAWNS[0];
+}
+// выпуск врагов из очереди и переход к следующей волне раунда
+function runTick(dt) {
+  if (ROUND.queue.length) {
+    ROUND.relT -= dt;
+    if (ROUND.relT <= 0 && enemies.length < MAX_ALIVE) {
+      const sp = pickSpawn(), n = Math.min(ROUND.queue.length, 1 + Math.floor(Math.random() * 3));
+      for (let i = 0; i < n; i++) {
+        spawnEnemy(ROUND.queue.shift()); const e = enemies[enemies.length - 1];
+        e.x = sp.x + rnd(-70, 70); e.y = sp.y + rnd(-40, 40); collide(e);
+      }
+      ROUND.relT = rnd(0.9, 1.8) * (enemies.length > 10 ? 1.4 : 1);
+    }
+  } else if (wave < ROUND.endW) {
+    let alive = 0; for (const e of enemies) if (!e.dieT) alive++;
+    if (alive <= 3 && (ROUND.nextT += dt) > 2.2) nextWave();
+  }
+}
+const roundActive = () => ROUND.queue.length > 0 || wave < ROUND.endW;
 // действие с замахом: анимация длится dur, удар срабатывает в момент at (доля от dur)
 function startAct(e, anim, dur, at, fn) { e.act = { anim, dur, at, fn, t: 0, hit: false }; e.anim = anim; e.animT = 0; }
 function updateEnemy(e, dt) {
@@ -586,6 +623,7 @@ function combatUpdate(dt) {
     }
   }
   // волну запускает игрок кнопкой; магазин, золото и дроп живут в shop.js
+  if (SHOP.phase === 'fight' && !(P.dead > 0)) runTick(dt);
   if (typeof SHOP !== 'undefined') SHOP.tick(dt);
 
   for (const e of enemies) updateEnemy(e, dt);
