@@ -310,7 +310,7 @@ function nextWave(r) {
   if (a.W === 10) q.push(R.boss);
   else {
     const n = Math.round(BAL.count(r.wave) * (1 + 0.5 * (nPlayers(r) - 1))), nr = Math.round(n * 0.25);
-    for (let i = 0; i < n - nr; i++) q.push(r.wave === 1 && i < 6 ? 'min' : R.mel[i % R.mel.length]);
+    for (let i = 0; i < n - nr; i++) q.push(R.mel[(r.wave === 1 && i < 6 ? 0 : i) % R.mel.length]);
     for (let i = 0; i < nr; i++) q.push(R.rng[i % R.rng.length]);
     for (let i = q.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [q[i], q[j]] = [q[j], q[i]]; }
     for (let i = 0; i < BAL.elites(r.wave); i++) q.splice(Math.floor(q.length * (0.55 + 0.3 * i)), 0, R.elite[(i + r.wave) % R.elite.length]);
