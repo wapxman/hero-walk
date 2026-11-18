@@ -504,8 +504,8 @@ const KIND = {
 const VARIANT = {
   // 1 Королевский замок
   cs_guard: ['drownedknight', 'Чёрный страж', 'grayscale(0.7) brightness(0.75) contrast(1.25)'],
-  cs_hound: ['shadowwolf', 'Замковый пёс', 'sepia(0.7) hue-rotate(-25deg) saturate(1.3)'],
-  cs_brute: ['boarbrute', 'Тюремщик', 'hue-rotate(-30deg) brightness(0.85) contrast(1.1)'],
+  cs_hound: ['shadowwolf', 'Замковый пёс', 'sepia(0.8) brightness(1.5) saturate(1.2)'],
+  cs_brute: ['boarbrute', 'Тюремщик', 'grayscale(0.5) brightness(0.8) contrast(1.2)'],
   cs_archer: ['hollowarcher', 'Призрачный арбалетчик', 'grayscale(0.6) brightness(1.15)'],
   el_castellan: ['el_drowned', 'Кастелян', 'grayscale(0.8) brightness(0.7) contrast(1.3)'],
   tb_blackknight: ['b_reaper', ['Чёрный Рыцарь', 'страж Королевского замка'], 'grayscale(0.9) brightness(0.6) contrast(1.4)'],
@@ -522,10 +522,10 @@ const VARIANT = {
   el_forgeman: ['el_salamander', 'Кузнечный страж', 'sepia(0.5) hue-rotate(-10deg) brightness(0.9)'],
   tb_forgegolem: ['b_ashlord', ['Горн-Голем', 'сердце Гномьих шахт'], 'sepia(0.8) hue-rotate(-15deg) brightness(1.05)'],
   // 6 Ледяные вершины
-  ic_wolf: ['shadowwolf', 'Ледяной волк', 'hue-rotate(190deg) saturate(0.7) brightness(1.35)'],
+  ic_wolf: ['shadowwolf', 'Ледяной волк', 'invert(0.8) hue-rotate(170deg) saturate(0.6) brightness(1.2)'],
   ic_bear: ['autumnbear', 'Снежный медведь', 'grayscale(0.75) brightness(1.45)'],
   ic_fox: ['werefox', 'Снежный лис', 'grayscale(0.6) brightness(1.3) hue-rotate(180deg)'],
-  ic_wisp: ['wisplantern', 'Морозный фонарщик', 'hue-rotate(60deg) brightness(1.15)'],
+  ic_wisp: ['wisplantern', 'Морозный фонарщик', 'saturate(0.4) brightness(1.4) hue-rotate(-30deg)'],
   ic_harpy: ['crowharpy', 'Снежная гарпия', 'grayscale(1) brightness(1.7)'],
   el_icebear: ['el_bear', 'Ледяной исполин', 'grayscale(0.6) brightness(1.4) hue-rotate(180deg)'],
   tb_frostqueen: ['b_thornqueen', ['Королева Вьюги', 'владычица Ледяных вершин'], 'hue-rotate(160deg) saturate(0.8) brightness(1.3)'],
@@ -545,7 +545,7 @@ const VARIANT = {
   el_seraph: ['el_salamander', 'Серафим-страж', 'hue-rotate(45deg) brightness(1.35) saturate(0.8)'],
   tb_skyjudge: ['b_voidmage', ['Небесный Судья', 'страж Небесного храма'], 'sepia(0.9) hue-rotate(-10deg) brightness(1.35) saturate(1.4)'],
   // 10 Бездна
-  ab_wolf: ['shadowwolf', 'Волк Бездны', 'hue-rotate(40deg) saturate(1.6)'],
+  ab_wolf: ['shadowwolf', 'Волк Бездны', 'hue-rotate(40deg) saturate(1.8) brightness(1.3)'],
   ab_ghoul: ['bogghoul', 'Пустотный упырь', 'hue-rotate(200deg) saturate(1.4) brightness(0.9)'],
   ab_knight: ['drownedknight', 'Рыцарь Бездны', 'hue-rotate(160deg) saturate(1.3)'],
   ab_wraith: ['cinderwraith', 'Призрак Бездны', 'hue-rotate(230deg) saturate(1.4)'],

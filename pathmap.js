@@ -158,7 +158,7 @@ const PATHMAP = (() => {
     }
     // фишка героя на пути (покачивается)
     const tk = im('token'), hp = at(st.tok);
-    if (ok(tk)) { const h = 92 * u * Math.sqrt(cam.z), w = h * tk.naturalWidth / tk.naturalHeight, b = Math.abs(Math.sin(T * (st.run ? 9 : 2.4))) * (st.run ? 8 : 3) * u; cx.drawImage(tk, g.X(hp.x) - w / 2, g.Y(hp.y) - h * 0.92 - b, w, h); }
+    if (ok(tk)) { const h = 92 * u * Math.sqrt(cam.z), w = h * tk.naturalWidth / tk.naturalHeight, b = Math.abs(Math.sin(T * (st.run ? 9 : 2.4))) * (st.run ? 8 : 3) * u; const nd = Math.abs(st.tok - Math.round(st.tok)) < 0.12 ? 34 * u * Math.sqrt(cam.z) : 0; cx.drawImage(tk, g.X(hp.x) - w / 2 + nd, g.Y(hp.y) - h * 0.92 - b - nd * 0.3, w, h); }   // у медальона — чуть в стороне
 
     // частицы: салют, лава, снег, Бездна, блики
     cx.globalCompositeOperation = 'lighter';
@@ -267,3 +267,5 @@ const PATHMAP = (() => {
     tOf(wv) { const a = BAL.at(Math.max(1, wv)); const done = a.W >= 10 ? 1 : Math.floor(a.W / 3) / 4; return Math.min(9, a.M - 1 + done * 0.999); },
   };
 })();
+// картинки карты — заранее, чтобы первый показ не появлялся по частям
+setTimeout(() => PATHMAP.preload(), 2500);

@@ -54,10 +54,10 @@ const LIMBO = (() => {
   function enter() {
     const c = document.getElementById('c'); if (c) c.style.filter = '';
     flash(1);
-    S.on = true; S.t = 0; S.from = WORLD; S.wave = wave; S.near = null; S.opened = null;
-    // поле боя очищается: враги, снаряды, зоны, очередь волны
+    S.on = true; S.t = 0; S.from = WORLD; S.wave = wave; S.near = null; S.opened = null; S.online = !!(window.NETC && NETC.on); S.phase0 = SHOP.phase;
+    // поле боя очищается: враги, снаряды, зоны, очередь волны (в онлайне бой идёт на сервере — его не трогаем)
     enemies.length = 0; shots.length = 0; fx.length = 0; if (typeof zones !== 'undefined') zones.length = 0; if (typeof SPELL_FX !== 'undefined') SPELL_FX.length = 0;
-    ROUND.queue.length = 0; ROUND.endW = wave; ROUND.fin = null;
+    if (!S.online) { ROUND.queue.length = 0; ROUND.endW = wave; ROUND.fin = null; }
     SHOP.drops.length = 0; SHOP.phase = 'rest'; SHOP.restT = 0; SHOP.open = false;
     // карта Междумирья: эллипс площади, препятствия у мест
     WALK.length = 0; SOLID.length = 0; SPAWNS.length = 0; OBJ.length = 0;
@@ -83,6 +83,7 @@ const LIMBO = (() => {
     const back = () => {
       S.on = false; if (SHOP.el && SHOP.el.wave) SHOP.el.wave.style.visibility = '';
       curGround = null; applyWorld(S.from);
+      if (S.online) { SHOP.phase = S.phase0; P.dead = 0; NETC.limboBack(); flash(0.8); SHOP.refresh(); return; }   // в онлайне возрождает сервер
       // к началу текущей волны: враги заново, раунд продолжается с этой волны
       wave = Math.max(0, S.wave - 1); SHOP.roundFrom = Math.min(SHOP.roundFrom || wave + 1, wave + 1);
       SHOP.phase = 'fight'; ROUND.endW = roundEnd(wave + 1); nextWave();
@@ -116,7 +117,10 @@ const LIMBO = (() => {
   }
   function tick(dt) {
     if (!S.on) {
-      if (P.dead > 0 && !(window.NETC && NETC.on)) deathFx(dt);
+      const net = window.NETC && NETC.on;
+      if (P.dead > 0 && !net) deathFx(dt);
+      if (net && P.dead > 0 && NETC.coop && NETC.coop()) { S.dT = (S.dT || 0) + dt; P.dead = Math.max(0.01, 2.2 - S.dT); deathFx(dt); if (S.dT > 2.4) { S.dT = 0; enter(); } }
+      else S.dT = 0;
       partsTick(dt); return;
     }
     S.t += dt; S.fl += dt;

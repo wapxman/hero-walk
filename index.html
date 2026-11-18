@@ -342,7 +342,7 @@ function frame(now) {
   // --- движение ---
   const paused = SHOP.paused;
   // онлайн: движение (с предсказанием) и бой ведёт сервер, см. net/client.js
-  if (window.NETC && NETC.on) NETC.frame(dt, paused);
+  if (window.NETC && NETC.on && !(typeof LIMBO !== 'undefined' && LIMBO.on)) { NETC.frame(dt, paused); if (typeof LIMBO !== 'undefined') LIMBO.tick(dt); }
   else {
   let { ax, ay, m } = paused ? { ax: 0, ay: 0, m: 0 } : inputVector();
   if (P.dead > 0 || (typeof STATUS !== 'undefined' && STATUS.locked())) { ax = 0; ay = 0; m = 0; }

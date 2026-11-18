@@ -2,11 +2,13 @@
 // плавное отображение чужих героев и врагов (интерполяция), эффекты и звуки по событиям сервера.
 // Сервер — server/server.js; общий код движения и протокола — net/shared.js.
 'use strict';
-var NETC = { on: false };
+var NETC = { on: false };   // NETC.limboBack — вернуться из Междумирья (limbo.js)
 (function () {
   const N = NET;
   // предсказание движения обязано считать столкновения по той же карте, что сервер: мир 1 — карта по умолчанию,
   // миры 2–4 — WALK и SOLID, которые выставил applyWorld (worlds.js)
+  NETC.limboBack = () => { if (S.ws && S.ws.readyState === 1) S.ws.send(JSON.stringify({ t: 'back' })); S.cur = null; S.pending = []; syncMap(); };
+  NETC.coop = () => S.mode === 'coop';
   const syncMap = () => { if (!WORLDS[WORLD - 1].walk) N.setMap(WALK, DEFAULT_OBJ); else N.useMap(WALK, SOLID); };
   syncMap();
   // адрес сервера: ?server=ws://… или по умолчанию тот же компьютер, порт 8790 (локальная проверка)
@@ -148,6 +150,7 @@ var NETC = { on: false };
     if (me) reconcile(me, s.ack);
   }
   function reconcile(me, ack) {
+    if (typeof LIMBO !== 'undefined' && LIMBO.on) return;   // в своём Междумирье — сцена своя, сервер не двигает героя
     // свой герой: здоровье, мана и состояния — как на сервере
     P.hp = me.hp; P.maxHp = me.max; P.mp = me.mp; P.maxMp = me.maxMp;
     const dead = me.flags & N.F_DEAD;
@@ -221,7 +224,7 @@ var NETC = { on: false };
         if (v === P) { P.hurt = 0.25; vo('hurt', 0.15, 20); } else v.flash = 0.08;
       } else if (t === E.DIE) {
         const [, id] = e, v = viewOf(id);
-        if (v === P) { P.dead = 3; snd('hero_death', 0.75); }
+        if (v === P) { if (!(typeof LIMBO !== 'undefined' && LIMBO.on)) { P.dead = 3; snd('hero_death', 0.75); } }
         else if (v && !v.hero) {
           v.dieT = 0; v.anim = 'die'; v.act = null; snd('enemy_death', v.boss ? 1 : 0.45);
           if (e[2] === S.myId) { kills++; SHOP.onKill(v); }      // золото, сундук и фласки — тому, кто добил

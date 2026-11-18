@@ -599,7 +599,9 @@ function step(r) {
     if (p.focus > 0) { p.focusT -= DT; if (p.focusT <= 0) { p.focus--; p.focusT = 0.5; } }
     if (p.dead > 0) {
       p.dead -= DT;
-      if (p.dead <= 0) { const s = spawnPoint(r, p.team); p.dead = 0; p.x = NET.qpos(s.x); p.y = NET.qpos(s.y); p.hp = p.max; p.mp = p.maxMp; ev(r, EV.SAY, p.id, 4); }
+      // кооператив: погибший уходит в своё Междумирье (сцена на клиенте) и возвращается, когда войдёт в портал ('back')
+      if (p.dead <= 0 && r.mode === 'coop' && !p.back) { p.dead = 1e9; p.limbo = true; }
+      else if (p.dead <= 0) { p.back = false; p.limbo = false; const s = spawnPoint(r, p.team); p.dead = 0; p.x = NET.qpos(s.x); p.y = NET.qpos(s.y); p.hp = p.max; p.mp = p.maxMp; ev(r, EV.SAY, p.id, 4); }
       continue;
     }
     p.hp = Math.min(p.max, p.hp + (p.hpReg || 5) * DT);
@@ -610,11 +612,12 @@ function step(r) {
       while (p.ultTick <= 0) { p.ultTick += 0.11; const a = rnd(0, 6.283), rr = rnd(90, 400); shard(r, p, p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr * YK, 100, 60 * p.ultMul, 0.4, 2); }
     }
   }
-  if (r.mode === 'coop') { runRound(r); navField(r); }
+  const everyoneAway = r.mode === 'coop' && [...r.clients].length && [...r.clients].every(x => x.player && x.player.limbo);
+  if (r.mode === 'coop' && !everyoneAway) { runRound(r); navField(r); }
   if (r.worldT > 0 && (r.worldT -= DT) <= 0) setWorld(r, BAL.at(r.wave + 1).M);
   // дуэль: опыт идёт со временем, чтобы было что прокачивать между схватками
   if (r.mode === 'duel' && (r.duelT += DT) >= 4) { r.duelT = 0; ev(r, EV.LVL, 12, 0); }
-  for (const e of r.ents.values()) if (!e.player && alive(e)) updateEnemy(r, e);
+  if (!everyoneAway) for (const e of r.ents.values()) if (!e.player && alive(e)) updateEnemy(r, e);
   // враги не слипаются
   const en = [...r.ents.values()].filter(e => !e.player && alive(e));
   for (let i = 0; i < en.length; i++) for (let j = i + 1; j < en.length; j++) {
@@ -712,6 +715,15 @@ function onMessage(c, data, isBin) {
       log('join', r.code, mode, p.name, p.kind, 'игроков', r.clients.size);
     } else if (m.t === 'prog' && c.player) {
       c.player.prog = cleanProg(m.prog || {}); heroStats(c.player);
+    } else if (m.t === 'back' && c.player && c.player.limbo) {
+      // возврат из Междумирья. Если все были там — текущая волна начинается заново
+      const r = c.room, all = [...r.clients].every(x => x.player && x.player.limbo);
+      c.player.back = true; c.player.dead = 0.001;
+      if (all && r.mode === 'coop' && r.phase === 1) {
+        for (const [id, e] of r.ents) if (!e.player) r.ents.delete(id);
+        r.shots = []; r.zones = []; r.pzones = []; r.orbs = []; r.queue = [];
+        r.wave = Math.max(0, r.wave - 1); r.endW = Math.max(r.endW, roundEnd(r.wave + 1)); nextWave(r);
+      }
     } else if (m.t === 'use' && c.player && alive(c.player)) {
       const p = c.player, now = Date.now();
       if (now - (p.useAt || 0) < 400) return;      // не чаще 2,5 раза в секунду
