@@ -46,5 +46,13 @@
  "vl_drownedknight_walk": 288,
  "vl_drownedknight_attack": 352,
  "vl_drownedknight_death": 352,
- "vl_drownedknight_idle": 288
+ "vl_drownedknight_idle": 288,
+ "vl_wisplantern_walk": 256,
+ "vl_wisplantern_attack": 320,
+ "vl_wisplantern_death": 320,
+ "vl_wisplantern_idle": 256,
+ "vl_scarecrow_walk": 256,
+ "vl_scarecrow_attack": 320,
+ "vl_scarecrow_death": 320,
+ "vl_scarecrow_idle": 256
 }

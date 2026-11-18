@@ -416,6 +416,9 @@ function raise(r, e, n, type) {
 function fireball(r, e, dx, dy, dmg, sp) { shoot(r, e, 'fire', dx, dy, null, dmg, sp || 480, 900); }
 // приёмы видов (enemies.js MECH): вернуть true — обычное поведение в этом тике пропускается
 const MECH = {
+  scarecrow(r, e, d) {
+    if (!e.act && e.mt <= 0 && d < 150) { e.mt = 5; tele(r, e.x, e.y, 135, 0.6, 24 * e.dm); act(e, 0.7, 2, () => {}); return true; }
+  },
   bogghoul(r, e, d, tg) {
     if (e.dash > 0) { e.dash -= DT; const [dx, dy] = dirTo(e, tg.x, tg.y); moveBy(e, dx, dy, e.speed * 2.4); return true; }
     if (!e.act && e.mt <= 0 && d > 150 && d < 360) { e.dash = 0.45; e.mt = 4.5; }

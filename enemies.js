@@ -111,6 +111,10 @@ const MECH = {
       warn(e.x + dx * 95, e.y + dy * 95 * YK, 115, 0.85, 34 * e.dm); startAct(e, 'atk', 0.95, 2, () => {}); return true;
     }
   },
+  // Пугало-жнец: дёргается и режет серпом по кругу
+  scarecrow(e, dt, d) {
+    if (!e.act && e.mt <= 0 && d < 150) { e.mt = 5; warn(e.x, e.y, 135, 0.6, 24 * e.dm); startAct(e, 'atk', 0.7, 2, () => {}); return true; }
+  },
   // зомби-девушка: рывок к герою с короткой дистанции
   zgirl(e, dt, d) {
     if (e.dash > 0) { e.dash -= dt; const [dx, dy] = dirTo(e, P.x, P.y); moveBy(e, dx, dy, e.speed * 2.6, dt); e.anim = 'run'; e.runPh += dt * 2.5; return true; }

@@ -472,6 +472,9 @@ const KIND = {
   toadwitch: { nm: 'Жабья ведьма', ch: 'toadwitch', rng: 1, hp: 125, rad: 22, speed: 104, dmg: [15, 20], cd: 1.7, want: 470, shot: 540, pcol: '190,220,60', xp: 14, gold: 11, col: '#5a7a2a' },
   leechworm: { nm: 'Пиявец', ch: 'leechworm', mel: 1, hp: 140, rad: 24, speed: 135, dmg: [9, 12], cd: 0.7, reach: 64, leech: 0.6, xp: 11, gold: 8, col: '#5a2a3a' },
   drownedknight: { nm: 'Утопленник', ch: 'drownedknight', mel: 1, hp: 330, rad: 30, speed: 88, dmg: [24, 30], cd: 1.6, reach: 96, xp: 20, gold: 15, col: '#2a4a5a' },
+  wisplantern: { nm: 'Фонарщик', ch: 'wisplantern', rng: 1, hp: 115, rad: 22, speed: 92, dmg: [18, 24], cd: 2.0, want: 520, shot: 430, pcol: '110,240,210', xp: 14, gold: 11, col: '#2a5a5a' },
+  // ---- Осенняя долина (мир 3) ----
+  scarecrow: { nm: 'Пугало-жнец', ch: 'scarecrow', mel: 1, hp: 175, rad: 24, speed: 128, dmg: [13, 18], cd: 0.9, reach: 80, xp: 13, gold: 10, col: '#7a5a2a' },
   // Шипокорень: медленный и толстый, бьёт сильно и с длинной руки, из-под земли выпускает корни
   thornroot: { nm: 'Шипокорень', ch: 'thornroot', elite: 1, mel: 1, hp: 280, rad: 34, speed: 92, dmg: [18, 24], cd: 1.45, reach: 92, xp: 24, gold: 18, col: '#5a4a2a' },
   // ---- боссы миров: на 10-й волне своего мира ----
@@ -494,8 +497,8 @@ const KIND = {
 // кто выходит в каком мире: рядовые ближнего и дальнего боя, элита и босс мира
 const ROSTER = {
   1: { mel: ['shadowwolf', 'rotdryad', 'shadowwolf', 'boarbrute'], rng: ['sporeshaman', 'thornimp'], elite: ['thornroot'], boss: 'b_thornqueen' },
-  2: { mel: ['bogghoul', 'leechworm', 'bogghoul', 'drownedknight'], rng: ['toadwitch'], elite: ['parasite', 'warzombie'], boss: 'b_toadking' },
-  3: { mel: ['goblin', 'copz', 'min', 'war'], rng: ['zlorp', 'mag'], elite: ['thornroot', 'warzombie', 'mremireh'], boss: 'pumpkin' },
+  2: { mel: ['bogghoul', 'leechworm', 'bogghoul', 'drownedknight'], rng: ['toadwitch', 'wisplantern'], elite: ['parasite', 'warzombie'], boss: 'b_toadking' },
+  3: { mel: ['scarecrow', 'goblin', 'scarecrow', 'war'], rng: ['zlorp', 'mag'], elite: ['thornroot', 'warzombie', 'mremireh'], boss: 'pumpkin' },
   4: { mel: ['copz', 'goblin', 'zgirl', 'war'], rng: ['zlorp', 'mag', 'rog'], elite: ['mremireh', 'warrok', 'parasite'], boss: 'demon' },
 };
 const rosterOf = n => ROSTER[BAL.at(n).M] || ROSTER[1];

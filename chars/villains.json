@@ -429,5 +429,75 @@
    }
   },
   "vfx": []
+ },
+ "wisplantern": {
+  "size": 185,
+  "nm": "Фонарщик",
+  "mul": {
+   "run": {
+    "at": "vl_wisplantern_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_wisplantern_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_wisplantern_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_wisplantern_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": []
+ },
+ "scarecrow": {
+  "size": 210,
+  "nm": "Пугало-жнец",
+  "mul": {
+   "run": {
+    "at": "vl_scarecrow_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_scarecrow_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_scarecrow_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_scarecrow_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": []
  }
 }
