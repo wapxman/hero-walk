@@ -129,7 +129,7 @@ const DEV_SYNC = location.port === '8765';
 // Враги растут умеренной экспонентой: по волнам медленно, скачком — при переходе в новый мир и на новом круге.
 const BAL = {
   WAVES: 10, WORLDS: 4,
-  ELITE: { hp: 3.5, dmg: 1.7, size: 1.3, xp: 3, gold: 4 },   // элита против рядового того же вида
+  ELITE: { hp: 3.5, dmg: 1.7, size: 1.35, xp: 3, gold: 4 },   // элита против рядового того же вида
   BOSS: { size: 2.5 },
   at(n) {
     n = Math.max(1, n | 0); const per = BAL.WAVES * BAL.WORLDS, m = (n - 1) % per;

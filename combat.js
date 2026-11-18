@@ -400,10 +400,10 @@ const KIND = {
   goblin: { ch: 'v_goblin', mel: 1, hp: 100, rad: 18, speed: 172, dmg: [10, 14], cd: 0.8, reach: 60, xp: 9, gold: 7, col: '#4a6a3a' },
   zlorp: { ch: 'v_zlorp', rng: 1, hp: 130, rad: 21, speed: 108, dmg: [15, 20], cd: 1.6, want: 460, shot: 560, xp: 14, gold: 11, col: '#4a8a5a' },
   // ---- элита: ×3,5 здоровья, ×1,7 урона, крупнее (BAL.ELITE) ----
-  parasite: { ch: 'v_parasite', elite: 1, mel: 1, hp: 150, rad: 24, speed: 160, dmg: [11, 14], cd: 0.9, reach: 66, xp: 12, gold: 9, col: '#6a3a5a' },
-  warzombie: { ch: 'v_warzombie', elite: 1, mel: 1, hp: 190, rad: 26, speed: 120, dmg: [13, 17], cd: 1.1, reach: 70, xp: 14, gold: 10, col: '#5a4a3a' },
-  mremireh: { ch: 'v_mremireh', elite: 1, rng: 1, hp: 130, rad: 24, speed: 105, dmg: [13, 17], cd: 1.7, want: 480, shot: 540, xp: 14, gold: 11, col: '#4a3a6a' },
-  warrok: { ch: 'boss', elite: 1, mel: 1, hp: 220, rad: 30, speed: 108, dmg: [15, 19], cd: 1.25, reach: 78, xp: 16, gold: 12, col: '#565a66', sz: 0.62 },
+  parasite: { nm: 'Паразит', ch: 'v_parasite', elite: 1, mel: 1, hp: 150, rad: 24, speed: 160, dmg: [11, 14], cd: 0.9, reach: 66, xp: 12, gold: 9, col: '#6a3a5a' },
+  warzombie: { nm: 'Зомби-солдат', ch: 'v_warzombie', elite: 1, mel: 1, hp: 190, rad: 26, speed: 120, dmg: [13, 17], cd: 1.1, reach: 70, xp: 14, gold: 10, col: '#5a4a3a' },
+  mremireh: { nm: 'Мремире', sz: 1.3, ch: 'v_mremireh', elite: 1, rng: 1, hp: 130, rad: 24, speed: 105, dmg: [13, 17], cd: 1.7, want: 480, shot: 540, xp: 14, gold: 11, col: '#4a3a6a' },
+  warrok: { nm: 'Варрок', ch: 'boss', elite: 1, mel: 1, hp: 220, rad: 30, speed: 108, dmg: [15, 19], cd: 1.25, reach: 78, xp: 16, gold: 12, col: '#565a66', sz: 0.9 },
   // ---- боссы миров: на 10-й волне своего мира ----
   mutant: { nm: ['Мутант', 'страж первого мира'], ch: 'v_mutant', boss: 1, hp: 1500, rad: 48, speed: 96, xp: 150, gold: 100, col: '#5a4a3a' },
   maw: { nm: ['Мо', 'пожиратель болот'], ch: 'v_maw', boss: 1, hp: 1500, rad: 52, speed: 90, xp: 150, gold: 100, col: '#4a3a3a' },
@@ -805,9 +805,14 @@ function drawEnemy(e) {
     ctx.beginPath(); ctx.moveTo(-r * 1.2, 0); ctx.lineTo(-r * 0.8, -ih * 0.7); ctx.lineTo(-r * 0.2, -ih * 0.35); ctx.lineTo(r * 0.1, -ih * 0.9);
     ctx.lineTo(r * 0.7, -ih * 0.4); ctx.lineTo(r * 1.2, 0); ctx.closePath(); ctx.fill(); ctx.stroke();
   }
-  const bw = e.boss ? 110 : r * 2.2, by = -h - 12;
-  ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(-bw / 2 - 1, by - 1, bw + 2, 8);
-  ctx.fillStyle = '#e0503f'; ctx.fillRect(-bw / 2, by, bw * Math.max(0, e.hp / e.max), 6);
+  // полоска здоровья: у рядовых узкая красная, у элиты — длиннее, золотая и с именем, у босса — табличка вверху экрана
+  const bw = e.boss ? 110 : e.elite ? 96 : r * 2.2, bh = e.elite ? 8 : 6, by = -h - 12;
+  ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(-bw / 2 - 1, by - 1, bw + 2, bh + 2);
+  ctx.fillStyle = e.elite ? '#f2c14e' : '#e0503f'; ctx.fillRect(-bw / 2, by, bw * Math.max(0, e.hp / e.max), bh);
+  if (e.elite && e.k.nm) {
+    ctx.font = 'bold 15px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.75)';
+    ctx.strokeText(e.k.nm, 0, by - 5); ctx.fillStyle = '#ffe08a'; ctx.fillText(e.k.nm, 0, by - 5);
+  }
   ctx.restore();
 }
 function drawShot(s) {
