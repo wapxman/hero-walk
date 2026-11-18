@@ -80,7 +80,7 @@ function musicStart() {
 }
 function musicLabel() { if (typeof SHOP !== 'undefined' && SHOP.pauseLabels) SHOP.pauseLabels(); }
 function musicLoad() {
-  mus.el.src = 'music/' + MUSIC[mus.i][0] + '.m4a' + V;   // AAC 80 кбит/с: звучит как MP3 128, а весит меньше (APK до 49 МБ)
+  mus.el.src = 'music/' + MUSIC[mus.i][0] + '.mp3' + V;
   mus.g.gain.cancelScheduledValues(AC.currentTime); mus.g.gain.value = 0; mus.v = 0;
   if (mus.on) mus.el.play().catch(() => {});
   store('hw_mus_i', mus.i);
@@ -238,7 +238,7 @@ function shoot() {
   if (t) { dx = t.x - P.x; dy = (t.y - P.y) / YK; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m; }
   shots.push({ own: 'p', x: P.x + dx * 26 * HS(), y: P.y + dy * 26 * YK * HS(), dx, dy, sp: 980, tgt: t, left: 700, dmg: rnd(44, 56), h: CH * 0.55 * HS(), sc: HS() });
   P.atkCd = 0.62; P.cast = 0.16;
-  P.act = { anim: 'atk', t: 0, dur: 0.36, row: t ? runRow(t.x - P.x, t.y - P.y) : null };
+  P.act = { anim: 'atk', t: 0, dur: HERO.mul ? Math.min(mulDur(HERO, 'atk'), P.atkCd * 0.95) : 0.36, row: t ? runRow(t.x - P.x, t.y - P.y) : null };
   snd('hero_shot', 0.8);
 }
 // размер героя из редактора: скиллы и выстрелы растут вместе с ним (и картинка, и зона поражения)
@@ -266,8 +266,10 @@ function cast(id) {
     snd('storm', 0.85);
   }
   P.cd[id] = CDMAX[id] * (P.cdMul || 1) * skCd(id); P.cast = 0.3; P.mp -= MANA[id];
-  P.act = { anim: 'cast', t: 0, dur: 0.7, row: null };
+  const an = MAGE_AN[id];   // Q — нова, E — оковы, F — град, R — буря
+  P.act = { anim: an, t: 0, dur: HERO.mul ? mulDur(HERO, an) : 0.7, row: null };
 }
+const MAGE_AN = { q: 'nova', e: 'chains', f: 'hail', r: 'storm' };
 function hurtPlayer(d) {
   if (P.dead > 0) return;
   d *= P.armMul || 1;
@@ -305,15 +307,56 @@ const CHARS = {
   v_copz: { cell: 256, ortho: 3.87, zc: 1.02, U: 93, top: 2.21, lazy: 1, an: VAN, ob: {leap: 4.57, die: 4.57} },
   v_goblin: { cell: 256, ortho: 4.34, zc: 1.05, U: 90, top: 2.27, lazy: 1, an: VAN, ob: {leap: 5.12, die: 5.12} },
   v_zlorp: { cell: 256, ortho: 3.12, zc: 0.81, U: 118, top: 1.74, lazy: 1, an: VAN, ob: {leap: 3.68, die: 3.68} },
+  // Шипокорень — лесной голем из ChatGPT (v49): листы без потерь, ходьба и удар — 8 направлений, стойка — 3, смерть — 1
+  thornroot: { lazy: 1, U: 100, top: 2.45, k: 1.14, mul: {
+    idle: { at: 'th_idle', n: 4, ms: 230, rows: 3, foot: 230 }, run: { at: 'th_walk', n: 6, ms: 115, rows: 8, foot: 230 },
+    atk: { at: 'th_attack', n: 6, ms: 105, rows: 8, foot: 294 }, die: { at: 'th_death', n: 6, ms: 170, rows: 1, foot: 294 } } },
 };
 // лист персонажа: у старых — сразу, у злодеев — по первому требованию (needChar)
 function needChar(c) {
+  if (c && c.mul && !c.hero) return loadMul(c);
   if (!c || c.hero || c.img) return;
   const im = c.img = new Image(); im.onload = () => { c.ok = true; }; im.src = 'chars/at_' + c.at + '.webp' + V;
 }
 for (const k in CHARS) { CHARS[k].at = k; if (!CHARS[k].lazy) needChar(CHARS[k]); }
 // Ganfaul в общей таблице: рисуется своими листами (HERO), размеры — как у остальных
 CHARS.ganfaul = { hero: true, U: 118, top: 1.5, get ok() { return HERO.ok; } };
+
+// ---------- персонажи из ChatGPT: каждая анимация — свой лист (атлас без потерь chars/at_<at>.webp) ----------
+// 8 рядов — направления как у runRow (0 вниз, 1 вниз-влево … 6 вправо, 7 вниз-вправо), левые уже нарисованы, не зеркалим.
+// rows 1 — один ряд (смерть, лицом вниз-вправо; для левых сторон зеркалим), rows 3 — вниз, вниз-влево, вниз-вправо.
+// k — единиц мира на пиксель кадра, foot — линия ног в клетке, ms — длительность кадра (meta.json художника).
+function loadMul(c) {
+  if (c.loading) return; c.loading = true;
+  for (const id in c.mul) {
+    const a = c.mul[id]; if (a.img) continue;
+    a.img = new Image(); a.img.onload = () => { a.ok = true; c.ok = Object.values(c.mul).every(x => x.ok); };
+    a.img.src = 'chars/at_' + a.at + '.webp' + V;
+  }
+}
+const SKILL_AN = { nova: 1, chains: 1, hail: 1, storm: 1 };
+function mulAnim(c, anim) {
+  const M = c.mul;
+  return M[anim] || ((anim === 'cast' || anim === 'leap') && (M.nova || M.atk)) || (SKILL_AN[anim] && (M.cast || M.atk)) || M.idle;
+}
+const mulDur = (c, anim) => { const a = mulAnim(c, anim); return a.n * a.ms / 1000; };
+function drawMulti(c, anim, fi, row, flash) {
+  const a = mulAnim(c, anim);
+  if (!a.ok) return;
+  const A = ATLAS[a.at];
+  fi = Math.max(0, Math.min(a.n - 1, fi | 0));
+  let r = row, flip = false;
+  if (a.rows === 1) { r = 0; flip = row >= 1 && row <= 3; }
+  else if (a.rows === 3) r = row === 0 || row === 4 ? 0 : row <= 3 ? 1 : 2;
+  const size = A.cell * c.k;
+  ctx.save();
+  if (flip) ctx.scale(-1, 1);
+  drawCell(ctx, a.img, a.at, fi, r, -size / 2, -a.foot * c.k, size);
+  if (flash) { ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.7; drawCell(ctx, a.img, a.at, fi, r, -size / 2, -a.foot * c.k, size); }
+  ctx.restore();
+}
+// число кадров анимации героя (новый Ganfaul — листы mul, лучница — прежние листы an)
+function heroFrames(H, anim) { return H.mul ? mulAnim(H, anim).n : (H.an[anim] || (SKILL_AN[anim] && H.an.cast) || H.an.idle).n; }
 // сколько кадров в анимации у данного персонажа (у обычных листов каста нет — вместо него атака)
 function animOf(c, anim) {
   if (c.hero) return anim;
@@ -321,12 +364,14 @@ function animOf(c, anim) {
   return anim === 'cast' && !c.cast ? 'atk' : anim;
 }
 function frames(c, anim) {
-  if (c.hero) return (HERO.an[anim] || HERO.an.idle).n;
+  if (c.hero) return heroFrames(HERO, anim);
+  if (c.mul) return mulAnim(c, anim).n;
   const A = c.an || AN; return (A[animOf(c, anim)] || A.idle)[1];
 }
 // один кадр персонажа: row — направление 0..7 (0 вниз, 2 влево, 4 вверх, 6 вправо)
 function drawSprite(c, anim, fi, row, flash) {
   if (c.hero) return drawHeroSprite(anim, fi, row, flash);
+  if (c.mul) return drawMulti(c, anim, fi, row, flash);
   anim = animOf(c, anim);
   const a = (c.an || AN)[anim] || (c.an || AN).idle;
   fi = Math.max(0, Math.min(a[1] - 1, fi));
@@ -350,8 +395,14 @@ let HERO = { pre: 'hero_', U: 118, zc: 0.9, cell: 400,
   sheets: { a: { wrap: 6, rows: 2 }, b: { wrap: 6, rows: 2 }, d: { wrap: 5, rows: 1 } },
   an: { idle: { s: 'a', i: 0, n: 4, o: 2.4 }, run: { s: 'a', i: 4, n: 8, o: 2.4 }, atk: { s: 'b', i: 0, n: 5, o: 2.4 },
     cast: { s: 'b', i: 5, n: 6, o: 2.6 }, die: { s: 'd', i: 0, n: 5, o: 3.0 } } };
+// Ganfaul (v49): спрайты ChatGPT — стойка 4 кадра, бег 6, атака и скиллы по 6, смерть 6 в одном ряду.
+// Рост — как у прежней модели (k подобран по высоте фигуры). Каждому скиллу — своя анимация.
+const GF_ROW = (at, n, ms, rows) => ({ at: 'gf_' + at, n, ms, rows: rows || 8, foot: 344 });
+const GANFAUL = { k: 0.8173, mul: { idle: GF_ROW('idle', 4, 230), run: GF_ROW('run', 6, 95), atk: GF_ROW('attack', 6, 85),
+  nova: GF_ROW('nova', 6, 95), chains: GF_ROW('chains', 6, 95), hail: GF_ROW('hail', 6, 110), storm: GF_ROW('storm', 6, 120), die: GF_ROW('death', 6, 170, 1) } };
 // листы героя грузятся только у выбранного героя (heroes.js вызывает loadHero)
 function loadHero(H) {
+  if (H.mul) return loadMul(H);
   if (H.loading) return; H.loading = true;
   for (const k in H.sheets) {
     const S = H.sheets[k]; S.img = new Image();
@@ -359,9 +410,10 @@ function loadHero(H) {
     S.img.src = 'chars/at_' + H.pre + k + '.webp' + V;
   }
 }
-const MAGE = HERO;
+const MAGE = HERO = GANFAUL;   // прежние листы hero_a/b/d больше не нужны
 function drawHeroSprite(anim, fi, row, flash) {
-  const a = HERO.an[anim] || HERO.an.idle, S = HERO.sheets[a.s];
+  if (HERO.mul) return drawMulti(HERO, anim, fi, row, flash);
+  const a = HERO.an[anim] || (SKILL_AN[anim] && HERO.an.cast) || HERO.an.idle, S = HERO.sheets[a.s];
   fi = a.i + Math.max(0, Math.min(a.n - 1, fi));
   const flip = row >= 1 && row <= 3;            // ряды 1–3 листа смотрят вправо, левые — зеркало
   if (row > 4) row = 8 - row;
@@ -377,10 +429,11 @@ function drawHeroSprite(anim, fi, row, flash) {
 function drawHero() {
   const u = CFG.units.hero, c = HERO !== MAGE ? CHARS.ganfaul : CHARS[u.char] || CHARS.ganfaul;
   if (!c.ok || location.hash.indexOf('lira') >= 0) return false;
-  let anim = 'idle', fi = Math.floor(P.heroT * 3) % frames(c, 'idle'), row = runRow(P.face.x, P.face.y);
-  if (P.dead > 0) { anim = 'die'; fi = Math.floor((3 - P.dead) / 0.6 * frames(c, 'die')); }
+  const M = c.hero && HERO.mul, ms = a => mulAnim(HERO, a).ms / 1000;   // у новых листов — темп кадров художника
+  let anim = 'idle', fi = Math.floor(P.heroT / (M ? ms('idle') : 1 / 3)) % frames(c, 'idle'), row = runRow(P.face.x, P.face.y);
+  if (P.dead > 0) { anim = 'die'; fi = M ? Math.floor((3 - P.dead) / ms('die')) : Math.floor((3 - P.dead) / 0.6 * frames(c, 'die')); }
   else if (P.act) { anim = P.act.anim; fi = Math.floor(P.act.t / P.act.dur * frames(c, anim)); if (P.act.row != null) row = P.act.row; }
-  else if (P.moving) { anim = 'run'; fi = Math.floor(P.heroT * (P.running ? 9.5 : 7.5)) % 8; }
+  else if (P.moving) { anim = 'run'; fi = M ? Math.floor(P.heroT / ms('run') * (P.running ? 1 : 0.8)) % frames(c, 'run') : Math.floor(P.heroT * (P.running ? 9.5 : 7.5)) % 8; }
   ctx.save(); ctx.translate(P.x, P.y); ctx.scale(u.scale, u.scale);
   if (P.dead > 0) ctx.globalAlpha = Math.min(1, P.dead / 0.8);
   drawSprite(c, anim, fi, row, P.hurt > 0.17);
@@ -404,6 +457,8 @@ const KIND = {
   warzombie: { nm: 'Зомби-солдат', ch: 'v_warzombie', elite: 1, mel: 1, hp: 190, rad: 26, speed: 120, dmg: [13, 17], cd: 1.1, reach: 70, xp: 14, gold: 10, col: '#5a4a3a' },
   mremireh: { nm: 'Мремире', sz: 1.3, ch: 'v_mremireh', elite: 1, rng: 1, hp: 130, rad: 24, speed: 105, dmg: [13, 17], cd: 1.7, want: 480, shot: 540, xp: 14, gold: 11, col: '#4a3a6a' },
   warrok: { nm: 'Варрок', ch: 'boss', elite: 1, mel: 1, hp: 220, rad: 30, speed: 108, dmg: [15, 19], cd: 1.25, reach: 78, xp: 16, gold: 12, col: '#565a66', sz: 0.9 },
+  // Шипокорень: медленный и толстый, бьёт сильно и с длинной руки, из-под земли выпускает корни
+  thornroot: { nm: 'Шипокорень', ch: 'thornroot', elite: 1, mel: 1, hp: 280, rad: 34, speed: 92, dmg: [18, 24], cd: 1.45, reach: 92, xp: 24, gold: 18, col: '#5a4a2a' },
   // ---- боссы миров: на 10-й волне своего мира ----
   mutant: { nm: ['Мутант', 'страж первого мира'], ch: 'v_mutant', boss: 1, hp: 1500, rad: 48, speed: 96, xp: 150, gold: 100, col: '#5a4a3a' },
   maw: { nm: ['Мо', 'пожиратель болот'], ch: 'v_maw', boss: 1, hp: 1500, rad: 52, speed: 90, xp: 150, gold: 100, col: '#4a3a3a' },
@@ -412,9 +467,9 @@ const KIND = {
 };
 // кто выходит в каком мире: рядовые ближнего и дальнего боя, элита и босс мира
 const ROSTER = {
-  1: { mel: ['min', 'min', 'zgirl', 'war'], rng: ['rog', 'mag'], elite: ['warrok', 'parasite'], boss: 'mutant' },
+  1: { mel: ['min', 'min', 'zgirl', 'war'], rng: ['rog', 'mag'], elite: ['thornroot', 'warrok', 'parasite'], boss: 'mutant' },
   2: { mel: ['copz', 'zgirl', 'goblin', 'war'], rng: ['rog', 'zlorp'], elite: ['parasite', 'warzombie'], boss: 'maw' },
-  3: { mel: ['goblin', 'copz', 'min', 'war'], rng: ['zlorp', 'mag'], elite: ['warzombie', 'mremireh'], boss: 'pumpkin' },
+  3: { mel: ['goblin', 'copz', 'min', 'war'], rng: ['zlorp', 'mag'], elite: ['thornroot', 'warzombie', 'mremireh'], boss: 'pumpkin' },
   4: { mel: ['copz', 'goblin', 'zgirl', 'war'], rng: ['zlorp', 'mag', 'rog'], elite: ['mremireh', 'warrok', 'parasite'], boss: 'demon' },
 };
 const rosterOf = n => ROSTER[BAL.at(n).M] || ROSTER[1];

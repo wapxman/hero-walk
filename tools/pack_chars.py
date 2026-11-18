@@ -14,11 +14,24 @@ SHEETS = {"zombie": 256, "vampire": 256, "mage": 256, "archer": 256, "boss": 320
           "v_mutant": 320, "v_maw": 320, "v_pumpkin": 320, "v_demon": 320, "v_parasite": 288, "v_mremireh": 288,
           "v_warzombie": 288, "v_zgirl": 256, "v_copz": 256, "v_goblin": 256, "v_zlorp": 256,
           "hero_a": 400, "hero_b": 400, "hero_d": 400, "archer_a": 400, "archer_b": 400, "archer_d": 400}
+# Листы из ChatGPT (новый Ganfaul и Шипокорень): PNG в chars/src, атлас — WebP без потерь, разрешение не меняется.
+# Каждая анимация — свой лист: 8 рядов направлений (как runRow), кадры по столбцам.
+LOSSLESS = {"gf_idle": 384, "gf_run": 384, "gf_attack": 384, "gf_nova": 384, "gf_chains": 384, "gf_hail": 384, "gf_storm": 384, "gf_death": 384,
+            "th_walk": 256, "th_attack": 320, "th_death": 320, "th_idle": 256}
+SHEETS.update(LOSSLESS)
 MAXW, PAD = 2048, 2
+# python tools/pack_chars.py gf_idle th_walk … — упаковать только эти листы (остальные атласы не трогать)
+import sys, re
+ONLY = sys.argv[1:]
 
 atlas = {}
+if ONLY:   # прежние записи атласа сохраняем
+    old = open(os.path.join(OUT, "atlas.js"), encoding="utf-8").read()
+    atlas = json.loads(re.search(r"const ATLAS = (\{.*\});", old).group(1))
 for name, cell in SHEETS.items():
-    im = Image.open(os.path.join(SRC, "mx_" + name + ".webp")).convert("RGBA")
+    if ONLY and name not in ONLY: continue
+    src = os.path.join(SRC, name + ".png") if name in LOSSLESS else os.path.join(SRC, "mx_" + name + ".webp")
+    im = Image.open(src).convert("RGBA")
     a = np.asarray(im)
     gc, gr = im.width // cell, im.height // cell
     frames = []
@@ -56,7 +69,8 @@ for name, cell in SHEETS.items():
     # обрезаем лишнюю ширину справа
     used = max(m[0] + m[2] for m in meta if m)
     out = out.crop((0, 0, used, AH))
-    out.save(os.path.join(OUT, "at_" + name + ".webp"), quality=85, method=6, alpha_quality=90)
+    if name in LOSSLESS: out.save(os.path.join(OUT, "at_" + name + ".webp"), lossless=True, quality=100, method=6, exact=True)
+    else: out.save(os.path.join(OUT, "at_" + name + ".webp"), quality=92, method=6, alpha_quality=100)
     atlas[name] = {"cell": cell, "gc": gc, "f": meta}
     print(name, im.size, "->", out.size, round(im.width * im.height * 4 / 1e6, 1), "->",
           round(out.width * out.height * 4 / 1e6, 1), "MB")

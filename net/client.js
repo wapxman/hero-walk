@@ -233,8 +233,9 @@ var NETC = { on: false };
       } else if (t === E.CAST) {
         const [, owner, sk, a, b, c] = e, ov = viewOf(owner), mine = owner === S.myId;
         const [hero, slot] = SK_OF[sk] || [];
-        if (mine && slot) { P.cd[slot] = CDMAX[slot] * skCd(slot); P.cast = 0.3; P.act = { anim: 'cast', t: 0, dur: 0.6, row: null }; voSkill(slot); }
-        else if (ov && ov.hero) { ov.act = { t: 0, dur: 0.6, cast: 1 }; ov.anim = 'cast'; }
+        const an = hero === 'mage' ? MAGE_AN[slot] : 'cast', hd = HEROES[hero || 'mage'].def;
+        if (mine && slot) { P.cd[slot] = CDMAX[slot] * skCd(slot); P.cast = 0.3; P.act = { anim: an, t: 0, dur: hd.mul ? mulDur(hd, an) : 0.6, row: null }; voSkill(slot); }
+        else if (ov && ov.hero) { ov.act = { t: 0, dur: hd.mul ? mulDur(hd, an) : 0.6, cast: 1, an }; ov.anim = 'cast'; }
         if (sk === 1) { fx.push({ type: 'nova', x: a, y: b, t: 0, dur: 0.95, R: c }); snd('nova', 0.9); }
         else if (sk === 2) { const tv = viewOf(a); if (tv) fx.push({ type: 'chains', e: tv, x: tv.x, y: tv.y, t: 0, dur: b / 100 + 0.45, h: (tv.ch ? tv.ch.top * tv.ch.U * (tv.sc || 1) : 170) }); snd('chains', 0.85); }
         else if (sk === 3) { zones.push({ type: 'hail', x: a, y: b, R: c, t: 3.2, tick: 1e9 }); snd('hail', 0.8); }
@@ -420,8 +421,8 @@ var NETC = { on: false };
     const c = { hero: true, U: 118, top: 1.5, ok: true };
     let anim = 'idle', fi = Math.floor(v.animT * 3) % 4;
     if (v.dead) { anim = 'die'; fi = 4; }
-    else if (v.act) { anim = v.act.cast ? 'cast' : 'atk'; fi = Math.floor(v.act.t / v.act.dur * (def.an[anim].n)); }
-    else if (v.moving) { anim = 'run'; fi = Math.floor(v.runPh * 8) % 8; }
+    else if (v.act) { anim = v.act.cast ? v.act.an || 'cast' : 'atk'; fi = Math.floor(v.act.t / v.act.dur * heroFrames(def, anim)); }
+    else if (v.moving) { anim = 'run'; fi = Math.floor(v.runPh * 8) % heroFrames(def, 'run'); }
     const keep = HERO; HERO = def;
     ctx.save(); ctx.translate(v.x, v.y); ctx.scale(HS(), HS());
     if (v.dead) ctx.globalAlpha = 0.5;

@@ -451,6 +451,13 @@ const MECH = {
   mremireh(r, e) {
     if (!e.act && e.mt <= 0 && !(e.silT > 0) && r.ents.size < 26) { e.mt = 10; say(r, e, 3); act(e, 1.0, 0.6, () => raise(r, e, 2), true); return true; }
   },
+  thornroot(r, e, d, tg) {
+    if (!e.act && e.mt <= 0 && d > 140 && d < 620) {
+      e.mt = 7; say(r, e, 14);
+      act(e, 0.9, 0.5, () => tele(r, tg.x, tg.y, 120, 1.0, 26 * e.dm, false, { slow: 0.35 }));
+      return true;
+    }
+  },
   warrok(r, e, d) {
     if (!e.act && e.mt <= 0 && d < 200) { e.mt = 5; tele(r, e.x, e.y, 150, 0.75, 34 * e.dm); act(e, 0.85, 2, () => {}); return true; }
   },
@@ -639,7 +646,7 @@ function step(r) {
   for (const z of r.zones) {
     z.t -= DT;
     if (z.tele) {
-      if (z.t <= 0) { for (const p of r.ents.values()) if (p.player && alive(p) && gdist(z, p) < z.R) { hurt(r, p, z.dmg, null); if (z.slow) slow(p, 0.7, 1.5); } ev(r, EV.QUAKE, z.x, z.y, z.R); }
+      if (z.t <= 0) { for (const p of r.ents.values()) if (p.player && alive(p) && gdist(z, p) < z.R) { hurt(r, p, z.dmg, null); if (z.slow) slow(p, z.slow === true || z.slow === 1 ? 0.7 : z.slow, z.slow < 1 ? 2.2 : 1.5); } ev(r, EV.QUAKE, z.x, z.y, z.R); }
       continue;
     }
     z.tick -= DT;

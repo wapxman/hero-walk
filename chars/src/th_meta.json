@@ -1,0 +1,30 @@
+{
+ "walk": {
+  "rows": 8,
+  "frames": 6,
+  "cell": 256,
+  "foot": 230,
+  "ms": 115
+ },
+ "attack": {
+  "rows": 8,
+  "frames": 6,
+  "cell": 320,
+  "foot": 294,
+  "ms": 105
+ },
+ "death": {
+  "rows": 1,
+  "frames": 6,
+  "cell": 320,
+  "foot": 294,
+  "ms": 170
+ },
+ "idle": {
+  "rows": 3,
+  "frames": 4,
+  "cell": 256,
+  "foot": 230,
+  "ms": 230
+ }
+}

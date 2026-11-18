@@ -1,0 +1,58 @@
+{
+ "idle": {
+  "rows": 8,
+  "frames": 4,
+  "cell": 384,
+  "foot": 344,
+  "ms": 230
+ },
+ "run": {
+  "rows": 8,
+  "frames": 6,
+  "cell": 384,
+  "foot": 344,
+  "ms": 95
+ },
+ "attack": {
+  "rows": 8,
+  "frames": 6,
+  "cell": 384,
+  "foot": 344,
+  "ms": 85
+ },
+ "nova": {
+  "rows": 8,
+  "frames": 6,
+  "cell": 384,
+  "foot": 344,
+  "ms": 95
+ },
+ "chains": {
+  "rows": 8,
+  "frames": 6,
+  "cell": 384,
+  "foot": 344,
+  "ms": 95
+ },
+ "hail": {
+  "rows": 8,
+  "frames": 6,
+  "cell": 384,
+  "foot": 344,
+  "ms": 110
+ },
+ "storm": {
+  "rows": 8,
+  "frames": 6,
+  "cell": 384,
+  "foot": 344,
+  "ms": 120
+ },
+ "death": {
+  "rows": 1,
+  "frames": 6,
+  "cell": 384,
+  "foot": 344,
+  "ms": 170
+ }
+}

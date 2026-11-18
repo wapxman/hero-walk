@@ -81,6 +81,14 @@ const MECH = {
       return true;
     }
   },
+  // элита Шипокорень: корни из-под земли под героем — урон и сильное замедление
+  thornroot(e, dt, d) {
+    if (!e.act && e.mt <= 0 && d > 140 && d < 620) {
+      e.mt = 7; tag(e, 'Корни!', '#b9e37a');
+      startAct(e, 'atk', 0.9, 0.5, () => warn(P.x, P.y, 120, 1.0, 26 * e.dm, { onHitP: () => slowHero(0.35, 2.2) }));
+      return true;
+    }
+  },
   // элита Варрок: удар по земле вокруг себя
   warrok(e, dt, d) {
     if (!e.act && e.mt <= 0 && d < 200) { e.mt = 5; warn(e.x, e.y, 150, 0.75, 34 * e.dm); startAct(e, 'atk', 0.85, 2, () => {}); return true; }
