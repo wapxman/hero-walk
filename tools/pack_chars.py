@@ -11,6 +11,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(ROOT, "chars", "src")
 OUT = os.path.join(ROOT, "chars")
 SHEETS = {"zombie": 256, "vampire": 256, "mage": 256, "archer": 256, "boss": 320,
+          "v_mutant": 320, "v_maw": 320, "v_pumpkin": 320, "v_demon": 320, "v_parasite": 288, "v_mremireh": 288,
+          "v_warzombie": 288, "v_zgirl": 256, "v_copz": 256, "v_goblin": 256, "v_zlorp": 256,
           "hero_a": 400, "hero_b": 400, "hero_d": 400, "archer_a": 400, "archer_b": 400, "archer_d": 400}
 MAXW, PAD = 2048, 2
 

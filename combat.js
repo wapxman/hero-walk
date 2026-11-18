@@ -119,7 +119,7 @@ const MANA = { q: 60, e: 50, f: 80, r: 150 }, MP_REGEN = 11;
 const skLv = id => (P.skLv && P.skLv[id]) || 1;
 const skDmg = id => (1 + 0.12 * (skLv(id) - 1)) * (P.skMul || 1);
 const skCd = id => 1 - 0.03 * (skLv(id) - 1);
-const KILL_XP = { min: 8, war: 18, mag: 14, rog: 14, boss: 150 };
+const KILL_XP = { min: 8, war: 18, mag: 14, rog: 14, boss: 150 };   // новые виды — поле xp в KIND
 const xpNeed = l => 40 + 35 * l;
 function gainXp(n) {
   P.xp += n;
@@ -224,7 +224,7 @@ function hurtEnemy(e, dmg, col) {
   e.hp -= dmg; e.flash = 0.08;
   say(e.x + rnd(-14, 14), e.y - (e.ch.ok ? e.ch.top * e.ch.U * e.sc * 0.8 : e.rad * 2.2), Math.round(dmg), col || '#bfe6ff');
   if (e.hp <= 0) {
-    kills++; gainXp(KILL_XP[e.type] || 8);
+    kills++; gainXp((e.k.xp || KILL_XP[e.type] || 8) * (e.elite ? BAL.ELITE.xp : 1));
     e.dieT = 0; e.anim = 'die'; e.act = null; corpses.push(e);
     if (typeof SHOP !== 'undefined') SHOP.onKill(e);
     snd('enemy_death', e.boss ? 1 : 0.45, e.boss ? 0.75 : rnd(0.92, 1.1));
@@ -286,24 +286,43 @@ function shard(x, y, R, dmg, sk, st) {
 const COS_EL = Math.cos(35 * Math.PI / 180);
 const AN = { run: [0, 8], atk: [8, 6], die: [14, 5], idle: [19, 1], cast: [20, 5] };
 // U — сколько единиц мира приходится на метр модели; top — высота полоски здоровья в метрах
+const VAN = Object.assign({ leap: [25, 6] }, AN);   // раскладка листов злодеев: + прыжок
 const CHARS = {
   zombie: { cell: 256, ortho: 3.0, zc: 0.9, U: 104, top: 1.5 },
   vampire: { cell: 256, ortho: 3.0, zc: 0.9, U: 114, top: 1.5 },
   mage: { cell: 256, ortho: 3.0, zc: 0.9, U: 108, top: 1.65 },
   archer: { cell: 256, ortho: 3.0, zc: 0.9, U: 104, top: 1.5 },
-  boss: { cell: 320, ortho: 4.0, zc: 1.15, U: 122, top: 1.95 },
+  boss: { cell: 320, ortho: 4.0, zc: 1.15, U: 122, top: 1.95, cast: 1 },
+  // команда злодеев из Mixamo (v38): листы грузятся, только когда злодей впервые нужен
+  v_mutant: { cell: 320, ortho: 2.99, zc: 0.77, U: 248, top: 1.66, lazy: 1, an: VAN, cast: 1, leap: 1, ob: {leap: 3.53, die: 3.53} },
+  v_maw: { cell: 320, ortho: 4.32, zc: 1.15, U: 174, top: 2.48, lazy: 1, an: VAN, cast: 1, leap: 1, ob: {leap: 5.1, die: 5.1} },
+  v_pumpkin: { cell: 320, ortho: 3.25, zc: 0.84, U: 237, top: 1.82, lazy: 1, an: VAN, cast: 1, leap: 1, ob: {leap: 3.83, die: 3.83} },
+  v_demon: { cell: 320, ortho: 3.81, zc: 1.0, U: 190, top: 2.16, lazy: 1, an: VAN, cast: 1, leap: 1, ob: {leap: 4.5, die: 4.5} },
+  v_parasite: { cell: 288, ortho: 3.49, zc: 0.91, U: 104, top: 1.97, lazy: 1, an: VAN, cast: 1, ob: {leap: 4.12, die: 4.12} },
+  v_mremireh: { cell: 288, ortho: 4.09, zc: 1.08, U: 88, top: 2.34, lazy: 1, an: VAN, cast: 1, ob: {leap: 4.83, die: 4.83} },
+  v_warzombie: { cell: 288, ortho: 3.64, zc: 0.95, U: 100, top: 2.06, lazy: 1, an: VAN, cast: 1, ob: {leap: 4.3, die: 4.3} },
+  v_zgirl: { cell: 256, ortho: 3.62, zc: 0.95, U: 100, top: 2.05, lazy: 1, an: VAN, ob: {leap: 4.27, die: 4.27} },
+  v_copz: { cell: 256, ortho: 3.87, zc: 1.02, U: 93, top: 2.21, lazy: 1, an: VAN, ob: {leap: 4.57, die: 4.57} },
+  v_goblin: { cell: 256, ortho: 4.34, zc: 1.05, U: 90, top: 2.27, lazy: 1, an: VAN, ob: {leap: 5.12, die: 5.12} },
+  v_zlorp: { cell: 256, ortho: 3.12, zc: 0.81, U: 118, top: 1.74, lazy: 1, an: VAN, ob: {leap: 3.68, die: 3.68} },
 };
-for (const k in CHARS) { const im = CHARS[k].img = new Image(); CHARS[k].at = k; im.onload = () => { CHARS[k].ok = true; }; im.src = 'chars/at_' + k + '.webp' + V; }
+// лист персонажа: у старых — сразу, у злодеев — по первому требованию (needChar)
+function needChar(c) {
+  if (!c || c.hero || c.img) return;
+  const im = c.img = new Image(); im.onload = () => { c.ok = true; }; im.src = 'chars/at_' + c.at + '.webp' + V;
+}
+for (const k in CHARS) { CHARS[k].at = k; if (!CHARS[k].lazy) needChar(CHARS[k]); }
 // Ganfaul в общей таблице: рисуется своими листами (HERO), размеры — как у остальных
 CHARS.ganfaul = { hero: true, U: 118, top: 1.5, get ok() { return HERO.ok; } };
 // сколько кадров в анимации у данного персонажа (у обычных листов каста нет — вместо него атака)
 function animOf(c, anim) {
   if (c.hero) return anim;
-  return anim === 'cast' && c !== CHARS.boss ? 'atk' : anim;
+  if (anim === 'leap') return c.leap ? 'leap' : c.cast ? 'cast' : 'atk';
+  return anim === 'cast' && !c.cast ? 'atk' : anim;
 }
 function frames(c, anim) {
   if (c.hero) return (HERO.an[anim] || HERO.an.idle).n;
-  return (AN[animOf(c, anim)] || AN.idle)[1];
+  const A = c.an || AN; return (A[animOf(c, anim)] || A.idle)[1];
 }
 // один кадр персонажа: row — направление 0..7 (0 вниз, 2 влево, 4 вверх, 6 вправо)
 function drawSprite(c, anim, fi, row, flash) {
@@ -314,7 +333,8 @@ function drawSprite(c, anim, fi, row, flash) {
   // в листах ряды 1–3 смотрят ВПРАВО (вниз-вправо, вправо, вверх-вправо); левые направления — их зеркало
   const flip = row >= 1 && row <= 3;
   if (row > 4) row = 8 - row;
-  const size = c.ortho * c.U, ay = 0.5 + c.zc * COS_EL / c.ortho;
+  // ob — анимации, снятые с другим охватом камеры (прыжок и падение шире)
+  const ort = (c.ob && c.ob[anim]) || c.ortho, size = ort * c.U, ay = 0.5 + c.zc * COS_EL / ort;
   ctx.save();
   if (flip) ctx.scale(-1, 1);
   drawCell(ctx, c.img, c.at, a[0] + fi, row, -size / 2, -ay * size, size);
@@ -374,19 +394,44 @@ const KIND = {
   mag: { ch: 'mage', rng: 1, hp: 150, rad: 22, speed: 100, dmg: [18, 24], cd: 1.9, want: 430, shot: 520, col: '#6a4590' },
   rog: { ch: 'archer', rng: 1, hp: 120, rad: 21, speed: 125, dmg: [13, 16], cd: 1.35, want: 500, shot: 820, bolt: 1, col: '#3f6a55' },
   boss: { ch: 'boss', boss: 1, hp: 1500, rad: 46, speed: 92, col: '#565a66' },
+  // ---- команда злодеев (v38). Рядовые ----
+  zgirl: { ch: 'v_zgirl', mel: 1, hp: 90, rad: 19, speed: 185, dmg: [7, 10], cd: 0.7, reach: 58, xp: 7, gold: 5, col: '#6a5a4a' },
+  copz: { ch: 'v_copz', mel: 1, hp: 210, rad: 23, speed: 118, dmg: [12, 16], cd: 1.0, reach: 64, xp: 12, gold: 9, col: '#3a4a6a' },
+  goblin: { ch: 'v_goblin', mel: 1, hp: 100, rad: 18, speed: 172, dmg: [10, 14], cd: 0.8, reach: 60, xp: 9, gold: 7, col: '#4a6a3a' },
+  zlorp: { ch: 'v_zlorp', rng: 1, hp: 130, rad: 21, speed: 108, dmg: [15, 20], cd: 1.6, want: 460, shot: 560, xp: 14, gold: 11, col: '#4a8a5a' },
+  // ---- элита: ×3,5 здоровья, ×1,7 урона, крупнее (BAL.ELITE) ----
+  parasite: { ch: 'v_parasite', elite: 1, mel: 1, hp: 150, rad: 24, speed: 160, dmg: [11, 14], cd: 0.9, reach: 66, xp: 12, gold: 9, col: '#6a3a5a' },
+  warzombie: { ch: 'v_warzombie', elite: 1, mel: 1, hp: 190, rad: 26, speed: 120, dmg: [13, 17], cd: 1.1, reach: 70, xp: 14, gold: 10, col: '#5a4a3a' },
+  mremireh: { ch: 'v_mremireh', elite: 1, rng: 1, hp: 130, rad: 24, speed: 105, dmg: [13, 17], cd: 1.7, want: 480, shot: 540, xp: 14, gold: 11, col: '#4a3a6a' },
+  warrok: { ch: 'boss', elite: 1, mel: 1, hp: 220, rad: 30, speed: 108, dmg: [15, 19], cd: 1.25, reach: 78, xp: 16, gold: 12, col: '#565a66', sz: 0.62 },
+  // ---- боссы миров: на 10-й волне своего мира ----
+  mutant: { nm: ['Мутант', 'страж первого мира'], ch: 'v_mutant', boss: 1, hp: 1500, rad: 48, speed: 96, xp: 150, gold: 100, col: '#5a4a3a' },
+  maw: { nm: ['Мо', 'пожиратель болот'], ch: 'v_maw', boss: 1, hp: 1500, rad: 52, speed: 90, xp: 150, gold: 100, col: '#4a3a3a' },
+  pumpkin: { nm: ['Тыквенный громила', 'хозяин жатвы'], ch: 'v_pumpkin', boss: 1, hp: 1500, rad: 50, speed: 92, xp: 150, gold: 100, col: '#6a4a2a' },
+  demon: { nm: ['Демон', 'владыка пепла'], ch: 'v_demon', boss: 1, hp: 1500, rad: 46, speed: 100, xp: 150, gold: 100, col: '#6a2a2a' },
 };
+// кто выходит в каком мире: рядовые ближнего и дальнего боя, элита и босс мира
+const ROSTER = {
+  1: { mel: ['min', 'min', 'zgirl', 'war'], rng: ['rog', 'mag'], elite: ['warrok', 'parasite'], boss: 'mutant' },
+  2: { mel: ['copz', 'zgirl', 'goblin', 'war'], rng: ['rog', 'zlorp'], elite: ['parasite', 'warzombie'], boss: 'maw' },
+  3: { mel: ['goblin', 'copz', 'min', 'war'], rng: ['zlorp', 'mag'], elite: ['warzombie', 'mremireh'], boss: 'pumpkin' },
+  4: { mel: ['copz', 'goblin', 'zgirl', 'war'], rng: ['zlorp', 'mag', 'rog'], elite: ['mremireh', 'warrok', 'parasite'], boss: 'demon' },
+};
+const rosterOf = n => ROSTER[BAL.at(n).M] || ROSTER[1];
 // настройки редактора: персонаж, размер и множители скорости, силы, здоровья
 for (const id in KIND) {
   const u = CFG.units[id], k = KIND[id];
+  k.sc = k.sz || 1; k.pw = 1;
   if (!u) continue;
   if (CHARS[u.char]) k.ch = u.char;
   k.sc = u.scale; k.pw = u.power; k.hp *= u.hp; k.speed *= u.speed; k.rad *= Math.sqrt(u.scale);
 }
 const corpses = [];
 function spawnEnemy(type) {
-  const k = KIND[type];
+  const k = KIND[type], el = !!k.elite;
+  needChar(CHARS[k.ch]);
   const e = {
-    type, k, ch: CHARS[k.ch], boss: !!k.boss, mel: !!k.mel, rng: !!k.rng,
+    type, k, ch: CHARS[k.ch], boss: !!k.boss, elite: el, mel: !!k.mel, rng: !!k.rng,
     x: ENEMY_SPAWN.x + rnd(-90, 90), y: ENEMY_SPAWN.y + rnd(-30, 90),   // выходят из красного портала
     // рост от волны к волне и от мира к миру — BAL в data.js
     hp: Math.round(k.hp * BAL.hp(wave)), dm: BAL.dmg(wave) * k.pw, sc: k.sc,
@@ -394,6 +439,7 @@ function spawnEnemy(type) {
     slowT: 0, slowK: 1, root: 0, dot: 0, atkCd: rnd(0.3, 1.2), flash: 0, bob: rnd(0, 6), slamCd: 2, quakeCd: 7, leapCd: 4, summonCd: 9, jump: 0,
     anim: 'run', animT: rnd(0, 1), runPh: rnd(0, 1), row: 2, act: null,
   };
+  if (el) { e.hp = Math.round(e.hp * BAL.ELITE.hp); e.dm *= BAL.ELITE.dmg; e.sc *= BAL.ELITE.size; e.rad *= BAL.ELITE.size; }
   e.max = e.hp;
   e.draw = () => drawEnemy(e);
   enemies.push(e);
@@ -403,10 +449,12 @@ function spawnWave() {
   const bossWave = wave % 3 === 0;
   // на волне босса свиты меньше: главный противник — он сам
   const nm = Math.round(Math.min(3 + wave, 9) * (bossWave ? 0.5 : 1));
-  for (let i = 0; i < nm; i++) spawnEnemy(wave >= 2 && i % 3 === 2 ? 'war' : 'min');
+  const R = rosterOf(wave);
+  for (let i = 0; i < nm; i++) spawnEnemy(wave >= 2 ? R.mel[i % R.mel.length] : 'min');
   const nr = Math.round(Math.min(1 + Math.floor(wave / 2), 4) * (bossWave ? 0.5 : 1));
-  for (let i = 0; i < nr; i++) spawnEnemy((i + wave) % 2 ? 'mag' : 'rog');
-  if (bossWave) spawnEnemy('boss');
+  for (let i = 0; i < nr; i++) spawnEnemy(R.rng[(i + wave) % R.rng.length]);
+  for (let i = 0; i < BAL.elites(wave); i++) spawnEnemy(R.elite[(i + wave) % R.elite.length]);
+  if (bossWave) spawnEnemy(R.boss);
   say(P.x, P.y - CH * 1.3 * HS(), bossWave ? 'Волна ' + wave + ' — БОСС' : 'Волна ' + wave, bossWave ? '#ff9a6a' : '#ffe9a8');
 }
 // действие с замахом: анимация длится dur, удар срабатывает в момент at (доля от dur)
@@ -500,7 +548,7 @@ function bossSkills(e, d) {
     const tx = P.x, ty = P.y;
     fx.push({ type: 'tele', x: tx, y: ty, t: 0, dur: 0.95, R: 175, dmg: 70 * e.dm });
     e.leap = { x0: e.x, y0: e.y, x1: tx, y1: ty, t: 0, dur: 0.95 };
-    startAct(e, 'atk', 1.0, 2, () => {});
+    startAct(e, 'leap', 1.0, 2, () => {});
   } else if (d < 150 && e.slamCd <= 0) {
     e.slamCd = 2.6 * cdk;
     fx.push({ type: 'tele', x: e.x, y: e.y, t: 0, dur: 0.75, R: 155, dmg: 55 * e.dm });
@@ -913,7 +961,8 @@ function combatUI() {
     ctx.drawImage(BOSS_PLATE, bx, by, bw, bh);
     ctx.textAlign = 'center'; ctx.font = 'bold 14px system-ui, sans-serif'; ctx.fillStyle = '#fff';
     ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = 3;
-    const nm = boss.rage ? 'Варрок в ярости' : 'Варрок, вожак орды';
+    const bn = boss.k.nm || ['Варрок', 'вожак орды'];
+    const nm = boss.rage ? bn[0] + ' в ярости' : bn[0] + ', ' + bn[1];
     ctx.strokeText(nm, W / 2, by + bh * 0.62); ctx.fillText(nm, W / 2, by + bh * 0.62);
   }
   if (P.dead > 0) {
