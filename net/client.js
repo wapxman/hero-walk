@@ -218,7 +218,7 @@ var NETC = { on: false };
         if (!v) continue;
         const top = v === P ? CH * 1.05 * HS() : (v.ch && v.ch.ok ? v.ch.top * v.ch.U * (v.sc || 1) * 0.8 : 60);
         say(v.x + rnd(-14, 14), v.y - top, (v === P ? '-' : '') + Math.round(dmg), v === P ? '#ff8a7a' : col === 3 ? '#ffd23a' : col === 2 ? '#d9ffb0' : '#bfe6ff');
-        if (v === P) { P.hurt = 0.25; vo('hurt', 0.25, 3); } else v.flash = 0.08;
+        if (v === P) { P.hurt = 0.25; vo('hurt', 0.15, 20); } else v.flash = 0.08;
       } else if (t === E.DIE) {
         const [, id] = e, v = viewOf(id);
         if (v === P) { P.dead = 3; snd('hero_death', 0.75); }
@@ -303,8 +303,8 @@ var NETC = { on: false };
     if (!NETC.on) return _castN(id);
     if (P.dead > 0 || SHOP.paused) return;
     if (HERO_ID === 'archer' && id === 'r') return _castN(id);       // пассивка: только подсказка
-    if (P.cd[id] > 0) { vo('cooldown', 1, 3); return; }
-    if (P.mp < MANA[id]) { vo('nomana', 1, 3); say(P.x, P.y - CH * HS(), 'мало маны', '#8ab8ff'); return; }
+    if (P.cd[id] > 0) { vo('cooldown', 1, 15); return; }
+    if (P.mp < MANA[id]) { vo('nomana', 1, 15); say(P.x, P.y - CH * HS(), 'мало маны', '#8ab8ff'); return; }
     S.latch |= BIT[id];
   };
   const _startWave = SHOP.startWave;
