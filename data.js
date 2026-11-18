@@ -62,20 +62,10 @@ const SHEET_FILES = { s2: 'arena/s2.webp', s3: 'arena/s3.webp', s4: 'arena/s4.we
 // Листы персонажей (папка chars). У героя Ganfaul свой формат из трёх листов, у остальных — один лист.
 const CHAR_LIST = [
   { id: 'ganfaul', name: 'Ganfaul — маг в доспехе' },
-  { id: 'zombie', name: 'Skeletonzombie — зомби-скелет' },
-  { id: 'vampire', name: 'Vampire — вампир с когтями' },
-  { id: 'mage', name: 'Nightshade — демоница' },
-  { id: 'archer', name: 'Erika — лучница' },
-  { id: 'boss', name: 'Warrok — рогатый громила' },
 ];
-// Кого можно настраивать: герой и пять видов врагов. char — персонаж по умолчанию.
+// Кого можно настраивать: герой (злодеи ChatGPT настраиваются в KIND). char — персонаж по умолчанию.
 const UNIT_LIST = [
   { id: 'hero', name: 'Герой', char: 'ganfaul' },
-  { id: 'min', name: 'Слабый ближник', char: 'zombie' },
-  { id: 'war', name: 'Сильный ближник', char: 'vampire' },
-  { id: 'mag', name: 'Маг-стрелок', char: 'mage' },
-  { id: 'rog', name: 'Лучник', char: 'archer' },
-  { id: 'boss', name: 'Босс', char: 'boss' },
 ];
 
 // Листы персонажей упакованы в атласы (chars/at_*.webp, координаты кадров — chars/atlas.js):

@@ -290,23 +290,6 @@ const AN = { run: [0, 8], atk: [8, 6], die: [14, 5], idle: [19, 1], cast: [20, 5
 // U — сколько единиц мира приходится на метр модели; top — высота полоски здоровья в метрах
 const VAN = Object.assign({ leap: [25, 6] }, AN);   // раскладка листов злодеев: + прыжок
 const CHARS = {
-  zombie: { cell: 256, ortho: 3.0, zc: 0.9, U: 104, top: 1.5 },
-  vampire: { cell: 256, ortho: 3.0, zc: 0.9, U: 114, top: 1.5 },
-  mage: { cell: 256, ortho: 3.0, zc: 0.9, U: 108, top: 1.65 },
-  archer: { cell: 256, ortho: 3.0, zc: 0.9, U: 104, top: 1.5 },
-  boss: { cell: 320, ortho: 4.0, zc: 1.15, U: 122, top: 1.95, cast: 1 },
-  // команда злодеев из Mixamo (v38): листы грузятся, только когда злодей впервые нужен
-  v_mutant: { cell: 320, ortho: 2.99, zc: 0.77, U: 248, top: 1.66, lazy: 1, an: VAN, cast: 1, leap: 1, ob: {leap: 3.53, die: 3.53} },
-  v_maw: { cell: 320, ortho: 4.32, zc: 1.15, U: 174, top: 2.48, lazy: 1, an: VAN, cast: 1, leap: 1, ob: {leap: 5.1, die: 5.1} },
-  v_pumpkin: { cell: 320, ortho: 3.25, zc: 0.84, U: 237, top: 1.82, lazy: 1, an: VAN, cast: 1, leap: 1, ob: {leap: 3.83, die: 3.83} },
-  v_demon: { cell: 320, ortho: 3.81, zc: 1.0, U: 190, top: 2.16, lazy: 1, an: VAN, cast: 1, leap: 1, ob: {leap: 4.5, die: 4.5} },
-  v_parasite: { cell: 288, ortho: 3.49, zc: 0.91, U: 104, top: 1.97, lazy: 1, an: VAN, cast: 1, ob: {leap: 4.12, die: 4.12} },
-  v_mremireh: { cell: 288, ortho: 4.09, zc: 1.08, U: 88, top: 2.34, lazy: 1, an: VAN, cast: 1, ob: {leap: 4.83, die: 4.83} },
-  v_warzombie: { cell: 288, ortho: 3.64, zc: 0.95, U: 100, top: 2.06, lazy: 1, an: VAN, cast: 1, ob: {leap: 4.3, die: 4.3} },
-  v_zgirl: { cell: 256, ortho: 3.62, zc: 0.95, U: 100, top: 2.05, lazy: 1, an: VAN, ob: {leap: 4.27, die: 4.27} },
-  v_copz: { cell: 256, ortho: 3.87, zc: 1.02, U: 93, top: 2.21, lazy: 1, an: VAN, ob: {leap: 4.57, die: 4.57} },
-  v_goblin: { cell: 256, ortho: 4.34, zc: 1.05, U: 90, top: 2.27, lazy: 1, an: VAN, ob: {leap: 5.12, die: 5.12} },
-  v_zlorp: { cell: 256, ortho: 3.12, zc: 0.81, U: 118, top: 1.74, lazy: 1, an: VAN, ob: {leap: 3.68, die: 3.68} },
   // Шипокорень — лесной голем из ChatGPT (v49): листы без потерь, ходьба и удар — 8 направлений, стойка — 3, смерть — 1
   thornroot: { lazy: 1, U: 100, top: 2.45, k: 1.14, mul: {
     idle: { at: 'th_idle', n: 4, ms: 230, rows: 3, foot: 230 }, run: { at: 'th_walk', n: 6, ms: 115, rows: 8, foot: 230 },
@@ -446,21 +429,6 @@ function drawHero() {
 }
 // виды врагов: mel — ближний бой, rng — стрелок
 const KIND = {
-  min: { ch: 'zombie', mel: 1, hp: 120, rad: 20, speed: 150, dmg: [9, 13], cd: 0.9, reach: 62, col: '#8a4534' },
-  war: { ch: 'vampire', mel: 1, hp: 300, rad: 26, speed: 112, dmg: [20, 26], cd: 1.25, reach: 72, col: '#7a3a2c' },
-  mag: { ch: 'mage', rng: 1, hp: 150, rad: 22, speed: 100, dmg: [18, 24], cd: 1.9, want: 430, shot: 520, col: '#6a4590' },
-  rog: { ch: 'archer', rng: 1, hp: 120, rad: 21, speed: 125, dmg: [13, 16], cd: 1.35, want: 500, shot: 820, bolt: 1, col: '#3f6a55' },
-  boss: { ch: 'boss', boss: 1, hp: 1500, rad: 46, speed: 92, col: '#565a66' },
-  // ---- команда злодеев (v38). Рядовые ----
-  zgirl: { ch: 'v_zgirl', mel: 1, hp: 90, rad: 19, speed: 185, dmg: [7, 10], cd: 0.7, reach: 58, xp: 7, gold: 5, col: '#6a5a4a' },
-  copz: { ch: 'v_copz', mel: 1, hp: 210, rad: 23, speed: 118, dmg: [12, 16], cd: 1.0, reach: 64, xp: 12, gold: 9, col: '#3a4a6a' },
-  goblin: { ch: 'v_goblin', mel: 1, hp: 100, rad: 18, speed: 172, dmg: [10, 14], cd: 0.8, reach: 60, xp: 9, gold: 7, col: '#4a6a3a' },
-  zlorp: { ch: 'v_zlorp', rng: 1, hp: 130, rad: 21, speed: 108, dmg: [15, 20], cd: 1.6, want: 460, shot: 560, xp: 14, gold: 11, col: '#4a8a5a' },
-  // ---- элита: ×3,5 здоровья, ×1,7 урона, крупнее (BAL.ELITE) ----
-  parasite: { nm: 'Паразит', ch: 'v_parasite', elite: 1, mel: 1, hp: 150, rad: 24, speed: 160, dmg: [11, 14], cd: 0.9, reach: 66, xp: 12, gold: 9, col: '#6a3a5a' },
-  warzombie: { nm: 'Зомби-солдат', ch: 'v_warzombie', elite: 1, mel: 1, hp: 190, rad: 26, speed: 120, dmg: [13, 17], cd: 1.1, reach: 70, xp: 14, gold: 10, col: '#5a4a3a' },
-  mremireh: { nm: 'Мремире', sz: 1.3, ch: 'v_mremireh', elite: 1, rng: 1, hp: 130, rad: 24, speed: 105, dmg: [13, 17], cd: 1.7, want: 480, shot: 540, xp: 14, gold: 11, col: '#4a3a6a' },
-  warrok: { nm: 'Варрок', ch: 'boss', elite: 1, mel: 1, hp: 220, rad: 30, speed: 108, dmg: [15, 19], cd: 1.25, reach: 78, xp: 16, gold: 12, col: '#565a66', sz: 0.9 },
   // ---- злодеи Лесной поляны из ChatGPT (v50, roster.py). pcol — цвет снаряда стрелка ----
   shadowwolf: { nm: 'Теневой волк', ch: 'shadowwolf', mel: 1, hp: 95, rad: 24, speed: 205, dmg: [9, 12], cd: 0.8, reach: 68, xp: 8, gold: 6, col: '#3a2a4a' },
   sporeshaman: { nm: 'Грибной шаман', ch: 'sporeshaman', rng: 1, hp: 110, rad: 20, speed: 100, dmg: [13, 18], cd: 1.8, want: 450, shot: 500, pcol: '120,230,90', slowShot: 1, xp: 12, gold: 9, col: '#8a3a2a' },
@@ -485,6 +453,12 @@ const KIND = {
   salamander: { nm: 'Саламандра-воин', ch: 'salamander', mel: 1, hp: 380, rad: 30, speed: 95, dmg: [22, 28], cd: 1.3, reach: 100, xp: 20, gold: 15, col: '#8a4a1a' },
   ashcultist: { nm: 'Пепельный культист', ch: 'ashcultist', rng: 1, hp: 135, rad: 22, speed: 100, dmg: [17, 22], cd: 1.7, want: 500, shot: 560, pcol: '255,110,40', xp: 14, gold: 11, col: '#5a2a1a' },
   cinderwraith: { nm: 'Пепельный призрак', ch: 'cinderwraith', rng: 1, hp: 125, rad: 22, speed: 135, dmg: [12, 16], cd: 1.5, want: 480, shot: 640, pcol: '255,80,40', fan: 3, xp: 14, gold: 11, col: '#4a3a3a' },
+  // ---- элита из злодеев ChatGPT: тот же лист, своё имя, сильнее (BAL.ELITE: ×3,5 здоровья, ×1,7 урона, крупнее) ----
+  el_drowned: { nm: 'Утопленник-капитан', ch: 'drownedknight', base: 'drownedknight', elite: 1, mel: 1, hp: 200, rad: 30, speed: 92, dmg: [16, 21], cd: 1.4, reach: 100, xp: 24, gold: 18, col: '#2a4a5a' },
+  el_witch: { nm: 'Жабья матрона', ch: 'toadwitch', base: 'toadwitch', elite: 1, rng: 1, hp: 140, rad: 24, speed: 100, dmg: [13, 17], cd: 1.5, want: 480, shot: 560, pcol: '190,220,60', fan: 3, xp: 22, gold: 16, col: '#5a7a2a' },
+  el_bear: { nm: 'Матёрый медведь', ch: 'autumnbear', base: 'autumnbear', elite: 1, mel: 1, hp: 220, rad: 32, speed: 98, dmg: [16, 21], cd: 1.4, reach: 96, xp: 24, gold: 18, col: '#6a3a1a' },
+  el_salamander: { nm: 'Саламандра-вожак', ch: 'salamander', base: 'salamander', elite: 1, mel: 1, hp: 230, rad: 30, speed: 100, dmg: [16, 21], cd: 1.25, reach: 104, xp: 24, gold: 18, col: '#8a4a1a' },
+  el_cultist: { nm: 'Верховный культист', ch: 'ashcultist', base: 'ashcultist', elite: 1, rng: 1, hp: 150, rad: 24, speed: 100, dmg: [14, 18], cd: 1.6, want: 500, shot: 580, pcol: '255,110,40', fan: 3, xp: 22, gold: 16, col: '#5a2a1a' },
   // Шипокорень: медленный и толстый, бьёт сильно и с длинной руки, из-под земли выпускает корни
   thornroot: { nm: 'Шипокорень', ch: 'thornroot', elite: 1, mel: 1, hp: 280, rad: 34, speed: 92, dmg: [18, 24], cd: 1.45, reach: 92, xp: 24, gold: 18, col: '#5a4a2a' },
   // ---- боссы миров: на 10-й волне своего мира ----
@@ -515,17 +489,13 @@ const KIND = {
     xp: 300, gold: 250, col: '#3a1a5a', sz: 1.15, spells: [
       { nm: 'Сфера Бездны', ph: 23, how: 'moving', R: 170, warn: 0, dmg: 110, sp: 200, cd: 8, an: 'cast1' },
       { nm: 'Разлом', ph: 24, how: 'multi', R: 120, warn: 1.0, dmg: 60, cd: 10, an: 'cast2' }] },
-  mutant: { nm: ['Мутант', 'страж первого мира'], ch: 'v_mutant', boss: 1, hp: 1500, rad: 48, speed: 96, xp: 150, gold: 100, col: '#5a4a3a' },
-  maw: { nm: ['Мо', 'пожиратель болот'], ch: 'v_maw', boss: 1, hp: 1500, rad: 52, speed: 90, xp: 150, gold: 100, col: '#4a3a3a' },
-  pumpkin: { nm: ['Тыквенный громила', 'хозяин жатвы'], ch: 'v_pumpkin', boss: 1, hp: 1500, rad: 50, speed: 92, xp: 150, gold: 100, col: '#6a4a2a' },
-  demon: { nm: ['Демон', 'владыка пепла'], ch: 'v_demon', boss: 1, hp: 1500, rad: 46, speed: 100, xp: 150, gold: 100, col: '#6a2a2a' },
 };
 // кто выходит в каком мире: рядовые ближнего и дальнего боя, элита и босс мира
 const ROSTER = {
   1: { mel: ['shadowwolf', 'rotdryad', 'shadowwolf', 'boarbrute'], rng: ['sporeshaman', 'thornimp'], elite: ['thornroot'], boss: 'b_thornqueen' },
-  2: { mel: ['bogghoul', 'leechworm', 'bogghoul', 'drownedknight'], rng: ['toadwitch', 'wisplantern'], elite: ['parasite', 'warzombie'], boss: 'b_toadking' },
-  3: { mel: ['scarecrow', 'werefox', 'autumnbear', 'werefox'], rng: ['crowharpy', 'hollowarcher'], elite: ['thornroot', 'warzombie', 'mremireh'], boss: 'b_reaper' },
-  4: { mel: ['magmahound', 'fireimp', 'salamander', 'fireimp'], rng: ['ashcultist', 'cinderwraith'], elite: ['mremireh', 'warrok', 'parasite'], boss: 'b_ashlord', final: 'b_voidmage' },
+  2: { mel: ['bogghoul', 'leechworm', 'bogghoul', 'drownedknight'], rng: ['toadwitch', 'wisplantern'], elite: ['el_drowned', 'el_witch'], boss: 'b_toadking' },
+  3: { mel: ['scarecrow', 'werefox', 'autumnbear', 'werefox'], rng: ['crowharpy', 'hollowarcher'], elite: ['thornroot', 'el_bear'], boss: 'b_reaper' },
+  4: { mel: ['magmahound', 'fireimp', 'salamander', 'fireimp'], rng: ['ashcultist', 'cinderwraith'], elite: ['el_salamander', 'el_cultist'], boss: 'b_ashlord', final: 'b_voidmage' },
 };
 const rosterOf = n => ROSTER[BAL.at(n).M] || ROSTER[1];
 // настройки редактора: персонаж, размер и множители скорости, силы, здоровья
@@ -549,7 +519,7 @@ function spawnEnemy(type) {
     slowT: 0, slowK: 1, root: 0, dot: 0, atkCd: rnd(0.3, 1.2), flash: 0, bob: rnd(0, 6), slamCd: 2, quakeCd: 7, leapCd: 4, summonCd: 9, jump: 0,
     anim: 'run', animT: rnd(0, 1), runPh: rnd(0, 1), row: 2, act: null,
   };
-  if (k.boss && KIND[type] !== KIND.boss) { e.hp = Math.round(e.hp * BAL.bossHp(wave)); e.dm *= BAL.bossDmg(wave); }
+  if (k.boss) { e.hp = Math.round(e.hp * BAL.bossHp(wave)); e.dm *= BAL.bossDmg(wave); }
   if (el) { e.hp = Math.round(e.hp * BAL.ELITE.hp); e.dm *= BAL.ELITE.dmg; e.sc *= BAL.ELITE.size; e.rad *= BAL.ELITE.size; }
   e.max = e.hp;
   e.draw = () => drawEnemy(e);
@@ -692,7 +662,7 @@ function bossSkills(e, d) {
     e.summonCd = 17 * cdk;
     startAct(e, 'cast', 1.2, 0.55, () => {
       for (let i = 0; i < 3; i++) {
-        spawnEnemy('min'); const m = enemies[enemies.length - 1], a = rnd(0, 6.283);
+        spawnEnemy(rosterOf(wave).mel[0]); const m = enemies[enemies.length - 1], a = rnd(0, 6.283);
         m.x = e.x + Math.cos(a) * 110; m.y = e.y + Math.sin(a) * 110 * YK; collide(m);
         fx.push({ type: 'quake', x: m.x, y: m.y, t: 0, dur: 0.6, R: 60 });
       }

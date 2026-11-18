@@ -23,8 +23,6 @@ const CS = fs.readFileSync(path.join(__dirname, '..', 'combat.js'), 'utf8');
 vm.runInContext(CS.slice(CS.indexOf('const KIND = {'), CS.indexOf('const rosterOf')) + '\n;this.K = { KIND, ROSTER };', box);
 const KIND = box.K.KIND, ROSTER = box.K.ROSTER;
 const XP0 = { min: 8, war: 18, mag: 14, rog: 14, boss: 150 };
-KIND.war.steal = 0.6;   // как в enemies.js: вампир лечится, зомби может встать
-KIND.min.rise = 0.3;
 const { TICK, DT, YK, EV } = NET;
 // ---------- карты миров (data.js WORLDS; мир 1 — арена по умолчанию) ----------
 const A = D.AK;
@@ -146,7 +144,6 @@ function hurt(r, e, dmg, src, col) {
   if (src && src.player && src.ls && alive(src)) src.hp = Math.min(src.max, src.hp + dealt * src.ls);   // вампиризм от предметов
   if (e.player && src && !src.player) {
     if (src.k.steal && alive(src)) src.hp = Math.min(src.max, src.hp + dealt * src.k.steal);
-    if (src.kind === 'goblin') src.ret = 0.6;    // гоблин ударил — отскакивает
   }
   if (e.hp <= 0) {
     e.hp = 0;
@@ -412,7 +409,7 @@ function moveBy(e, dx, dy, sp) { e.x += dx * sp * DT; e.y += dy * sp * YK * DT; 
 function leapTo(r, e, x, y, dur, R, dmg) { tele(r, x, y, R, dur, dmg); e.leap = { x0: e.x, y0: e.y, x1: x, y1: y, t: 0, dur }; act(e, dur + 0.05, 2, () => {}, true); }
 function raise(r, e, n, type) {
   for (let i = 0; i < n; i++) {
-    const a = rnd(0, 6.283), m = spawnEnemy(r, type || 'min', e.x + Math.cos(a) * 90, e.y + Math.sin(a) * 90 * YK);
+    const a = rnd(0, 6.283), m = spawnEnemy(r, type || (ROSTER[r.world] || ROSTER[1]).mel[0], e.x + Math.cos(a) * 90, e.y + Math.sin(a) * 90 * YK);
     ev(r, EV.QUAKE, m.x, m.y, 50);
   }
 }
@@ -438,40 +435,9 @@ const MECH = {
       tele(r, e.x + dx * 95, e.y + dy * 95 * YK, 115, 0.85, 34 * e.dm); act(e, 0.95, 2, () => {}); return true;
     }
   },
-  zgirl(r, e, d, tg) {
-    if (e.dash > 0) { e.dash -= DT; const [dx, dy] = dirTo(e, tg.x, tg.y); moveBy(e, dx, dy, e.speed * 2.6); return true; }
-    if (!e.act && e.mt <= 0 && d > 160 && d < 380) { e.dash = 0.45; e.mt = 4; }
-  },
-  goblin(r, e, d, tg) { if (e.ret > 0) { e.ret -= DT; const [dx, dy] = dirTo(e, tg.x, tg.y); moveBy(e, -dx, -dy, e.speed * 1.2); return true; } },
-  copz(r, e) { if (e.mt <= 0) { e.mt = 7; e.arm = 2.5; say(r, e, 0); } },
-  rog(r, e, d, tg) {
+  salamander(r, e) { if (e.mt <= 0) { e.mt = 7; e.arm = 2.5; } },
+  hollowarcher(r, e, d, tg) {
     if (!e.act && d < 230) { const [dx, dy] = dirTo(e, tg.x, tg.y); moveBy(e, -dx, -dy, e.speed * (e.slowT > 0 ? e.slowK : 1)); return true; }
-  },
-  mag(r, e, d, tg) {
-    if (!e.act && e.mt <= 0 && d < 600 && !(e.silT > 0)) { e.mt = 8; tele(r, tg.x, tg.y, 105, 1.1, 30 * e.dm); act(e, 0.6, 0.5, () => {}); return true; }
-  },
-  parasite(r, e, d, tg) {
-    if (!e.act && e.mt <= 0 && d > 200 && d < 560) { e.mt = 6; leapTo(r, e, tg.x, tg.y, 0.8, 105, 28 * e.dm); say(r, e, 1); return true; }
-  },
-  warzombie(r, e, d, tg) {
-    if (e.chg) {
-      const c = e.chg; c.t -= DT;
-      if (c.aim) { e.moving = false; if (c.t <= 0) { c.aim = false; c.t = 0.9; } return true; }
-      moveBy(e, c.dx, c.dy, e.speed * 3.4);
-      for (const p of r.ents.values()) if (p.player && alive(p) && !c.hit && gdist(p, e) < e.rad + 40) {
-        c.hit = true; hurt(r, p, 26 * e.dm, e);
-        p.kb = { vx: c.dx * 120 / 0.2, vy: c.dy * 120 * YK / 0.2, t: 0.2 }; ev(r, EV.QUAKE, p.x, p.y, 70);
-      }
-      if (c.t <= 0) e.chg = null;
-      return true;
-    }
-    if (!e.act && e.mt <= 0 && d > 220 && d < 650) {
-      const [dx, dy] = dirTo(e, tg.x, tg.y); e.chg = { aim: true, t: 0.65, dx, dy }; e.mt = 7; e.row = runRow(tg.x - e.x, tg.y - e.y); say(r, e, 2);
-      return true;
-    }
-  },
-  mremireh(r, e) {
-    if (!e.act && e.mt <= 0 && !(e.silT > 0) && r.ents.size < 26) { e.mt = 10; say(r, e, 3); act(e, 1.0, 0.6, () => raise(r, e, 2), true); return true; }
   },
   shadowwolf(r, e, d, tg) {
     if (!e.act && e.mt <= 0 && d > 170 && d < 420) { e.mt = 5; leapTo(r, e, tg.x, tg.y, 0.55, 80, 16 * e.dm); return true; }
@@ -483,57 +449,6 @@ const MECH = {
     if (!e.act && e.mt <= 0 && d > 140 && d < 620) {
       e.mt = 7; say(r, e, 14);
       act(e, 0.9, 0.5, () => tele(r, tg.x, tg.y, 120, 1.0, 26 * e.dm, false, { slow: 0.35 }));
-      return true;
-    }
-  },
-  warrok(r, e, d) {
-    if (!e.act && e.mt <= 0 && d < 200) { e.mt = 5; tele(r, e.x, e.y, 150, 0.75, 34 * e.dm); act(e, 0.85, 2, () => {}); return true; }
-  },
-  // ---- боссы миров ----
-  mutant(r, e, d) {
-    if (e.phase >= 2 && !e.act && e.mt <= 0 && d < 520) {
-      e.mt = e.phase >= 3 ? 7 : 11; say(r, e, 4);
-      act(e, 1.1, 0.45, () => {
-        for (const p of r.ents.values()) if (p.player && alive(p) && gdist(p, e) < 520) { slow(p, 0.5, 2.5); ev(r, EV.SAY, p.id, 10 + 13); }
-        ev(r, EV.QUAKE, e.x, e.y, 260);
-      }, true);
-      return true;
-    }
-  },
-  maw(r, e, d, tg) {
-    if (!e.act && e.mt <= 0 && d < 900) {
-      e.mt = e.phase >= 2 ? 7 : 10; say(r, e, 5);
-      act(e, 1.0, 0.4, () => {
-        const n = e.phase >= 3 ? 5 : 3;
-        for (let i = 0; i < n; i++) { const a = rnd(0, 6.283), rr = i ? rnd(80, 220) : 0; tele(r, tg.x + Math.cos(a) * rr, tg.y + Math.sin(a) * rr * YK, 95, 1.0 + i * 0.35, 22 * e.dm, false, { slow: 1 }); }
-      }, true);
-      return true;
-    }
-  },
-  pumpkin(r, e, d) {
-    if (!e.act && e.mt <= 0 && d < 520) {
-      e.mt = e.phase >= 2 ? 8 : 11; say(r, e, 6);
-      act(e, 1.3, 0.3, () => { [[150, 0.6], [270, 1.0], [400, 1.45]].forEach(([R, t], i) => tele(r, e.x, e.y, R, t, (30 - i * 6) * e.dm, i === 2)); }, true);
-      return true;
-    }
-    if (e.phase >= 3 && !e.act && e.mt2 <= 0 && r.ents.size < 22) { e.mt2 = 14; say(r, e, 7); act(e, 1.0, 0.5, () => raise(r, e, 3, 'goblin'), true); return true; }
-  },
-  demon(r, e, d, tg) {
-    if (e.act) return;
-    if (e.phase >= 3 && e.mt2 <= 0 && d > 350) {
-      e.mt2 = 9; const [dx, dy] = dirTo(e, tg.x, tg.y);
-      ev(r, EV.QUAKE, e.x, e.y, 90);
-      e.x = tg.x + dx * 150; e.y = tg.y + dy * 150 * YK; NET.collide(e);
-      ev(r, EV.QUAKE, e.x, e.y, 90); say(r, e, 8);
-    }
-    if (e.phase >= 2 && e.mt3 <= 0) {
-      e.mt3 = 7;
-      act(e, 0.9, 0.55, () => { for (let i = 0; i < 12; i++) { const a = i / 12 * 6.283; fireball(r, e, Math.cos(a), Math.sin(a), 24 * e.dm, 420); } }, true);
-      return true;
-    }
-    if (e.mt <= 0 && d < 1000) {
-      e.mt = 9; say(r, e, 9);
-      act(e, 1.2, 0.35, () => { for (let i = 0; i < 6; i++) { const a = rnd(0, 6.283), rr = i ? rnd(60, 260) : 0; tele(r, tg.x + Math.cos(a) * rr, tg.y + Math.sin(a) * rr * YK, 90, 0.9 + i * 0.22, 30 * e.dm); } }, true);
       return true;
     }
   },
@@ -564,7 +479,8 @@ function spellBoss(r, e, d, tg) {
   }
   if (e.phase >= 3 && e.mt2 <= 0 && r.ents.size < 22) { e.mt2 = 14; act(e, 1.0, 0.5, () => raise(r, e, 2, (ROSTER[r.world] || ROSTER[1]).mel[0]), true); return true; }
 }
-MECH.werefox = MECH.bogghoul; MECH.magmahound = MECH.bogghoul; MECH.hollowarcher = MECH.rog; MECH.fireimp = MECH.shadowwolf; MECH.salamander = MECH.copz;
+MECH.werefox = MECH.bogghoul; MECH.magmahound = MECH.bogghoul; MECH.fireimp = MECH.shadowwolf;
+for (const t in KIND) if (KIND[t].base && MECH[KIND[t].base]) MECH[t] = MECH[KIND[t].base];   // элита — приёмы своего злодея
 function updateEnemy(r, e) {
   e.atkCd -= DT; e.slamCd -= DT; e.quakeCd -= DT; e.leapCd -= DT; e.summonCd -= DT; e.mt -= DT; e.mt2 -= DT; e.mt3 -= DT;
   if (e.arm > 0) e.arm -= DT;
@@ -622,7 +538,7 @@ function updateEnemy(r, e) {
       for (let i = 0; i < nf; i++) {
         const a = a0 + (i - (nf - 1) / 2) * 0.2;
         const s = shoot(r, e, k.bolt ? 'bolt' : 'fire', Math.cos(a), Math.sin(a), null, rnd(k.dmg[0], k.dmg[1]) * e.dm, k.shot, k.want + 150);
-        if (e.kind === 'zlorp' || k.slowShot) s.slowHit = k.slowShot ? 0.75 : 0.65;
+        if (k.slowShot) s.slowHit = 0.75;
       }
     });
   }
