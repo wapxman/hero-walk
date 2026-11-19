@@ -120,5 +120,11 @@
  "vl_b_serpentqueen_cast1": 512,
  "vl_b_serpentqueen_cast2": 512,
  "vl_b_serpentqueen_death": 512,
- "vl_b_serpentqueen_idle": 416
+ "vl_b_serpentqueen_idle": 416,
+ "vl_b_frostqueen_walk": 352,
+ "vl_b_frostqueen_attack": 448,
+ "vl_b_frostqueen_cast1": 448,
+ "vl_b_frostqueen_cast2": 448,
+ "vl_b_frostqueen_death": 448,
+ "vl_b_frostqueen_idle": 352
 }

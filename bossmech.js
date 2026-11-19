@@ -102,7 +102,7 @@ function frostqueen(e, dt, d) {
   if (e.act) return;
   if (e.bz <= 0) {
     e.bz = 10 * bossCd(e); tag(e, 'Вьюга!', '#bfe6ff');
-    startAct(e, 'cast1', 1.0, 0.5, () => gzone({ img: vfxOf(e, 0), x: e.x, y: e.y, R: 330, dur: 5, tick: 0.8, cold: 1, follow: e }));
+    startAct(e, 'cast1', 1.0, 0.5, () => gzone({ img: vfxOf(e, 0), x: e.x, y: e.y, R: 330, dur: 5, tick: 0.8, cold: 1, follow: e, spin: 1, a: 0.75 }));
     return true;
   }
   if (e.pr <= 0 && d < 900) {

@@ -1104,5 +1104,63 @@
     "how": "moving"
    }
   ]
+ },
+ "b_frostqueen": {
+  "size": 300,
+  "nm": "Королева Вьюги",
+  "mul": {
+   "run": {
+    "at": "vl_b_frostqueen_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   },
+   "atk": {
+    "at": "vl_b_frostqueen_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 408
+   },
+   "cast1": {
+    "at": "vl_b_frostqueen_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "cast2": {
+    "at": "vl_b_frostqueen_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "die": {
+    "at": "vl_b_frostqueen_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 408
+   },
+   "idle": {
+    "at": "vl_b_frostqueen_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 326
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_b_frostqueen_1.webp",
+    "how": "self"
+   },
+   {
+    "img": "fx/vfx_b_frostqueen_2.webp",
+    "how": "target"
+   }
+  ]
  }
 }
