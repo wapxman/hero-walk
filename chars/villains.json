@@ -1569,5 +1569,40 @@
    }
   },
   "vfx": []
+ },
+ "glassdancer": {
+  "size": 195,
+  "nm": "Витражная плясунья",
+  "mul": {
+   "run": {
+    "at": "vl_glassdancer_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_glassdancer_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_glassdancer_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_glassdancer_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": []
  }
 }

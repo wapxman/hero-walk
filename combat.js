@@ -591,6 +591,7 @@ KIND.jester = { nm: 'Безумный шут', ch: 'jester', rng: 1, hp: 105, ra
 KIND.gembeetle = { nm: 'Самоцветный жук', ch: 'gembeetle', mel: 1, hp: 260, rad: 28, speed: 110, dmg: [18, 24], cd: 1.2, reach: 80, xp: 16, gold: 12, col: '#4a6a8a' };
 KIND.dwarfbomber = { nm: 'Гном-подрывник', ch: 'dwarfbomber', rng: 1, hp: 120, rad: 20, speed: 115, dmg: [16, 21], cd: 2.0, want: 520, shot: 480, pcol: '255,140,40', xp: 13, gold: 10, col: '#7a5a3a' };
 KIND.yeti = { nm: 'Йети-камнемёт', ch: 'yeti', rng: 1, hp: 300, rad: 30, speed: 90, dmg: [24, 30], cd: 2.2, want: 540, shot: 460, pcol: '170,220,255', slowShot: 1, xp: 18, gold: 14, col: '#a0b0c0' };
+KIND.glassdancer = { nm: 'Витражная плясунья', ch: 'glassdancer', mel: 1, hp: 150, rad: 22, speed: 150, dmg: [13, 17], cd: 0.8, reach: 84, xp: 13, gold: 10, col: '#8090c0' };
 // мини-боссы середины мира (5-я волна): Жнец Урожая в Горящей деревне, Королева Колючек в Осеннем лесу — как элита
 KIND.mb_thornqueen = Object.assign({}, KIND.b_thornqueen, { nm: 'Королева Колючек', boss: 0, elite: 1, hp: 520, sz: 1, xp: 40, gold: 30, base: 'b_thornqueen' });
 KIND.mb_reaper = Object.assign({}, KIND.b_reaper, { nm: 'Жнец Урожая', boss: 0, elite: 1, hp: 540, sz: 1, xp: 40, gold: 30, base: 'b_reaper' });
@@ -603,7 +604,7 @@ const ROSTER = {
   4: { mel: ['bogghoul', 'leechworm', 'bogghoul', 'drownedknight'], rng: ['toadwitch', 'wisplantern'], elite: ['el_drowned', 'el_witch'], boss: 'b_toadking' },
   5: { mel: ['gembeetle', 'mn_imp', 'gembeetle', 'mn_worm', 'mn_boar'], rng: ['dwarfbomber', 'mn_thrower'], elite: ['el_forgeman'], boss: 'b_forgegolem' },
   6: { mel: ['ic_wolf', 'ic_fox', 'ic_bear', 'ic_wolf'], rng: ['yeti', 'ic_wisp', 'ic_harpy'], elite: ['el_icebear'], boss: 'b_frostqueen' },
-  7: { mel: ['rn_ghoul', 'rn_knight', 'rn_scare', 'rn_ghoul'], rng: ['rn_archer', 'rn_wraith'], elite: ['el_mirror'], boss: 'b_mirrorlord' },
+  7: { mel: ['glassdancer', 'rn_ghoul', 'rn_knight', 'glassdancer', 'rn_scare'], rng: ['rn_archer', 'rn_wraith'], elite: ['el_mirror'], boss: 'b_mirrorlord' },
   8: { mel: ['magmahound', 'fireimp', 'salamander', 'fireimp'], rng: ['ashcultist', 'cinderwraith'], elite: ['el_salamander', 'el_cultist'], boss: 'b_ashlord' },
   9: { mel: ['sk_fox', 'sk_warrior', 'sk_fox', 'sk_warrior'], rng: ['sk_harpy', 'sk_wisp'], elite: ['el_seraph'], boss: 'b_skyjudge' },
   10: { mel: ['ab_wolf', 'ab_ghoul', 'ab_knight', 'ab_ghoul'], rng: ['ab_wraith', 'ab_wisp'], elite: ['el_voidcultist'], boss: 'b_voidmage' },

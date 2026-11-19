@@ -178,7 +178,7 @@ hurtEnemy = function (e, dmg, col) {
 };
 
 // похожие приёмы: Лис и Магмовый пёс — рывок, как у упыря; Огненный бес прыгает, как волк
-MECH.werefox = MECH.bogghoul; MECH.magmahound = MECH.bogghoul; MECH.fireimp = MECH.shadowwolf; MECH.porcelainmaid = MECH.scarecrow; MECH.gembeetle = MECH.bogghoul;
+MECH.werefox = MECH.bogghoul; MECH.magmahound = MECH.bogghoul; MECH.fireimp = MECH.shadowwolf; MECH.porcelainmaid = MECH.scarecrow; MECH.gembeetle = MECH.bogghoul; MECH.glassdancer = MECH.scarecrow;   // плясунья кружится, стеклянные ленты режут вокруг
 // Гном-подрывник: отходит, если герой близко, и бросает бомбу — метка под героем, взрыв
 MECH.dwarfbomber = function (e, dt, d) {
   if (!e.act && d < 230) return MECH.hollowarcher(e, dt, d);
