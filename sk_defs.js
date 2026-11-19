@@ -405,7 +405,7 @@
   // ===================== Мир 6: Ледяные вершины =====================
   // Королева Вьюги: + Снежный скачок (телепорт, иней, безмолвие), Ледяной взрыв
   DEF.b_frostqueen = [
-    { ph: 'Снежный скачок', col: '#bfe6ff', cd: 12, first: 2, an: 'fq_rift_cast', dur: 0.7, at: 0.6, can: (e, d) => d < 600 && d > 160,
+    { ph: 'Снежный скачок', col: '#bfe6ff', cd: 12, first: 2, an: 'fq_rift_cast', dur: 0.7, at: 0.6, can: (e, d) => d < 700,
       cast(e) { const [dx, dy] = dirTo2(P, e); e.x = P.x + dx * 130; e.y = P.y + dy * 130 * YK; collide(e);
         groundImg(F('b_frostqueen', 'fq_rift'), e.x, e.y, 200, 1.0, { add: 1 }); if (dist(P, e) < 220) { hurtPlayer(30 * e.dm, 'cold'); STATUS.add('silence', 2); } } },
     { ph: 'Ледяной взрыв', col: '#9fd8ff', cd: 9, first: 4.5, an: 'fq_blast_cast', dur: 0.8, at: 0.55, can: (e, d) => d < 900,
