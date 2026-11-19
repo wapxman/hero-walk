@@ -253,6 +253,7 @@ var NETC = { on: false };   // NETC.limboBack — вернуться из Меж
       } else if (t === E.QUAKE) {
         fx.push({ type: 'quake', x: e[1], y: e[2], t: 0, dur: 0.75, R: e[3] }); snd('boss_slam', 0.85);
       } else if (t === E.WAVE_START) {
+        if (typeof setArena === 'function') setArena(WORLD, arenaIdx(e[1]), true);   // арена части мира (картинка; раскладка та же)
         say(P.x, P.y - CH * 1.3 * HS(), e[2] ? 'Волна ' + e[1] + ' — БОСС МИРА' : 'Волна ' + e[1] + (e[3] ? '' : '  · дальше без передышки'), e[2] ? '#ff9a6a' : '#ffe9a8'); snd('wave_horn', 0.8);
       } else if (t === E.WAVE_END) {
         // раунд отбит: награда за все его волны — каждому игроку

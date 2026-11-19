@@ -44,7 +44,7 @@ const LFX = (() => {
 if (LFX) {
   // в мирах со своими элементами прежние места из arenafx.js не нужны (остаются частицы по экрану и птицы)
   for (const w in LOCFX.place) if (ARENA_FX[w]) ARENA_FX[w].fx = ARENA_FX[w].fx.filter(f => f[0] === 'aurora' || f[0] === 'light');
-  const on = () => !(typeof LIMBO !== 'undefined' && LIMBO.on) && LOCFX.place[WORLD];
+  const on = () => !(typeof LIMBO !== 'undefined' && LIMBO.on) && ARENA_I === 0 && LOCFX.place[WORLD];   // элементы стоят на первых аренах
   const seen = (x, y, w) => x > cam.x - w - 200 && x < cam.x + cam.vw + w + 200 && y > cam.y - w * 2 - 200 && y < cam.y + cam.vh + w + 200;
   function each(t, top) {
     const M = on(); if (!M) return;

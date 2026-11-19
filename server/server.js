@@ -287,6 +287,10 @@ function shard(r, owner, x, y, R, dmg, sk, st) { r.shards.push({ owner, x, y, R,
 // Как в одиночной игре: рост по BAL, элита и боссы миров, раунды по 3 волны, 10-я — босс мира, затем следующий мир.
 const nPlayers = r => Math.max(1, [...r.clients].length);
 function spawnEnemy(r, type, x, y) {
+  if (r.mini === type && !r.queue.length) { r.mini = null; const e = spawnEnemyBase(r, type, x, y); e.hp = e.max = Math.round(e.hp * 2); e.dm *= 1.15; e.mini = true; return e; }
+  return spawnEnemyBase(r, type, x, y);
+}
+function spawnEnemyBase(r, type, x, y) {
   const k = KIND[type], np = nPlayers(r);
   const e = { id: newId(r), kind: type, team: 2, k, boss: !!k.boss, elite: !!k.elite, x: x != null ? x : r.map.portal.x + rnd(-90, 90), y: y != null ? y : r.map.portal.y + rnd(-30, 90),
     hp: Math.round(k.hp * BAL.hp(r.wave) * (1 + 0.35 * (np - 1)) * TEST_HP), dm: BAL.dmg(r.wave), rad: k.rad * (k.sz || 1), speed: k.speed * BAL.speed(r.wave), row: 2,
@@ -312,7 +316,8 @@ function nextWave(r) {
     for (let i = 0; i < nr; i++) q.push(R.rng[i % R.rng.length]);
     for (let i = q.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [q[i], q[j]] = [q[j], q[i]]; }
     for (let i = 0; i < BAL.elites(r.wave); i++) q.splice(Math.floor(q.length * (0.55 + 0.3 * i)), 0, R.elite[(i + r.wave) % R.elite.length]);
-    if (a.W === 5 && R.mini) q.splice(Math.floor(q.length * 0.6), 0, R.mini);
+    const mini = a.W % 3 === 0 ? (a.W === 6 && R.mini ? R.mini : R.elite[(a.W === 9 ? 1 : 0) % R.elite.length]) : null;   // мини-босс части мира — последним
+    r.mini = mini; if (mini) q.push(mini);
   }
   r.queue = q;
   ev(r, EV.WAVE_START, r.wave, a.W === 10 ? 1 : 0, r.wave === r.endW ? 1 : 0);

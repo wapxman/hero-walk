@@ -614,6 +614,9 @@ const ROSTER = {
   10: { mel: ['ab_wolf', 'ab_ghoul', 'ab_knight', 'ab_ghoul'], rng: ['ab_wraith', 'ab_wisp'], elite: ['el_voidcultist'], boss: 'b_voidmage' },
 };
 const rosterOf = n => ROSTER[BAL.at(n).M] || ROSTER[1];
+// мини-босс части мира (волны 3, 6, 9): Королева Колючек / Жнец Урожая там, где они есть, иначе элита мира — сильнее обычной
+const miniOf = (R, W) => W === 6 && R.mini ? R.mini : R.elite[(W === 9 ? 1 : 0) % R.elite.length];
+
 // листы перекрашенных злодеев: своя копия анимаций, картинка перекрашивается фильтром при загрузке (loadMul)
 for (const id in VARIANT) {
   const k = KIND[id], c0 = CHARS[k.chBase];
@@ -631,6 +634,14 @@ for (const id in KIND) {
 }
 const corpses = [];
 function spawnEnemy(type) {
+  if (ROUND.mini === type && ROUND.queue.length === 0) { ROUND.mini = null; spawnEnemyBase(type); const e = enemies[enemies.length - 1];
+    // мини-босс: вдвое крепче элиты, крупнее, своё имя над головой
+    e.mini = true; e.hp = e.max = Math.round(e.hp * 2); e.dm *= 1.15; e.sc *= 1.2; e.rad *= 1.15;
+    const nm = Array.isArray(e.k.nm) ? e.k.nm[0] : e.k.nm || 'Мини-босс';
+    say(P.x, P.y - CH * 1.4 * HS(), 'Мини-босс: ' + nm, '#ffb36a'); snd('boss_roar', 0.7, 1.2); return; }
+  spawnEnemyBase(type);
+}
+function spawnEnemyBase(type) {
   const k = KIND[type], el = !!k.elite;
   needChar(CHARS[k.ch]);
   const e = {
@@ -669,7 +680,9 @@ function nextWave() {
     for (let i = q.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [q[i], q[j]] = [q[j], q[i]]; }
     // элита выходит ближе к концу волны, когда рядовые уже потрёпаны
     for (let i = 0; i < BAL.elites(wave); i++) q.splice(Math.floor(q.length * (0.55 + 0.3 * i)), 0, R.elite[(i + wave) % R.elite.length]);
-    if (a.W === 5 && R.mini) q.splice(Math.floor(q.length * 0.6), 0, R.mini);   // мини-босс середины мира
+    // мини-босс в конце каждой части мира (волны 3, 6, 9) — выходит последним
+    ROUND.mini = a.W % 3 === 0 ? miniOf(R, a.W) : null;
+    if (ROUND.mini) q.push(ROUND.mini);
   }
   ROUND.queue = q;
   for (const t of new Set(q)) needChar(CHARS[KIND[t].ch]);   // листы злодеев этой волны — заранее

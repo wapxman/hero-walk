@@ -34,7 +34,7 @@ const ARENA_FX = {
     const C = cfg(); if (!C) return;
     MFX.use(AP);
     const dt = 1 / 60;
-    for (const [k, fx, fy, w] of C.fx) {
+    for (const [k, fx, fy, w] of (ARENA_I === 0 ? C.fx : [])) {   // огни и фонтаны — по картинке первой арены
       const x = fx * WORLD_W, y = fy * WORLD_H, s = w * WORLD_W;
       if (!seen(x, y)) continue;
       if (k === 'fount') MFX.fountain(ctx, x, y, s, t, dt);

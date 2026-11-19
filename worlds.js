@@ -10,6 +10,19 @@ const W1 = { walk: WALK.map(p => p.slice()), obj: OBJ.slice(), solid: SOLID.slic
 let WORLD = 1, curGround = GROUND;
 const worldOf = n => BAL.at(n).M;   // какой мир у волны n
 
+// арена части мира: картинка земли меняется, раскладка остаётся (ARENAS в data.js)
+let ARENA_I = 0;
+function setArena(m, i, quiet) {
+  const w = WORLDS[m - 1], list = ARENAS[m] || [], src = i > 0 && list[i - 1] ? list[i - 1] : w.ground;
+  ARENA_I = src === w.ground ? 0 : i;
+  if (src !== curGround) {
+    curGround = src;
+    const g = new Image(); g.onload = () => { if (curGround === src) img.ground = g; }; g.src = src + V;
+    if (!quiet) { P.x = HERO_SPAWN.x; P.y = HERO_SPAWN.y; collide(P); cam.ready = false; SHOP.drops.length = 0; }
+  }
+}
+// перед боем — арена той части мира, где начинается волна
+{ const _sw = SHOP.startWave; SHOP.startWave = function () { if (!(window.NETC && NETC.on) && !(typeof LIMBO !== 'undefined' && LIMBO.on)) setArena(WORLD, arenaIdx(wave + 1)); return _sw.apply(this, arguments); }; }
 function applyWorld(m) {
   const w = WORLDS[m - 1];
   WORLD = m;
@@ -30,10 +43,7 @@ function applyWorld(m) {
   // миры 2–4 — большие карты (size — размер картинки в пикселях), мир 1 — прежняя арена
   WORLD_W = (w.size ? w.size[0] : 1536) * AK; WORLD_H = (w.size ? w.size[1] : 1024) * AK;
   NAV.build();
-  if (w.ground !== curGround) {
-    curGround = w.ground;
-    const g = new Image(); g.onload = () => { img.ground = g; }; g.src = w.ground + V;
-  }
+  setArena(m, arenaIdx(wave + 1), true);
   P.x = HERO_SPAWN.x; P.y = HERO_SPAWN.y; collide(P); cam.ready = false;
   SHOP.drops.length = 0;
   for (const r of ROSTER[m] ? [ROSTER[m]] : []) for (const t of [...r.mel, ...r.rng, ...r.elite, r.boss]) needChar(CHARS[KIND[t].ch]);
