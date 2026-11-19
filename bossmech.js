@@ -3,7 +3,7 @@
 // перекрашенный заместитель (tb_*) с той же механикой.
 // Использует из enemies.js: warn, startAct, tag, spellFx, leapTo, dirTo, slowHero, MECH, SPELL_FX; из relics.js: STATUS, hasRelic.
 'use strict';
-const BM = { zones: [], snakes: [], smoke: [] };
+const BM = { zones: [], snakes: [], smoke: [], mirrors: [] };
 const vfxOf = (e, i) => e.ch.vfx && e.ch.vfx[i] ? e.ch.vfx[i].img : null;
 const bossCd = e => e.phase >= 3 ? 0.65 : e.phase >= 2 ? 0.82 : 1;
 // зона на земле: картинка, урон/эффект пока герой внутри (tick), тянет к центру (pull)
@@ -135,7 +135,7 @@ function spawnMirror(e) {
   m.dm = (empty ? 0.5 : 1) * (1 + ((S.dmg || 0) + (S.sk || 0)) * k) * (1 + 0.015 * P.lvl);
   m.k = Object.assign({}, m.k, { cd: Math.max(0.35, 1.1 / (1 + Math.min(1.2, (S.as || 0) * k))) });
   const a = rnd(0, 6.283); m.x = e.x + Math.cos(a) * 140; m.y = e.y + Math.sin(a) * 140 * YK; collide(m);
-  if (vfxOf(e, 0)) spellFx({ img: vfxOf(e, 0), x: m.x, y: m.y, R: 120, dur: 1 });
+  if (vfxOf(e, 0)) BM.mirrors.push({ img: vfxOf(e, 0), x: m.x, y: m.y, t: 0, dur: 1.2 });   // копия выходит из зеркала
   tag(m, empty ? 'пустое отражение' : 'твоё отражение ×3', empty ? '#bfe6ff' : '#ff9a9a');
 }
 // ---------- 4/8/9/10: Король-Жаб (яд стаками), Владыка Пепла (горение, метеоры, лава), Небесный Судья, Архимаг Бездны ----------
@@ -272,6 +272,12 @@ function bmOver(t) {
     const [dx, dy] = dirTo(e, P.x, P.y), sx = e.x + dx * e.rad * 0.9, sy = e.y + dy * e.rad * 0.5 - h * 0.45;
     ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = k; ctx.drawImage(im, sx - w / 2, sy - w / 2, w, w); ctx.restore();
   }
+  for (const m of BM.mirrors) {   // зеркало стоит, копия выходит, зеркало тает
+    m.t += 1 / 60; const im = spellImg(m.img); if (!im || !im.complete || !im.naturalWidth) continue;
+    const h = 300, w = h * im.naturalWidth / im.naturalHeight, a = Math.min(1, m.t / 0.2, (m.dur - m.t) / 0.4);
+    ctx.save(); ctx.globalAlpha = Math.max(0, a); ctx.drawImage(im, m.x - w / 2, m.y - h, w, h); ctx.restore();
+  }
+  keep(BM.mirrors, m => m.t < m.dur);
   // облака дыма поверх всего
   for (const s of BM.smoke) {
     const im = s.img && spellImg(s.img); if (!im || !im.complete || !im.naturalWidth) continue;

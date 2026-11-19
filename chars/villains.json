@@ -1162,5 +1162,179 @@
     "how": "target"
    }
   ]
+ },
+ "b_forgegolem": {
+  "size": 310,
+  "nm": "Горн-Голем",
+  "mul": {
+   "run": {
+    "at": "vl_b_forgegolem_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 376
+   },
+   "atk": {
+    "at": "vl_b_forgegolem_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 472
+   },
+   "cast1": {
+    "at": "vl_b_forgegolem_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 472
+   },
+   "cast2": {
+    "at": "vl_b_forgegolem_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 472
+   },
+   "die": {
+    "at": "vl_b_forgegolem_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 472
+   },
+   "idle": {
+    "at": "vl_b_forgegolem_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 376
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_b_forgegolem_1.webp",
+    "how": "target"
+   },
+   {
+    "img": "fx/vfx_b_forgegolem_2.webp",
+    "how": "self"
+   }
+  ]
+ },
+ "b_mirrorlord": {
+  "size": 295,
+  "nm": "Зеркальный Лорд",
+  "mul": {
+   "run": {
+    "at": "vl_b_mirrorlord_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   },
+   "atk": {
+    "at": "vl_b_mirrorlord_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 408
+   },
+   "cast1": {
+    "at": "vl_b_mirrorlord_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "cast2": {
+    "at": "vl_b_mirrorlord_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "die": {
+    "at": "vl_b_mirrorlord_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 408
+   },
+   "idle": {
+    "at": "vl_b_mirrorlord_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 326
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_b_mirrorlord_1.webp",
+    "how": "self"
+   },
+   {
+    "img": "fx/vfx_b_mirrorlord_2.webp",
+    "how": "multi"
+   }
+  ]
+ },
+ "b_plaguelord": {
+  "size": 290,
+  "nm": "Чумной Мародёр",
+  "mul": {
+   "run": {
+    "at": "vl_b_plaguelord_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   },
+   "atk": {
+    "at": "vl_b_plaguelord_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 408
+   },
+   "cast1": {
+    "at": "vl_b_plaguelord_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "cast2": {
+    "at": "vl_b_plaguelord_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "die": {
+    "at": "vl_b_plaguelord_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 408
+   },
+   "idle": {
+    "at": "vl_b_plaguelord_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 326
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_b_plaguelord_1.webp",
+    "how": "self"
+   },
+   {
+    "img": "fx/vfx_b_plaguelord_2.webp",
+    "how": "target"
+   }
+  ]
  }
 }

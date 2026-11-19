@@ -569,19 +569,31 @@ KIND.b_frostqueen = { nm: ['Королева Вьюги', 'владычица Л
   xp: 150, gold: 100, col: '#5a7a9a', sz: 1.15, spells: [
     { nm: 'Вьюга', ph: 22, how: 'self', R: 330, warn: 0.8, dmg: 12, tick: 0.8, eff: 'slow', slow: 0.6, t: 5, cd: 10, an: 'cast1' },
     { nm: 'Ледяная темница', ph: 22, how: 'target', R: 110, warn: 1.0, dmg: 30, eff: 'root', t: 1.5, cd: 9, an: 'cast2' }] };
+KIND.b_plaguelord = { nm: ['Чумной Мародёр', 'поджигатель деревни'], ch: 'b_plaguelord', boss: 1, mel: 1, hp: 1950, rad: 52, speed: 98, dmg: [44, 56], cd: 1.3, reach: 125,
+  xp: 150, gold: 100, col: '#4a3a2a', sz: 1.15, spells: [
+    { nm: 'Дымовая завеса', ph: 21, how: 'self', R: 300, warn: 0.8, dmg: 0, cd: 11, an: 'cast1' },
+    { nm: 'Поджог', ph: 21, how: 'target', R: 120, warn: 0.9, dmg: 20, eff: 'poison', tick: 0.5, pdmg: 12, t: 4, cd: 7, an: 'cast2' }] };
+KIND.b_forgegolem = { nm: ['Горн-Голем', 'сердце Гномьих шахт'], ch: 'b_forgegolem', boss: 1, mel: 1, hp: 2300, rad: 58, speed: 86, dmg: [52, 64], cd: 1.45, reach: 130,
+  xp: 150, gold: 100, col: '#6a4a2a', sz: 1.15, spells: [
+    { nm: 'Плавильный удар', ph: 21, how: 'target', R: 115, warn: 0.8, dmg: 40, cd: 5, an: 'cast1' },
+    { nm: 'Кузнечный жар', ph: 21, how: 'self', R: 300, warn: 0.8, hit: 22, dmg: 0, cd: 11, an: 'cast2' }] };
+KIND.b_mirrorlord = { nm: ['Зеркальный Лорд', 'хозяин Руин'], ch: 'b_mirrorlord', boss: 1, mel: 1, hp: 2250, rad: 52, speed: 98, dmg: [50, 62], cd: 1.3, reach: 125,
+  xp: 150, gold: 100, col: '#8a8aa0', sz: 1.15, spells: [
+    { nm: 'Отражение', ph: 21, how: 'self', R: 140, warn: 0.6, dmg: 0, cd: 18, an: 'cast1' },
+    { nm: 'Осколки', ph: 21, how: 'multi', R: 110, warn: 0.9, dmg: 40, cd: 6, an: 'cast2' }] };
 // мини-боссы середины мира (5-я волна): Жнец Урожая в Горящей деревне, Королева Колючек в Осеннем лесу — как элита
 KIND.mb_thornqueen = Object.assign({}, KIND.b_thornqueen, { nm: 'Королева Колючек', boss: 0, elite: 1, hp: 520, sz: 1, xp: 40, gold: 30, base: 'b_thornqueen' });
 KIND.mb_reaper = Object.assign({}, KIND.b_reaper, { nm: 'Жнец Урожая', boss: 0, elite: 1, hp: 540, sz: 1, xp: 40, gold: 30, base: 'b_reaper' });
 // кто выходит в каком мире: рядовые ближнего и дальнего боя, элита, мини-босс 5-й волны и босс мира (10-я волна)
 const ROSTER = {
   1: { mel: ['cs_hound', 'cs_guard', 'cs_hound', 'cs_brute'], rng: ['cs_archer'], elite: ['el_castellan'], boss: 'b_blackknight' },
-  2: { mel: ['fireimp', 'magmahound', 'bv_scare', 'fireimp'], rng: ['ashcultist', 'cinderwraith'], elite: ['el_cultist'], mini: 'mb_reaper', boss: 'tb_plaguelord' },
+  2: { mel: ['fireimp', 'magmahound', 'bv_scare', 'fireimp'], rng: ['ashcultist', 'cinderwraith'], elite: ['el_cultist'], mini: 'mb_reaper', boss: 'b_plaguelord' },
   3: { mel: ['shadowwolf', 'werefox', 'rotdryad', 'autumnbear', 'boarbrute', 'scarecrow'], rng: ['sporeshaman', 'thornimp', 'crowharpy', 'hollowarcher'],
     elite: ['thornroot', 'el_bear'], mini: 'mb_thornqueen', boss: 'b_serpentqueen' },
   4: { mel: ['bogghoul', 'leechworm', 'bogghoul', 'drownedknight'], rng: ['toadwitch', 'wisplantern'], elite: ['el_drowned', 'el_witch'], boss: 'b_toadking' },
-  5: { mel: ['mn_worm', 'mn_boar', 'mn_imp', 'mn_imp'], rng: ['mn_thrower'], elite: ['el_forgeman'], boss: 'tb_forgegolem' },
+  5: { mel: ['mn_worm', 'mn_boar', 'mn_imp', 'mn_imp'], rng: ['mn_thrower'], elite: ['el_forgeman'], boss: 'b_forgegolem' },
   6: { mel: ['ic_wolf', 'ic_fox', 'ic_bear', 'ic_wolf'], rng: ['ic_wisp', 'ic_harpy'], elite: ['el_icebear'], boss: 'b_frostqueen' },
-  7: { mel: ['rn_ghoul', 'rn_knight', 'rn_scare', 'rn_ghoul'], rng: ['rn_archer', 'rn_wraith'], elite: ['el_mirror'], boss: 'tb_mirrorlord' },
+  7: { mel: ['rn_ghoul', 'rn_knight', 'rn_scare', 'rn_ghoul'], rng: ['rn_archer', 'rn_wraith'], elite: ['el_mirror'], boss: 'b_mirrorlord' },
   8: { mel: ['magmahound', 'fireimp', 'salamander', 'fireimp'], rng: ['ashcultist', 'cinderwraith'], elite: ['el_salamander', 'el_cultist'], boss: 'b_ashlord' },
   9: { mel: ['sk_fox', 'sk_warrior', 'sk_fox', 'sk_warrior'], rng: ['sk_harpy', 'sk_wisp'], elite: ['el_seraph'], boss: 'tb_skyjudge' },
   10: { mel: ['ab_wolf', 'ab_ghoul', 'ab_knight', 'ab_ghoul'], rng: ['ab_wraith', 'ab_wisp'], elite: ['el_voidcultist'], boss: 'b_voidmage' },
