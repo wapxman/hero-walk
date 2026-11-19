@@ -480,7 +480,11 @@ function spellBoss(r, e, d, tg) {
   }
   if (e.phase >= 3 && e.mt2 <= 0 && r.ents.size < 22) { e.mt2 = 14; act(e, 1.0, 0.5, () => raise(r, e, 2, (ROSTER[r.world] || ROSTER[1]).mel[0]), true); return true; }
 }
-MECH.werefox = MECH.bogghoul; MECH.magmahound = MECH.bogghoul; MECH.fireimp = MECH.shadowwolf; MECH.porcelainmaid = MECH.scarecrow;
+MECH.werefox = MECH.bogghoul; MECH.magmahound = MECH.bogghoul; MECH.fireimp = MECH.shadowwolf; MECH.porcelainmaid = MECH.scarecrow; MECH.gembeetle = MECH.bogghoul;
+MECH.dwarfbomber = (r, e, d, tg) => {
+  if (!e.act && d < 230) return MECH.hollowarcher(r, e, d, tg);
+  if (!e.act && e.mt <= 0 && d < 560) { e.mt = 6; act(e, 0.7, 0.6, () => tele(r, tg.x, tg.y, 105, 1.0, 28 * e.dm)); return true; }
+};
 for (const t in KIND) if (KIND[t].base && MECH[KIND[t].base]) MECH[t] = MECH[KIND[t].base];   // элита — приёмы своего злодея
 function updateEnemy(r, e) {
   e.atkCd -= DT; e.slamCd -= DT; e.quakeCd -= DT; e.leapCd -= DT; e.summonCd -= DT; e.mt -= DT; e.mt2 -= DT; e.mt3 -= DT;

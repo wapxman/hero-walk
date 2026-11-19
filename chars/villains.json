@@ -1464,5 +1464,110 @@
    }
   },
   "vfx": []
+ },
+ "gembeetle": {
+  "size": 150,
+  "nm": "Самоцветный жук",
+  "mul": {
+   "run": {
+    "at": "vl_gembeetle_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 262
+   },
+   "atk": {
+    "at": "vl_gembeetle_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 326
+   },
+   "die": {
+    "at": "vl_gembeetle_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 326
+   },
+   "idle": {
+    "at": "vl_gembeetle_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 262
+   }
+  },
+  "vfx": []
+ },
+ "dwarfbomber": {
+  "size": 135,
+  "nm": "Гном-подрывник",
+  "mul": {
+   "run": {
+    "at": "vl_dwarfbomber_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_dwarfbomber_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_dwarfbomber_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_dwarfbomber_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": []
+ },
+ "yeti": {
+  "size": 230,
+  "nm": "Йети-камнемёт",
+  "mul": {
+   "run": {
+    "at": "vl_yeti_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 262
+   },
+   "atk": {
+    "at": "vl_yeti_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 326
+   },
+   "die": {
+    "at": "vl_yeti_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 326
+   },
+   "idle": {
+    "at": "vl_yeti_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 262
+   }
+  },
+  "vfx": []
  }
 }

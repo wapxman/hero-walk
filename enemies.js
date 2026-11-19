@@ -178,6 +178,11 @@ hurtEnemy = function (e, dmg, col) {
 };
 
 // похожие приёмы: Лис и Магмовый пёс — рывок, как у упыря; Огненный бес прыгает, как волк
-MECH.werefox = MECH.bogghoul; MECH.magmahound = MECH.bogghoul; MECH.fireimp = MECH.shadowwolf; MECH.porcelainmaid = MECH.scarecrow;   // фрейлина кружится со стальным веером
+MECH.werefox = MECH.bogghoul; MECH.magmahound = MECH.bogghoul; MECH.fireimp = MECH.shadowwolf; MECH.porcelainmaid = MECH.scarecrow; MECH.gembeetle = MECH.bogghoul;
+// Гном-подрывник: отходит, если герой близко, и бросает бомбу — метка под героем, взрыв
+MECH.dwarfbomber = function (e, dt, d) {
+  if (!e.act && d < 230) return MECH.hollowarcher(e, dt, d);
+  if (!e.act && e.mt <= 0 && d < 560) { e.mt = 6; startAct(e, 'atk', 0.7, 0.6, () => warn(P.x, P.y, 105, 1.0, 28 * e.dm)); return true; }
+};   // фрейлина кружится со стальным веером
 // элита — приёмы своего злодея
 for (const t in KIND) if (KIND[t].base && MECH[KIND[t].base]) MECH[t] = MECH[KIND[t].base];

@@ -158,5 +158,17 @@
  "vl_jester_walk": 256,
  "vl_jester_attack": 320,
  "vl_jester_death": 320,
- "vl_jester_idle": 256
+ "vl_jester_idle": 256,
+ "vl_gembeetle_walk": 288,
+ "vl_gembeetle_attack": 352,
+ "vl_gembeetle_death": 352,
+ "vl_gembeetle_idle": 288,
+ "vl_dwarfbomber_walk": 256,
+ "vl_dwarfbomber_attack": 320,
+ "vl_dwarfbomber_death": 320,
+ "vl_dwarfbomber_idle": 256,
+ "vl_yeti_walk": 288,
+ "vl_yeti_attack": 352,
+ "vl_yeti_death": 352,
+ "vl_yeti_idle": 288
 }
