@@ -153,7 +153,7 @@ const LAYOUT = {
 // 4 арены на мир (19.11): волны 1–3 — арена 1 (ground мира), 4–6 — арена 2, 7–9 — арена 3, 10 — арена босса.
 // Раскладка (проходимость, база, портал) у всех арен мира одна — ChatGPT рисует их в той же композиции.
 // ARENAS[мир] = [арена 2, арена 3, арена босса]; пока картинки нет — остаётся арена 1.
-const ARENAS = {};
+const ARENAS = {"1":["arena/w1_2.webp","arena/w1_3.webp","arena/w1_4.webp"],"2":["arena/w2_2.webp","arena/w2_3.webp","arena/w2_4.webp"],"3":["arena/w3_2.webp","arena/w3_3.webp","arena/w3_4.webp"]};
 const arenaIdx = n => { const W = BAL.at(Math.max(1, n)).W; return W >= 10 ? 3 : Math.floor((W - 1) / 3); };
 const WORLDS = [
   Object.assign({ name: 'Королевский замок', ground: 'arena/world1.webp' }, LAYOUT.B),
