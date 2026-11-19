@@ -1604,5 +1604,145 @@
    }
   },
   "vfx": []
+ },
+ "frostlynx": {
+  "size": 150,
+  "nm": "Хрустальный барс",
+  "mul": {
+   "run": {
+    "at": "vl_frostlynx_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 262
+   },
+   "atk": {
+    "at": "vl_frostlynx_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 326
+   },
+   "die": {
+    "at": "vl_frostlynx_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 326
+   },
+   "idle": {
+    "at": "vl_frostlynx_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 262
+   }
+  },
+  "vfx": []
+ },
+ "prismkeeper": {
+  "size": 195,
+  "nm": "Хранитель призмы",
+  "mul": {
+   "run": {
+    "at": "vl_prismkeeper_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_prismkeeper_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_prismkeeper_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_prismkeeper_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": []
+ },
+ "marblegriffin": {
+  "size": 190,
+  "nm": "Мраморный грифон",
+  "mul": {
+   "run": {
+    "at": "vl_marblegriffin_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   },
+   "atk": {
+    "at": "vl_marblegriffin_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 376
+   },
+   "die": {
+    "at": "vl_marblegriffin_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 376
+   },
+   "idle": {
+    "at": "vl_marblegriffin_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 326
+   }
+  },
+  "vfx": []
+ },
+ "skyharpist": {
+  "size": 185,
+  "nm": "Небесная арфистка",
+  "mul": {
+   "run": {
+    "at": "vl_skyharpist_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_skyharpist_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_skyharpist_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_skyharpist_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": []
  }
 }
