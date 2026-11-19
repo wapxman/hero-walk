@@ -70,7 +70,17 @@ const PATHMAP = (() => {
     cv = document.createElement('canvas'); cv.id = 'pathmap';
     Object.assign(cv.style, { position: 'fixed', left: 0, top: 0, width: '100%', height: '100%', zIndex: 60, display: 'none', touchAction: 'none' });
     document.body.appendChild(cv); cx = cv.getContext('2d');
-    const skip = e => { e.preventDefault(); if (st && st.age > 0.35) st.skip = true; };
+    const skip = e => {
+      e.preventDefault(); if (!st || st.age < 0.35) return;
+      if (st.select) {   // выбор главы: тап по открытому медальону — играть его, по пустому месту — продолжить текущую
+        const g = geo(), r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * DPR, y = (e.clientY - r.top) * DPR, u = Math.min(W, H) / 720;
+        let pick = 0;
+        for (let c = 1; c <= 10; c++) { const [fx, fy] = NODES[c - 1]; if (Math.hypot(g.X(fx) - x, g.Y(fy) - y) < 52 * u * Math.sqrt(cam.z)) pick = c; }
+        if (pick && pick > st.select.open) { st.lockedTap = 1; return; }
+        st.picked = pick || st.cur; st.skip = true; return;
+      }
+      st.skip = true;
+    };
     cv.addEventListener('pointerdown', skip);
     for (let i = 0; i < 5; i++) clouds.push({ x: Math.random(), y: 0.08 + Math.random() * 0.8, s: 0.18 + Math.random() * 0.22, v: 0.006 + Math.random() * 0.01, k: i % 3 });
   }
@@ -98,6 +108,7 @@ const PATHMAP = (() => {
     cx.setTransform(1, 0, 0, 1, 0, 0); cx.fillStyle = '#0b0a10'; cx.fillRect(0, 0, W, H);
     const m = im('map');
     if (ok(m)) cx.drawImage(m, g.ox, g.oy, g.dw, g.dh);
+    for (const f of PATHMAP.ground) f(cx, g, T, u, dt);   // живые элементы на земле (mapfx.js)
     // лава дышит: тёплое свечение над вулканом
     cx.globalCompositeOperation = 'lighter';
     const lav = 0.18 + 0.12 * Math.sin(T * 3.1) + 0.06 * Math.sin(T * 7.3);
@@ -136,7 +147,7 @@ const PATHMAP = (() => {
     const cur = st.cur;
     for (let c = 1; c <= 10; c++) {
       const [fx, fy] = NODES[c - 1], X = g.X(fx), Y = g.Y(fy), R = 34 * u * Math.sqrt(cam.z) * (c === cur ? 1.18 : 1);
-      const done = c < cur, now = c === cur;
+      const done = st.select ? c <= st.select.best : c < cur, now = c === cur, open = st.select ? c <= st.select.open : now || done;
       if (now) {
         // ореол и лучи текущей главы
         cx.globalCompositeOperation = 'lighter';
@@ -150,11 +161,11 @@ const PATHMAP = (() => {
       if (done && ok(la)) { const w = R * 3.1; cx.drawImage(la, X - w / 2, Y - w * 0.47, w, w * la.naturalHeight / la.naturalWidth); }
       const md = im('m' + c);
       if (ok(md)) {
-        if (!done && !now) cx.filter = 'grayscale(0.85) brightness(0.55)';
+        if (!open) cx.filter = 'grayscale(0.85) brightness(0.55)';
         cx.drawImage(md, X - R, Y - R, R * 2, R * 2); cx.filter = 'none';
       }
       if (done) { const ck = im('check'); if (ok(ck)) { const w = R * 0.95; cx.drawImage(ck, X + R * 0.25, Y + R * 0.2, w, w * ck.naturalHeight / ck.naturalWidth); } }
-      if (!done && !now) { const lk = im('lock'); if (ok(lk)) { const w = R * 0.85; cx.drawImage(lk, X + R * 0.3, Y + R * 0.15, w, w * lk.naturalHeight / lk.naturalWidth); } }
+      if (!open) { const lk = im('lock'); if (ok(lk)) { const w = R * 0.85; cx.drawImage(lk, X + R * 0.3, Y + R * 0.15, w, w * lk.naturalHeight / lk.naturalWidth); } }
     }
     // фишка героя на пути (покачивается)
     const tk = im('token'), hp = at(st.tok);
@@ -168,6 +179,7 @@ const PATHMAP = (() => {
       else if (ok(sp)) { cx.globalAlpha = k; cx.drawImage(sp, X - s * 2.5, Y - s * 2.5, s * 5, s * 5); cx.globalAlpha = 1; }
     }
     cx.globalCompositeOperation = 'source-over';
+    for (const f of PATHMAP.sky) f(cx, g, T, u, dt);   // летуны, дракон (mapfx.js)
     // облака плывут поверх карты
     for (const c of clouds) {
       const ci = im('cloud' + (c.k + 1)); if (!ok(ci)) continue;
@@ -193,21 +205,22 @@ const PATHMAP = (() => {
     cx.save(); cx.textAlign = 'center'; cx.textBaseline = 'middle';
     cx.font = '700 ' + Math.round(30 * u) + 'px Georgia, serif';
     cx.lineWidth = 6 * u; cx.strokeStyle = 'rgba(40,20,5,0.9)'; cx.fillStyle = '#ffd98a';
-    cx.strokeText('ПУТЬ ГЕРОЕВ', W / 2, 34 * u); cx.fillText('ПУТЬ ГЕРОЕВ', W / 2, 34 * u);
+    if (!st.select) { cx.strokeText('ПУТЬ ГЕРОЕВ', W / 2, 34 * u); cx.fillText('ПУТЬ ГЕРОЕВ', W / 2, 34 * u); }
     cx.font = Math.round(15 * u) + 'px Georgia, serif'; cx.fillStyle = 'rgba(255,240,210,0.85)'; cx.lineWidth = 4 * u;
-    const sub = st.skipHint ? 'коснись, чтобы продолжить' : '';
+    const sub = st.select ? (st.lockedTap > 0 ? 'эта глава ещё закрыта — пройди предыдущие' : 'коснись главы: продолжить или переиграть пройденную') : st.skipHint ? 'коснись, чтобы продолжить' : '';
     if (sub) { cx.strokeText(sub, W / 2, H - 22 * u); cx.fillText(sub, W / 2, H - 22 * u); }
     cx.restore();
   }
   function ribbon(u) {
-    const rb = im('ribbon'), k = ease(st.rib), w = Math.min(W * 0.62, 760 * u), h = ok(rb) ? w * rb.naturalHeight / rb.naturalWidth : 90 * u;
-    const y = H * 0.78 + (1 - k) * H * 0.3, x = W / 2;
+    const rb = im('ribbon'), k = ease(st.rib), w = Math.min(W * (st.select ? 0.42 : 0.62), (st.select ? 520 : 760) * u), h = ok(rb) ? w * rb.naturalHeight / rb.naturalWidth : 90 * u;
+    // в выборе главы лента наверху, чтобы не закрывать медальоны внизу карты
+    const y = st.select ? 34 * u + h * 0.62 - (1 - k) * H * 0.2 : H * 0.78 + (1 - k) * H * 0.3, x = W / 2;
     cx.save(); cx.globalAlpha = Math.min(1, st.rib * 2);
     if (ok(rb)) cx.drawImage(rb, x - w / 2, y - h / 2, w, h);
     cx.textAlign = 'center'; cx.textBaseline = 'middle';
     cx.font = '700 ' + Math.round(Math.min(h * 0.3, 30 * u)) + 'px Georgia, serif';
     cx.lineWidth = 5 * u; cx.strokeStyle = 'rgba(50,15,5,0.95)'; cx.fillStyle = '#fff1c9';
-    const s = 'Глава ' + st.cur + ': ' + NAMES[st.cur - 1];
+    const s = (st.select ? 'Продолжить — ' : '') + 'Глава ' + st.cur + ': ' + NAMES[st.cur - 1];
     cx.strokeText(s, x, y - h * 0.04); cx.fillText(s, x, y - h * 0.04);
     cx.restore();
   }
@@ -227,10 +240,12 @@ const PATHMAP = (() => {
       if (st.onMid) { const f = st.onMid; st.onMid = null; f(); }
     }
     if (st.flash > 0) st.flash = Math.max(0, st.flash - dt * 1.2);
-    if (st.flashed) st.rib = Math.min(1, st.rib + dt * 1.8);
+    if (st.flashed || st.select) st.rib = Math.min(1, st.rib + dt * 1.8);
+    if (st.lockedTap > 0) st.lockedTap -= dt * 0.4;
     if (P.full) {
       const zk = ease((st.age - P.runAt - P.runDur * 0.5) / 1.6), [fx, fy] = NODES[st.newCur - 1];
       cam.z = 1 + 0.35 * zk; cam.fx = 0.5 + (fx - 0.5) * zk; cam.fy = 0.5 + (fy - 0.5) * zk;
+    } else if (st.select) { cam.z = 1; cam.fx = 0.5; cam.fy = 0.5;   // выбор главы — вся карта целиком
     } else { const [fx, fy] = NODES[st.cur - 1]; cam.z = 1.12; cam.fx = 0.5 + (fx - 0.5) * 0.6; cam.fy = 0.5 + (fy - 0.5) * 0.6; }
     st.skipHint = st.age > 0.8;
     // частицы
@@ -246,10 +261,10 @@ const PATHMAP = (() => {
   }
   function finish() {
     cancelAnimationFrame(raf); cv.style.display = 'none';
-    const f = st.onDone; st = null; PATHMAP.on = false; if (f) f();
+    const f = st.onDone, pk = st.onPick, c = st.picked; st = null; PATHMAP.on = false; if (pk && c) pk(c); if (f) f();
   }
   return {
-    on: false, NAMES, NODES,
+    on: false, NAMES, NODES, ground: [], sky: [],
     preload,
     show(o) {
       if (!cv) mk();
@@ -257,7 +272,8 @@ const PATHMAP = (() => {
       const full = o.mode === 'full';
       const t0 = Math.max(0, Math.min(9, o.t0)), t1 = Math.max(0, Math.min(9, o.t1));
       st = { t0, t1, t: t0, tok: t0, age: 0, rib: 0, flash: 0, out: 0, cur: Math.floor(t0 + 1e-6) + 1, newCur: Math.floor(t1 + 1e-6) + 1,
-        onMid: o.onMid, onDone: o.onDone, plan: full ? { full: true, runAt: 0.7, runDur: 1.8, total: 5.6 } : { runAt: 0.45, runDur: 1.1, total: o.mode === 'return' ? 2.2 : 2.6 } };
+        select: o.mode === 'select' ? { best: o.best || 0, open: o.open || 1 } : null,
+        onMid: o.onMid, onDone: o.onDone, onPick: o.onPick, plan: o.mode === 'select' ? { runAt: 0.3, runDur: 1.0, total: 1e9 } : full ? { full: true, runAt: 0.7, runDur: 1.8, total: 5.6 } : { runAt: 0.45, runDur: 1.1, total: o.mode === 'return' ? 2.2 : 2.6 } };
       if (!full) st.cur = st.newCur = Math.min(10, Math.floor(t1 + 1e-6) + 1);
       cam = { z: 1, fx: 0.5, fy: 0.5 }; parts.length = 0;
       cv.style.display = 'block'; PATHMAP.on = true; last = performance.now();
