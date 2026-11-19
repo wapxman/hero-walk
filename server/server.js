@@ -480,7 +480,7 @@ function spellBoss(r, e, d, tg) {
   }
   if (e.phase >= 3 && e.mt2 <= 0 && r.ents.size < 22) { e.mt2 = 14; act(e, 1.0, 0.5, () => raise(r, e, 2, (ROSTER[r.world] || ROSTER[1]).mel[0]), true); return true; }
 }
-MECH.werefox = MECH.bogghoul; MECH.magmahound = MECH.bogghoul; MECH.fireimp = MECH.shadowwolf;
+MECH.werefox = MECH.bogghoul; MECH.magmahound = MECH.bogghoul; MECH.fireimp = MECH.shadowwolf; MECH.porcelainmaid = MECH.scarecrow;
 for (const t in KIND) if (KIND[t].base && MECH[KIND[t].base]) MECH[t] = MECH[KIND[t].base];   // элита — приёмы своего злодея
 function updateEnemy(r, e) {
   e.atkCd -= DT; e.slamCd -= DT; e.quakeCd -= DT; e.leapCd -= DT; e.summonCd -= DT; e.mt -= DT; e.mt2 -= DT; e.mt3 -= DT;

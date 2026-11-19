@@ -1336,5 +1336,133 @@
     "how": "target"
    }
   ]
+ },
+ "b_skyjudge": {
+  "size": 310,
+  "nm": "Небесный Судья",
+  "mul": {
+   "run": {
+    "at": "vl_b_skyjudge_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "atk": {
+    "at": "vl_b_skyjudge_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 504
+   },
+   "cast1": {
+    "at": "vl_b_skyjudge_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 504
+   },
+   "cast2": {
+    "at": "vl_b_skyjudge_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 504
+   },
+   "die": {
+    "at": "vl_b_skyjudge_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 504
+   },
+   "idle": {
+    "at": "vl_b_skyjudge_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 408
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_b_skyjudge_1.webp",
+    "how": "target"
+   },
+   {
+    "img": "fx/vfx_b_skyjudge_2.webp",
+    "how": "multi"
+   }
+  ]
+ },
+ "porcelainmaid": {
+  "size": 190,
+  "nm": "Фарфоровая фрейлина",
+  "mul": {
+   "run": {
+    "at": "vl_porcelainmaid_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_porcelainmaid_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_porcelainmaid_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_porcelainmaid_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": []
+ },
+ "jester": {
+  "size": 165,
+  "nm": "Безумный шут",
+  "mul": {
+   "run": {
+    "at": "vl_jester_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_jester_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_jester_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_jester_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": []
  }
 }

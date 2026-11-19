@@ -178,6 +178,6 @@ hurtEnemy = function (e, dmg, col) {
 };
 
 // похожие приёмы: Лис и Магмовый пёс — рывок, как у упыря; Огненный бес прыгает, как волк
-MECH.werefox = MECH.bogghoul; MECH.magmahound = MECH.bogghoul; MECH.fireimp = MECH.shadowwolf;
+MECH.werefox = MECH.bogghoul; MECH.magmahound = MECH.bogghoul; MECH.fireimp = MECH.shadowwolf; MECH.porcelainmaid = MECH.scarecrow;   // фрейлина кружится со стальным веером
 // элита — приёмы своего злодея
 for (const t in KIND) if (KIND[t].base && MECH[KIND[t].base]) MECH[t] = MECH[KIND[t].base];

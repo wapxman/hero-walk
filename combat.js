@@ -581,12 +581,19 @@ KIND.b_mirrorlord = { nm: ['Зеркальный Лорд', 'хозяин Руи
   xp: 150, gold: 100, col: '#8a8aa0', sz: 1.15, spells: [
     { nm: 'Отражение', ph: 21, how: 'self', R: 140, warn: 0.6, dmg: 0, cd: 18, an: 'cast1' },
     { nm: 'Осколки', ph: 21, how: 'multi', R: 110, warn: 0.9, dmg: 40, cd: 6, an: 'cast2' }] };
+KIND.b_skyjudge = { nm: ['Небесный Судья', 'страж Небесного храма'], ch: 'b_skyjudge', boss: 1, mel: 1, hp: 2400, rad: 54, speed: 96, dmg: [54, 66], cd: 1.35, reach: 130,
+  xp: 150, gold: 100, col: '#a08a4a', sz: 1.15, spells: [
+    { nm: 'Печать Безмолвия', ph: 21, how: 'target', R: 120, warn: 0.9, dmg: 20, cd: 10, an: 'cast1' },
+    { nm: 'Небесная кара', ph: 21, how: 'multi', R: 105, warn: 1.0, dmg: 40, cd: 7, an: 'cast2' }] };
+// новые злодеи Клауди под 10 миров (roster_night.py)
+KIND.porcelainmaid = { nm: 'Фарфоровая фрейлина', ch: 'porcelainmaid', mel: 1, hp: 120, rad: 21, speed: 160, dmg: [10, 13], cd: 0.7, reach: 70, xp: 10, gold: 7, col: '#c0b0b0' };
+KIND.jester = { nm: 'Безумный шут', ch: 'jester', rng: 1, hp: 105, rad: 20, speed: 135, dmg: [9, 12], cd: 1.6, want: 470, shot: 600, pcol: '255,200,80', fan: 3, xp: 11, gold: 8, col: '#a03030' };
 // мини-боссы середины мира (5-я волна): Жнец Урожая в Горящей деревне, Королева Колючек в Осеннем лесу — как элита
 KIND.mb_thornqueen = Object.assign({}, KIND.b_thornqueen, { nm: 'Королева Колючек', boss: 0, elite: 1, hp: 520, sz: 1, xp: 40, gold: 30, base: 'b_thornqueen' });
 KIND.mb_reaper = Object.assign({}, KIND.b_reaper, { nm: 'Жнец Урожая', boss: 0, elite: 1, hp: 540, sz: 1, xp: 40, gold: 30, base: 'b_reaper' });
 // кто выходит в каком мире: рядовые ближнего и дальнего боя, элита, мини-босс 5-й волны и босс мира (10-я волна)
 const ROSTER = {
-  1: { mel: ['cs_hound', 'cs_guard', 'cs_hound', 'cs_brute'], rng: ['cs_archer'], elite: ['el_castellan'], boss: 'b_blackknight' },
+  1: { mel: ['porcelainmaid', 'cs_guard', 'cs_hound', 'porcelainmaid', 'cs_brute'], rng: ['jester', 'cs_archer'], elite: ['el_castellan'], boss: 'b_blackknight' },
   2: { mel: ['fireimp', 'magmahound', 'bv_scare', 'fireimp'], rng: ['ashcultist', 'cinderwraith'], elite: ['el_cultist'], mini: 'mb_reaper', boss: 'b_plaguelord' },
   3: { mel: ['shadowwolf', 'werefox', 'rotdryad', 'autumnbear', 'boarbrute', 'scarecrow'], rng: ['sporeshaman', 'thornimp', 'crowharpy', 'hollowarcher'],
     elite: ['thornroot', 'el_bear'], mini: 'mb_thornqueen', boss: 'b_serpentqueen' },
@@ -595,7 +602,7 @@ const ROSTER = {
   6: { mel: ['ic_wolf', 'ic_fox', 'ic_bear', 'ic_wolf'], rng: ['ic_wisp', 'ic_harpy'], elite: ['el_icebear'], boss: 'b_frostqueen' },
   7: { mel: ['rn_ghoul', 'rn_knight', 'rn_scare', 'rn_ghoul'], rng: ['rn_archer', 'rn_wraith'], elite: ['el_mirror'], boss: 'b_mirrorlord' },
   8: { mel: ['magmahound', 'fireimp', 'salamander', 'fireimp'], rng: ['ashcultist', 'cinderwraith'], elite: ['el_salamander', 'el_cultist'], boss: 'b_ashlord' },
-  9: { mel: ['sk_fox', 'sk_warrior', 'sk_fox', 'sk_warrior'], rng: ['sk_harpy', 'sk_wisp'], elite: ['el_seraph'], boss: 'tb_skyjudge' },
+  9: { mel: ['sk_fox', 'sk_warrior', 'sk_fox', 'sk_warrior'], rng: ['sk_harpy', 'sk_wisp'], elite: ['el_seraph'], boss: 'b_skyjudge' },
   10: { mel: ['ab_wolf', 'ab_ghoul', 'ab_knight', 'ab_ghoul'], rng: ['ab_wraith', 'ab_wisp'], elite: ['el_voidcultist'], boss: 'b_voidmage' },
 };
 const rosterOf = n => ROSTER[BAL.at(n).M] || ROSTER[1];
