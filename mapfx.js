@@ -109,7 +109,7 @@ const MFX = (() => {
     // мелочи: вагонетка катается, камни Бездны покачиваются, осколки руин вращаются, листья кружат, огонёк над болотом
     M('sp_props').forEach(([x, y, s], i) => {
       let dx = 0, dy = 0, rot = 0, a = 1;
-      if (i === 0) dx = Math.sin(T * 0.4) * W * 0.02;
+      if (i === 0) return;   // вагонетка на карте миров убрана (ездила криво)
       else if (i <= 2) dy = Math.sin(T * 0.8 + i) * W * 0.004;
       else if (i <= 4) { rot = T * (i === 3 ? 0.6 : -0.9); dy = Math.sin(T + i) * W * 0.003; a = 0.75 + 0.25 * Math.sin(T * 4 + i); }
       else if (i <= 7) { const q = (T * 0.08 + i * 0.3) % 1; dy = q * W * 0.04; dx = Math.sin(T * 1.5 + i) * W * 0.008; rot = T * 1.3 + i; a = Math.sin(q * Math.PI); }
@@ -123,7 +123,7 @@ const MFX = (() => {
   PATHMAP.sky.push(function (c, g, T, u, dt) {
     const X = g.X, Y = g.Y, W = g.dw;
     // стайки летунов по дуге: голуби у замка, вороны у деревни, сова у вершин, мыши у шахты
-    M('sp_flyers').forEach(([x, y, s], k) => {
+    if (0) M('sp_flyers').forEach(([x, y, s], k) => {   // птицы на карте миров убраны (19.11, по просьбе Создателя)
       for (let j = 0; j < 4; j++) {
         const q = (T * 0.05 + j * 0.07 + k * 0.29) % 1, fx = x - 0.08 + q * 0.16, fy = y - 0.04 * Math.sin(q * Math.PI) + j * 0.008;
         MFX.frame(c, 'sp_flyers', k * 4 + Math.floor(T * 10 + j), X(fx), Y(fy), W * s, { a: Math.min(1, q * 6, (1 - q) * 6), center: 1 });

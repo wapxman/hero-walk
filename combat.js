@@ -1219,7 +1219,18 @@ function combatUI() {
   }
   ctx.textBaseline = 'alphabetic';
   const boss = enemies.find(e => e.boss);
-  if (boss && BOSS_PLATE.complete && BOSS_PLATE.naturalWidth) {
+  // табличка с именем босса — первые 4 с после появления (потом плавно уходит), дальше только тонкая полоска здоровья
+  if (boss && boss.plateT == null) boss.plateT = performance.now();
+  const plateA = boss ? Math.max(0, Math.min(1, (5 - (performance.now() - boss.plateT) / 1000))) : 0;
+  if (boss && plateA < 1) {
+    const sw = Math.min(300, W * 0.3), sx = W / 2 - sw / 2, sy = H * 0.115;
+    ctx.globalAlpha = 1 - plateA;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(sx - 2, sy - 2, sw + 4, 10);
+    ctx.fillStyle = boss.rage ? '#ff5a2a' : '#c8372c'; ctx.fillRect(sx, sy, sw * Math.max(0, boss.hp / boss.max), 6);
+    ctx.globalAlpha = 1;
+  }
+  if (boss && plateA > 0 && BOSS_PLATE.complete && BOSS_PLATE.naturalWidth) {
+    ctx.save(); ctx.globalAlpha = plateA;
     const bw = Math.min(460, W * 0.42), bh = bw * 136 / 728, bx = W / 2 - bw / 2, by = H * 0.105;
     ctx.fillStyle = boss.rage ? '#ff5a2a' : '#c8372c';
     ctx.fillRect(bx + bw * 0.085, by + bh * 0.3, bw * 0.83 * Math.max(0, boss.hp / boss.max), bh * 0.4);
@@ -1229,6 +1240,7 @@ function combatUI() {
     const bn = boss.k.nm || ['Варрок', 'вожак орды'];
     const nm = boss.rage ? bn[0] + ' в ярости' : bn[0] + ', ' + bn[1];
     ctx.strokeText(nm, W / 2, by + bh * 0.62); ctx.fillText(nm, W / 2, by + bh * 0.62);
+    ctx.restore();
   }
   if (P.dead > 0 && typeof LIMBO !== 'undefined' && !(window.NETC && NETC.on)) {
     // офлайн: свет уносит героя в Междумирье (limbo.js) — без счётчика

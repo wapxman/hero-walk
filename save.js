@@ -7,6 +7,7 @@
 const SAVE = (() => {
   const key = () => 'hw_run_' + HERO_ID;
   const net = () => !!(window.NETC && NETC.on);
+  const ALL = () => !!window.ALL_WORLDS || /[?&]allworlds/.test(location.search);   // тестовая сборка: открыты все 10 миров
   let best = 0;   // сколько волн пройдено всего (самая дальняя точка)
   let ready = false;   // сохраняем только после того, как забег загружен (иначе пустое меню затрёт прогресс)
   function read() { try { const d = JSON.parse(localStorage.getItem(key())); return d && typeof d === 'object' ? d : null; } catch (e) { return null; } }
@@ -42,8 +43,14 @@ const SAVE = (() => {
     best = Math.max(best, d.best || 0);
     const curC = Math.min(10, BAL.at((d.wave || 0) + 1).M), open = Math.min(10, BAL.at(best + 1).M), done = Math.floor(best / BAL.WAVES);
     const t = curC - 1;
-    PATHMAP.show({ mode: 'select', t0: t, t1: t, best: done, open: Math.max(open, curC), onPick: c => { start(c); fight(); } });
+    const w = d.wave || 0;
+    PATHMAP.show({ mode: 'select', t0: posOf(w), t1: posOf(w), from: lastT(posOf(w)), litT: posOf(best), best: done, open: ALL() ? 10 : Math.max(open, curC), onPick: c => { start(c); fight(); } });
+    lastT(null, posOf(w));
   }
+  // положение фишки на карте миров по числу пройденных волн: после волн 3, 6, 9 — промежуточные пункты, после босса — следующий медальон
+  function posOf(w) { if (w <= 0) return 0; const a = BAL.at(w); return Math.min(9, a.W >= 10 ? a.M : a.M - 1 + Math.floor(a.W / 3) / 4); }
+  // где фишка стояла в прошлый показ — оттуда она плавно идёт к новой точке
+  function lastT(def, set) { const k = 'hw_mapt_' + HERO_ID; try { if (set != null) { localStorage.setItem(k, String(set)); return set; } const v = localStorage.getItem(k); return v == null ? def : +v; } catch (e) { return def; } }
   function wipe() {
     try { for (const k of Object.keys(localStorage)) if (/^hw_(run|prog)_/.test(k)) localStorage.removeItem(k); } catch (e) {}
     location.reload();
@@ -58,7 +65,9 @@ const SAVE = (() => {
       if (SHOP.phase !== 'rest' || P.dead > 0) return;
       if (SHOP.open) SHOP.closeShop();
       const curC = Math.min(10, BAL.at(wave + 1).M), open = Math.max(curC, Math.min(10, BAL.at(best + 1).M)), t = curC - 1;
-      PATHMAP.show({ mode: 'select', t0: t, t1: t, best: Math.floor(best / BAL.WAVES), open, onPick: c => { if (c !== curC) start(c); fight(); } });
+      const tw = posOf(wave);
+      PATHMAP.show({ mode: 'select', t0: tw, t1: tw, from: lastT(tw), litT: posOf(Math.max(best, wave)), best: Math.floor(best / BAL.WAVES), open: ALL() ? 10 : open, onPick: c => { if (c !== curC) start(c); fight(); } });
+      lastT(null, tw);
     };
   }
   return { save, start, chooser, wipe, read, hook, get best() { return best; } };
@@ -85,7 +94,17 @@ const SAVE = (() => {
   for (const b of document.querySelectorAll('.mb')) b.addEventListener('pointerdown', () => { if (wave > 0) SAVE.save(); }, true);
   // кнопка «В бой» у выбора героя: открыть карту и выбрать главу
   const go = document.querySelector('#hSel .go');
-  if (go) go.addEventListener('pointerdown', () => { if (!/[?&](mode|auto)=/.test(location.search)) setTimeout(() => SAVE.chooser(), 60); });
+  if (go) go.addEventListener('pointerdown', () => { if (!/[?&](mode|auto)=/.test(location.search) && !(window.NETC && NETC.S && NETC.S.mode !== 'single')) SAVE.chooser(); });
+  // главное меню: если игра уже начата — «Продолжить» тем же героем сразу на карту миров (без выбора героя)
+  const mb = [...document.querySelectorAll('#mMain .b')].find(b => b.textContent === 'Играть');
+  if (mb && SAVE.read()) {
+    mb.textContent = 'Продолжить';
+    mb.addEventListener('pointerdown', e => {
+      e.stopImmediatePropagation(); e.stopPropagation();
+      document.getElementById('mMain').style.display = 'none';
+      if (go) go.dispatchEvent(new PointerEvent('pointerdown'));   // как «В бой» у выбора героя: герой — сохранённый
+    }, true);
+  }
 }
 
 SAVE.hook();

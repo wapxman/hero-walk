@@ -168,6 +168,15 @@ updateEnemy = function (e, dt) {
     if (e.k.steal) { const h = (hp0 - P.hp) * e.k.steal; e.hp = Math.min(e.max, e.hp + h); say(e.x, headY(e) + 20, '+' + Math.round(h), '#7dff8a'); }
   }
 };
+// враг, вышедший на открытую землю арены, назад к краю (на нарисованные горы, стены, деревья) не уходит:
+// стрелки, отступая от героя, раньше вставали на скалы по краям. Открытая земля — эллипс в середине арены.
+function keepOnField(e) {
+  if (!WORLDS[WORLD - 1] || !WORLDS[WORLD - 1].walk || (typeof LIMBO !== 'undefined' && LIMBO.on)) return;
+  const nx = (e.x / WORLD_W - 0.5) / 0.4, ny = (e.y / WORLD_H - 0.5) / 0.34, r = Math.hypot(nx, ny);
+  if (r < 0.92 || (e.fieldT = (e.fieldT || 0) + 1 / 60) > 3) e.onField = true;   // вошёл на землю или 3 с на арене
+  if (e.onField && r > 1) { e.x = WORLD_W * (0.5 + nx / r * 0.4); e.y = WORLD_H * (0.5 + ny / r * 0.34); }
+}
+{ const _u2 = updateEnemy; updateEnemy = function (e, dt) { _u2(e, dt); keepOnField(e); }; }
 const _hurtEnemy = hurtEnemy;
 hurtEnemy = function (e, dmg, col) {
   if (e.arm > 0) dmg *= 0.35;

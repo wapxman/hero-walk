@@ -69,7 +69,7 @@ const PATHMAP = (() => {
 
   function mk() {
     cv = document.createElement('canvas'); cv.id = 'pathmap';
-    Object.assign(cv.style, { position: 'fixed', left: 0, top: 0, width: '100%', height: '100%', zIndex: 60, display: 'none', touchAction: 'none' });
+    Object.assign(cv.style, { position: 'fixed', left: 0, top: 0, width: '100%', height: '100%', zIndex: 60, display: 'none', touchAction: 'none', background: '#0b0a10' });   // фон сразу — игра под картой не мелькает
     document.body.appendChild(cv); cx = cv.getContext('2d');
     // выбор главы: карту тянут пальцем, приближают щипком или колёсиком; тап по открытому медальону выбирает главу,
     // бой начинается кнопкой «Продолжить» (кнопка — отдельный элемент поверх карты). В показах — тап пропускает.
@@ -108,9 +108,17 @@ const PATHMAP = (() => {
       for (let c = 1; c <= 10; c++) { const [fx, fy] = NODES[c - 1]; if (Math.hypot(g.X(fx) - p.x, g.Y(fy) - p.y) < 52 * u * Math.sqrt(cam.z)) pick = c; }
       if (!pick) return;
       if (pick > st.select.open) { st.lockedTap = 1; return; }
-      st.cur = pick; st.t = st.tok = pick - 1; st.flash = 0.7; if (typeof snd === 'function') snd('coins', 0.3, 1.3); goBtn();
+      const to = pick === st.homeC ? st.t1 : pick - 1;   // своя глава — к месту остановки, другая — к её медальону
+      st.anim = { from: st.tok, to, at: st.age, dur: Math.min(2.2, 0.5 + 0.35 * Math.abs(to - st.tok)) };
+      st.cur = pick; st.flash = 0.7; if (typeof snd === 'function') snd('coins', 0.3, 1.3); goBtn();
     };
     cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+    // клавиатура на карте не доходит до игры; Enter/пробел — «Продолжить»
+    addEventListener('keydown', e => {
+      if (!PATHMAP.on) return;
+      e.stopImmediatePropagation(); e.preventDefault();
+      if ((e.code === 'Enter' || e.code === 'Space') && st && st.select) { st.picked = st.cur; st.skip = true; BTN.style.display = 'none'; }
+    }, true);
     cv.addEventListener('wheel', e => { if (!st || !st.select) return; e.preventDefault(); const p = pos(e); zoomAt(e.deltaY < 0 ? 1.15 : 1 / 1.15, p.x, p.y); st.userCam = true; }, { passive: false });
     // кнопка «Продолжить»
     BTN = document.createElement('div'); BTN.id = 'pmGo';
@@ -161,8 +169,16 @@ const PATHMAP = (() => {
     if (!PTS) buildPath();
     cx.fillStyle = 'rgba(255,236,190,0.55)';
     for (let i = 0; i < PTS.length; i += 3) { const p = PTS[i]; cx.beginPath(); cx.arc(g.X(p.x), g.Y(p.y), 2.6 * u, 0, 6.283); cx.fill(); }
+    // промежуточные пункты главы: после волн 3, 6 и 9 (четверть, половина, три четверти пути к следующему медальону)
+    const litNow = st.select ? Math.max(st.select.litT, st.t) : st.t, rr = 10 * u * Math.sqrt(cam.z);
+    for (let c = 0; c < 9; c++) for (const f of [0.25, 0.5, 0.75]) {
+      const tt = c + f, p = at(tt), X = g.X(p.x), Y = g.Y(p.y), on = tt <= litNow + 1e-3;
+      cx.beginPath(); cx.arc(X, Y, rr * 1.35, 0, 6.283); cx.fillStyle = 'rgba(30,20,10,0.75)'; cx.fill();
+      cx.beginPath(); cx.arc(X, Y, rr, 0, 6.283); cx.fillStyle = on ? '#ffcf5a' : '#7c776c'; cx.fill();
+      if (on) { cx.save(); cx.globalCompositeOperation = 'lighter'; glow(X, Y, rr * 3, '255,200,90', 0.5); cx.restore(); }
+    }
     // пройденная часть — золотая и светится
-    const lit = st.t;
+    const lit = st.select ? Math.max(st.select.litT, st.t) : st.t;
     cx.lineCap = 'round'; cx.lineJoin = 'round';
     for (const [w, a, blur] of [[16, 0.22, 22], [7, 0.9, 10], [2.5, 1, 0]]) {
       cx.beginPath(); let started = false;
@@ -268,8 +284,10 @@ const PATHMAP = (() => {
     const dt = Math.min(0.05, (now - last) / 1000 || 0.016); last = now; st.age += dt;
     const P = st.plan;
     // ход света и фишки
-    const k = ease((st.age - P.runAt) / P.runDur);
-    st.t = st.t0 + (st.t1 - st.t0) * k; st.tok = st.t; st.run = k > 0 && k < 1;
+    let k;
+    if (st.select) {   // выбор главы: фишка плавно идёт к выбранной точке, путь горит до самой дальней пройденной
+      const A = st.anim; k = ease((st.age - A.at) / A.dur); st.tok = A.from + (A.to - A.from) * k; st.t = st.tok; st.run = k > 0 && k < 1;
+    } else { k = ease((st.age - P.runAt) / P.runDur); st.t = st.t0 + (st.t1 - st.t0) * k; st.tok = st.t; st.run = k > 0 && k < 1; }
     // вспышка медальона новой главы, лента, наезд камеры
     if (P.full && !st.flashed && k >= 1) {
       st.flashed = true; st.cur = st.newCur; st.flash = 1;
@@ -300,6 +318,7 @@ const PATHMAP = (() => {
   function finish() {
     cancelAnimationFrame(raf); cv.style.display = 'none';
     if (BTN) BTN.style.display = 'none';
+    if (typeof SHOP !== 'undefined') SHOP.paused = !!st.wasPaused;
     const f = st.onDone, pk = st.onPick, c = st.picked; st = null; PATHMAP.on = false; if (pk && c) pk(c); if (f) f();
   }
   return {
@@ -311,12 +330,16 @@ const PATHMAP = (() => {
       const full = o.mode === 'full';
       const t0 = Math.max(0, Math.min(9, o.t0)), t1 = Math.max(0, Math.min(9, o.t1));
       st = { t0, t1, t: t0, tok: t0, age: 0, rib: 0, flash: 0, out: 0, cur: Math.floor(t0 + 1e-6) + 1, newCur: Math.floor(t1 + 1e-6) + 1,
-        select: o.mode === 'select' ? { best: o.best || 0, open: o.open || 1 } : null,
+        select: o.mode === 'select' ? { best: o.best || 0, open: o.open || 1, litT: o.litT == null ? t1 : o.litT } : null,
+        anim: { from: o.from == null ? t1 : o.from, to: t1, at: 0.4, dur: Math.min(2.4, 0.6 + 0.8 * Math.abs(t1 - (o.from == null ? t1 : o.from))) },
         onMid: o.onMid, onDone: o.onDone, onPick: o.onPick, plan: o.mode === 'select' ? { runAt: 0.3, runDur: 1.0, total: 1e9 } : full ? { full: true, runAt: 0.7, runDur: 1.8, total: 5.6 } : { runAt: 0.45, runDur: 1.1, total: o.mode === 'return' ? 2.2 : 2.6 } };
       if (!full) st.cur = st.newCur = Math.min(10, Math.floor(t1 + 1e-6) + 1);
+      st.homeC = st.cur;
       cam = { z: 1, fx: 0.5, fy: 0.5 }; parts.length = 0;
-      if (o.mode === 'select') { const [fx, fy] = NODES[st.cur - 1]; cam = { z: 2.2, fx, fy }; }
+      if (o.mode === 'select') { const p = at(st.anim.from), q = at(t1); cam = { z: 2.2, fx: (p.x + q.x) / 2, fy: (p.y + q.y) / 2 }; }
       cv.style.display = 'block'; PATHMAP.on = true; last = performance.now(); goBtn();
+      // пока открыта карта, герой не ходит и не колдует (клавиши и кнопки не доходят до боя)
+      if (typeof SHOP !== 'undefined') { st.wasPaused = SHOP.paused; SHOP.paused = true; } held.key = held.touch = held.mouse = false;
       raf = requestAnimationFrame(tick);
     },
     // положение на пути по сквозному номеру волны: глава мира и доля пройденных раундов

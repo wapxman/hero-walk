@@ -486,6 +486,13 @@ MECH.dwarfbomber = (r, e, d, tg) => {
   if (!e.act && e.mt <= 0 && d < 560) { e.mt = 6; act(e, 0.7, 0.6, () => tele(r, tg.x, tg.y, 105, 1.0, 28 * e.dm)); return true; }
 };
 for (const t in KIND) if (KIND[t].base && MECH[KIND[t].base]) MECH[t] = MECH[KIND[t].base];   // элита — приёмы своего злодея
+// как keepOnField в enemies.js: вышедший на открытую землю арены враг к краю (на нарисованные скалы) не уходит
+function keepOnField(r, e) {
+  const M = r.map; if (!M || !M.W || r.world === 0) return;
+  const nx = (e.x / M.W - 0.5) / 0.4, ny = (e.y / M.H - 0.5) / 0.34, q = Math.hypot(nx, ny);
+  if (q < 0.92 || (e.fieldT = (e.fieldT || 0) + DT) > 3) e.onField = true;
+  if (e.onField && q > 1) { e.x = M.W * (0.5 + nx / q * 0.4); e.y = M.H * (0.5 + ny / q * 0.34); }
+}
 function updateEnemy(r, e) {
   e.atkCd -= DT; e.slamCd -= DT; e.quakeCd -= DT; e.leapCd -= DT; e.summonCd -= DT; e.mt -= DT; e.mt2 -= DT; e.mt3 -= DT;
   if (e.arm > 0) e.arm -= DT;
@@ -621,7 +628,7 @@ function step(r) {
   if (r.worldT > 0 && (r.worldT -= DT) <= 0) setWorld(r, BAL.at(r.wave + 1).M);
   // дуэль: опыт идёт со временем, чтобы было что прокачивать между схватками
   if (r.mode === 'duel' && (r.duelT += DT) >= 4) { r.duelT = 0; ev(r, EV.LVL, 12, 0); }
-  if (!everyoneAway) for (const e of r.ents.values()) if (!e.player && alive(e)) updateEnemy(r, e);
+  if (!everyoneAway) for (const e of r.ents.values()) if (!e.player && alive(e)) { updateEnemy(r, e); keepOnField(r, e); }
   // враги не слипаются
   const en = [...r.ents.values()].filter(e => !e.player && alive(e));
   for (let i = 0; i < en.length; i++) for (let j = i + 1; j < en.length; j++) {
