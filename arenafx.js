@@ -29,8 +29,10 @@ const ARENA_FX = {
   let lt = 0, lit = null;
   const cfg = () => (typeof LIMBO !== 'undefined' && LIMBO.on) ? null : ARENA_FX[WORLD];
   const seen = (x, y) => x > cam.x - 500 && x < cam.x + cam.vw + 500 && y > cam.y - 500 && y < cam.y + cam.vh + 500;
+  const AP = [];
   function ground(t) {
     const C = cfg(); if (!C) return;
+    MFX.use(AP);
     const dt = 1 / 60;
     for (const [k, fx, fy, w] of C.fx) {
       const x = fx * WORLD_W, y = fy * WORLD_H, s = w * WORLD_W;

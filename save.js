@@ -42,13 +42,26 @@ const SAVE = (() => {
     best = Math.max(best, d.best || 0);
     const curC = Math.min(10, BAL.at((d.wave || 0) + 1).M), open = Math.min(10, BAL.at(best + 1).M), done = Math.floor(best / BAL.WAVES);
     const t = curC - 1;
-    PATHMAP.show({ mode: 'select', t0: t, t1: t, best: done, open: Math.max(open, curC), onPick: c => start(c) });
+    PATHMAP.show({ mode: 'select', t0: t, t1: t, best: done, open: Math.max(open, curC), onPick: c => { start(c); fight(); } });
   }
   function wipe() {
     try { for (const k of Object.keys(localStorage)) if (/^hw_(run|prog)_/.test(k)) localStorage.removeItem(k); } catch (e) {}
     location.reload();
   }
-  return { save, start, chooser, wipe, read, get best() { return best; } };
+  // перед каждым боем — карта «Путь героев»: выбрать главу (текущую или пройденную) и нажать «Продолжить»
+  let real = null, direct = false;
+  function fight() { direct = true; try { real.call(SHOP); } finally { direct = false; } }
+  function hook() {
+    real = SHOP.startWave;
+    SHOP.startWave = function () {
+      if (direct || net() || !ready || typeof PATHMAP === 'undefined' || PATHMAP.on || (typeof LIMBO !== 'undefined' && LIMBO.on)) return real.apply(this, arguments);
+      if (SHOP.phase !== 'rest' || P.dead > 0) return;
+      if (SHOP.open) SHOP.closeShop();
+      const curC = Math.min(10, BAL.at(wave + 1).M), open = Math.max(curC, Math.min(10, BAL.at(best + 1).M)), t = curC - 1;
+      PATHMAP.show({ mode: 'select', t0: t, t1: t, best: Math.floor(best / BAL.WAVES), open, onPick: c => { if (c !== curC) start(c); fight(); } });
+    };
+  }
+  return { save, start, chooser, wipe, read, hook, get best() { return best; } };
 })();
 
 // сохранение: конец раунда (бой → отдых), смена мира, уход приложения в фон, выход в меню
@@ -74,6 +87,8 @@ const SAVE = (() => {
   const go = document.querySelector('#hSel .go');
   if (go) go.addEventListener('pointerdown', () => { if (!/[?&](mode|auto)=/.test(location.search)) setTimeout(() => SAVE.chooser(), 60); });
 }
+
+SAVE.hook();
 
 // ---------- «Новая игра» в главном меню (с подтверждением) ----------
 (function () {

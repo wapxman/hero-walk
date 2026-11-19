@@ -85,13 +85,12 @@ const LIMBO = (() => {
       curGround = null; applyWorld(S.from);
       if (S.online) { SHOP.phase = S.phase0; P.dead = 0; NETC.limboBack(); flash(0.8); SHOP.refresh(); return; }   // в онлайне возрождает сервер
       // к началу текущей волны: враги заново, раунд продолжается с этой волны
-      wave = Math.max(0, S.wave - 1); SHOP.roundFrom = Math.min(SHOP.roundFrom || wave + 1, wave + 1);
-      SHOP.phase = 'fight'; ROUND.endW = roundEnd(wave + 1); nextWave();
+      // к началу текущей волны; бой начнётся с карты «Путь героев» кнопкой «Продолжить» (save.js)
+      wave = Math.max(0, S.wave - 1); SHOP.phase = 'rest'; SHOP.restT = 0;
       P.hp = P.maxHp; P.mp = P.maxMp; flash(0.8);
-      SHOP.refresh();
+      SHOP.refresh(); SHOP.startWave();
     };
-    if (typeof PATHMAP !== 'undefined') { const t = PATHMAP.tOf(Math.max(1, S.wave - 1)); PATHMAP.show({ mode: 'return', t0: t, t1: t, onMid: back }); }
-    else back();
+    back();
   }
 
   // ---------- вспышка и надпись ----------

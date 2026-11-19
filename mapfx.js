@@ -28,7 +28,8 @@ const MFX = (() => {
     c.restore();
   }
   // ---------- частицы фонтанов, брызги, круги на воде ----------
-  const P = [];
+  let P = [];   // текущий набор частиц: у карты и у арены свои (use)
+  const use = arr => { P = arr; };
   function fountain(c, x, y, s, T, dt, k) {
     // струя: частицы вверх и вниз параболой, брызги в чаше, блики
     // центральная струя и четыре боковые дуги
@@ -69,18 +70,20 @@ const MFX = (() => {
     c.restore();
     for (let i = P.length - 1; i >= 0; i--) if (P[i].t >= P[i].life) P.splice(i, 1);
   }
-  return { D, ok, frame, fountain, ripples, splash, parts, P };
+  return { D, ok, frame, fountain, ripples, splash, parts, use };
 })();
 
 // ---------- карта «Путь героев» ----------
 (function () {
   const M = id => (MFX.D[id] && MFX.D[id].map) || [];
   // свои места для фонтанов и воды (доли карты): двор замка, родник у эльфийской арки, водопад и берег у шахт, море, болото
-  const FOUNT = [[0.125, 0.862, 0.05], [0.228, 0.545, 0.03]];
+  const FOUNT = [];   // на общей карте нет нарисованных чаш — фонтаны только на аренах (arenafx.js)
   const RIPPLE = [[0.847, 0.86, 0.06], [0.919, 0.77, 0.05], [0.65, 0.93, 0.05], [0.56, 0.72, 0.04], [0.235, 0.745, 0.035], [0.72, 0.66, 0.04]];
   const SPLASH = [[0.694, 0.85, 0.03], [0.27, 0.675, 0.025]];
   let drag = { t: -8, y: 0.45 }, ship = 0, light = [], props = 0;
+  const MP = [];
   PATHMAP.ground.push(function (c, g, T, u, dt) {
+    MFX.use(MP);
     const X = g.X, Y = g.Y, W = g.dw;
     // сияние над вершинами — медленный кроссфейд кадров
     for (const [x, y, s] of M('fx_aurora')) { const f = T * 0.5, i = Math.floor(f); MFX.frame(c, 'fx_aurora', i, X(x), Y(y), W * s, { a: 0.3 * (1 - f % 1), center: 1 }); MFX.frame(c, 'fx_aurora', i + 1, X(x), Y(y), W * s, { a: 0.3 * (f % 1), center: 1 }); }

@@ -22,7 +22,8 @@ const PATHMAP = (() => {
   // где на карте живёт фон: лава (8), снег (6), искры Бездны (10), туман болота (4), блики воды
   const AMB = { lava: [0.35, 0.14], snow: [0.82, 0.31], abyss: [0.89, 0.11], fog: [0.53, 0.58], water: [0.78, 0.82] };
 
-  let cv, cx, st = null, raf = 0, last = 0;
+  let cv, cx, st = null, raf = 0, last = 0, BTN = null;
+  function goBtn() { if (!BTN || !st) return; BTN.style.display = st.select ? 'flex' : 'none'; if (st.select) BTN.innerHTML = 'Продолжить<div style="font:2vh Georgia,serif;opacity:.9">Глава ' + st.cur + ': ' + NAMES[st.cur - 1] + '</div>'; }
   const parts = [], clouds = [];
   // ---- путь: сглаженная кривая через узлы и изгибы, разбита на точки с отметкой «t» ----
   let PTS = null;
@@ -70,18 +71,55 @@ const PATHMAP = (() => {
     cv = document.createElement('canvas'); cv.id = 'pathmap';
     Object.assign(cv.style, { position: 'fixed', left: 0, top: 0, width: '100%', height: '100%', zIndex: 60, display: 'none', touchAction: 'none' });
     document.body.appendChild(cv); cx = cv.getContext('2d');
-    const skip = e => {
-      e.preventDefault(); if (!st || st.age < 0.35) return;
-      if (st.select) {   // выбор главы: тап по открытому медальону — играть его, по пустому месту — продолжить текущую
-        const g = geo(), r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * DPR, y = (e.clientY - r.top) * DPR, u = Math.min(W, H) / 720;
-        let pick = 0;
-        for (let c = 1; c <= 10; c++) { const [fx, fy] = NODES[c - 1]; if (Math.hypot(g.X(fx) - x, g.Y(fy) - y) < 52 * u * Math.sqrt(cam.z)) pick = c; }
-        if (pick && pick > st.select.open) { st.lockedTap = 1; return; }
-        st.picked = pick || st.cur; st.skip = true; return;
-      }
-      st.skip = true;
+    // выбор главы: карту тянут пальцем, приближают щипком или колёсиком; тап по открытому медальону выбирает главу,
+    // бой начинается кнопкой «Продолжить» (кнопка — отдельный элемент поверх карты). В показах — тап пропускает.
+    const ptr = new Map(); let moved = 0, pinch = 0;
+    const pos = e => { const r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * DPR, y: (e.clientY - r.top) * DPR }; };
+    const settle = () => { const g = geo(); cam.fx = (W / 2 - g.ox) / g.dw; cam.fy = (H / 2 - g.oy) / g.dh; };   // фокус = что реально в центре
+    const zoomAt = (k, px, py) => {
+      const g0 = geo(), mx = (px - g0.ox) / g0.dw, my = (py - g0.oy) / g0.dh;
+      cam.z = Math.max(1, Math.min(4, cam.z * k));
+      const g1 = geo(); cam.fx += mx - (px - g1.ox) / g1.dw; cam.fy += my - (py - g1.oy) / g1.dh; settle();
     };
-    cv.addEventListener('pointerdown', skip);
+    cv.addEventListener('pointerdown', e => {
+      e.preventDefault(); if (!st) return;
+      if (!st.select) { if (st.age > 0.35) st.skip = true; return; }
+      ptr.set(e.pointerId, pos(e)); moved = 0; if (ptr.size === 2) { const [a, b] = [...ptr.values()]; pinch = Math.hypot(a.x - b.x, a.y - b.y); }
+      try { cv.setPointerCapture(e.pointerId); } catch (x) {}
+    });
+    cv.addEventListener('pointermove', e => {
+      if (!st || !st.select || !ptr.has(e.pointerId)) return;
+      const p0 = ptr.get(e.pointerId), p1 = pos(e); ptr.set(e.pointerId, p1);
+      if (ptr.size === 1) {
+        const g = geo(); moved += Math.abs(p1.x - p0.x) + Math.abs(p1.y - p0.y);
+        cam.fx -= (p1.x - p0.x) / g.dw; cam.fy -= (p1.y - p0.y) / g.dh; settle();
+      } else if (ptr.size === 2) {
+        const [a, b] = [...ptr.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
+        if (pinch) zoomAt(d / pinch, (a.x + b.x) / 2, (a.y + b.y) / 2); pinch = d; moved = 99;
+      }
+      st.userCam = true;
+    });
+    const up = e => {
+      if (!st || !st.select || !ptr.has(e.pointerId)) return;
+      ptr.delete(e.pointerId); if (ptr.size < 2) pinch = 0;
+      if (moved > 14 * DPR || ptr.size) return;
+      const g = geo(), p = pos(e), u = Math.min(W, H) / 720;
+      let pick = 0;
+      for (let c = 1; c <= 10; c++) { const [fx, fy] = NODES[c - 1]; if (Math.hypot(g.X(fx) - p.x, g.Y(fy) - p.y) < 52 * u * Math.sqrt(cam.z)) pick = c; }
+      if (!pick) return;
+      if (pick > st.select.open) { st.lockedTap = 1; return; }
+      st.cur = pick; st.t = st.tok = pick - 1; st.flash = 0.7; if (typeof snd === 'function') snd('coins', 0.3, 1.3); goBtn();
+    };
+    cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+    cv.addEventListener('wheel', e => { if (!st || !st.select) return; e.preventDefault(); const p = pos(e); zoomAt(e.deltaY < 0 ? 1.15 : 1 / 1.15, p.x, p.y); st.userCam = true; }, { passive: false });
+    // кнопка «Продолжить»
+    BTN = document.createElement('div'); BTN.id = 'pmGo';
+    BTN.style.cssText = 'position:fixed;right:calc(3vh + env(safe-area-inset-right));bottom:3vh;z-index:61;display:none;min-width:42vh;height:11vh;padding:0 4vh;' +
+      'background:url(ui/h_button.webp' + V0 + ') center/100% 100% no-repeat;align-items:center;justify-content:center;flex-direction:column;' +
+      'font:bold 3.2vh Georgia,serif;color:#ffe9a8;text-shadow:0 .3vh .6vh #000;cursor:pointer;animation:shPulse 1.6s ease-in-out infinite';
+    document.body.appendChild(BTN);
+    for (const ev of ['touchstart', 'mousedown']) BTN.addEventListener(ev, x => x.stopPropagation(), { passive: true });
+    BTN.addEventListener('pointerdown', e => { e.stopPropagation(); if (st && st.select) { st.picked = st.cur; st.skip = true; BTN.style.display = 'none'; } });
     for (let i = 0; i < 5; i++) clouds.push({ x: Math.random(), y: 0.08 + Math.random() * 0.8, s: 0.18 + Math.random() * 0.22, v: 0.006 + Math.random() * 0.01, k: i % 3 });
   }
   function resize() {
@@ -207,7 +245,7 @@ const PATHMAP = (() => {
     cx.lineWidth = 6 * u; cx.strokeStyle = 'rgba(40,20,5,0.9)'; cx.fillStyle = '#ffd98a';
     if (!st.select) { cx.strokeText('ПУТЬ ГЕРОЕВ', W / 2, 34 * u); cx.fillText('ПУТЬ ГЕРОЕВ', W / 2, 34 * u); }
     cx.font = Math.round(15 * u) + 'px Georgia, serif'; cx.fillStyle = 'rgba(255,240,210,0.85)'; cx.lineWidth = 4 * u;
-    const sub = st.select ? (st.lockedTap > 0 ? 'эта глава ещё закрыта — пройди предыдущие' : 'коснись главы: продолжить или переиграть пройденную') : st.skipHint ? 'коснись, чтобы продолжить' : '';
+    const sub = st.select ? (st.lockedTap > 0 ? 'эта глава ещё закрыта — пройди предыдущие' : 'тяни карту, приближай пальцами; коснись главы, чтобы выбрать — пройденные можно переиграть') : st.skipHint ? 'коснись, чтобы продолжить' : '';
     if (sub) { cx.strokeText(sub, W / 2, H - 22 * u); cx.fillText(sub, W / 2, H - 22 * u); }
     cx.restore();
   }
@@ -220,7 +258,7 @@ const PATHMAP = (() => {
     cx.textAlign = 'center'; cx.textBaseline = 'middle';
     cx.font = '700 ' + Math.round(Math.min(h * 0.3, 30 * u)) + 'px Georgia, serif';
     cx.lineWidth = 5 * u; cx.strokeStyle = 'rgba(50,15,5,0.95)'; cx.fillStyle = '#fff1c9';
-    const s = (st.select ? 'Продолжить — ' : '') + 'Глава ' + st.cur + ': ' + NAMES[st.cur - 1];
+    const s = 'Глава ' + st.cur + ': ' + NAMES[st.cur - 1];
     cx.strokeText(s, x, y - h * 0.04); cx.fillText(s, x, y - h * 0.04);
     cx.restore();
   }
@@ -245,7 +283,7 @@ const PATHMAP = (() => {
     if (P.full) {
       const zk = ease((st.age - P.runAt - P.runDur * 0.5) / 1.6), [fx, fy] = NODES[st.newCur - 1];
       cam.z = 1 + 0.35 * zk; cam.fx = 0.5 + (fx - 0.5) * zk; cam.fy = 0.5 + (fy - 0.5) * zk;
-    } else if (st.select) { cam.z = 1; cam.fx = 0.5; cam.fy = 0.5;   // выбор главы — вся карта целиком
+    } else if (st.select) {   // выбор главы: камера у игрока (тянуть и приближать)
     } else { const [fx, fy] = NODES[st.cur - 1]; cam.z = 1.12; cam.fx = 0.5 + (fx - 0.5) * 0.6; cam.fy = 0.5 + (fy - 0.5) * 0.6; }
     st.skipHint = st.age > 0.8;
     // частицы
@@ -261,6 +299,7 @@ const PATHMAP = (() => {
   }
   function finish() {
     cancelAnimationFrame(raf); cv.style.display = 'none';
+    if (BTN) BTN.style.display = 'none';
     const f = st.onDone, pk = st.onPick, c = st.picked; st = null; PATHMAP.on = false; if (pk && c) pk(c); if (f) f();
   }
   return {
@@ -276,7 +315,8 @@ const PATHMAP = (() => {
         onMid: o.onMid, onDone: o.onDone, onPick: o.onPick, plan: o.mode === 'select' ? { runAt: 0.3, runDur: 1.0, total: 1e9 } : full ? { full: true, runAt: 0.7, runDur: 1.8, total: 5.6 } : { runAt: 0.45, runDur: 1.1, total: o.mode === 'return' ? 2.2 : 2.6 } };
       if (!full) st.cur = st.newCur = Math.min(10, Math.floor(t1 + 1e-6) + 1);
       cam = { z: 1, fx: 0.5, fy: 0.5 }; parts.length = 0;
-      cv.style.display = 'block'; PATHMAP.on = true; last = performance.now();
+      if (o.mode === 'select') { const [fx, fy] = NODES[st.cur - 1]; cam = { z: 2.2, fx, fy }; }
+      cv.style.display = 'block'; PATHMAP.on = true; last = performance.now(); goBtn();
       raf = requestAnimationFrame(tick);
     },
     // положение на пути по сквозному номеру волны: глава мира и доля пройденных раундов
