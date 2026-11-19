@@ -23,8 +23,8 @@ const LIMBO = (() => {
       portal: { p: [0.53, 0.22], R: 0.06, nm: 'Портал', hint: 'назад в мир' },
     },
     solid: [[0.502, 0.48, 0.055, 0.045], [0.12, 0.56, 0.08, 0.09], [0.9, 0.56, 0.07, 0.1], [0.19, 0.18, 0.1, 0.06]],
-    keeper: [0.86, 0.6], mourn: [0.22, 0.25],
-    stairs: [[0.53, 0.22], [0.53, 0.08]],             // по ним бредут призраки к порталу
+    keeper: [0.86, 0.62], mourn: [0.255, 0.27],
+    stairs: [[0.535, 0.36], [0.535, 0.15]],             // по ним бредут призраки к порталу
   };
   const S = { on: false, phase: '', t: 0, from: 0, back: null, near: null, opened: null, ghosts: [], parts: [], fl: 0 };
   const W2 = () => L.size[0] * AK, H2 = () => L.size[1] * AK;
@@ -160,14 +160,15 @@ const LIMBO = (() => {
     const rg = im('ring');
     if (ok(rg)) { const w = 260; ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.55; ctx.translate(X(L.fire[0]), Y(L.fire[1])); ctx.scale(1, 0.55); ctx.rotate(t * 0.6); ctx.drawImage(rg, -w / 2, -w / 2, w, w); ctx.restore(); }
     // Хранитель Перепутья у шатра и плакальщица у зеркала — покачиваются, мерцают
-    sprite('keeper', X(L.keeper[0]), Y(L.keeper[1]) + Math.sin(t * 1.3) * 4, 230, 0.92);
-    sprite('mourn', X(L.mourn[0]), Y(L.mourn[1]) + Math.sin(t * 0.9) * 5, 190, 0.55 + 0.15 * Math.sin(t * 2.1));
+    sprite('keeper', X(L.keeper[0]), Y(L.keeper[1]) + Math.sin(t * 1.3) * 4, 260, 1);
+    sprite('mourn', X(L.mourn[0]), Y(L.mourn[1]) + Math.sin(t * 0.9) * 5, 220, 0.85 + 0.15 * Math.sin(t * 2.1));
+    sprite('mourn', X(L.mourn[0]), Y(L.mourn[1]) + Math.sin(t * 0.9) * 5, 220, 0.25 + 0.1 * Math.sin(t * 2.1), true);   // призрачное свечение
     // призраки на лестнице
     const [a, b] = L.stairs;
     for (const g of S.ghosts) {
       const x = X(a[0] + (b[0] - a[0]) * g.u) + Math.sin(g.u * 20 + g.k) * 14, y = Y(a[1] + (b[1] - a[1]) * g.u);
-      const al = Math.min(1, g.u * 4, (1 - g.u) * 3) * 0.6;
-      sprite('ghost' + g.k, x, y + Math.sin(t * 2 + g.u * 9) * 3, 150 * (1 - g.u * 0.35), al);
+      const al = Math.min(1, g.u * 4, (1 - g.u) * 3), gh = 210 * (1 - g.u * 0.3), gy = y + Math.sin(t * 2 + g.u * 9) * 3;
+      sprite('ghost' + g.k, x, gy, gh, al * 0.95); sprite('ghost' + g.k, x, gy, gh, al * 0.3, true);
     }
   }
   function over(t) {

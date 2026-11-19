@@ -291,7 +291,7 @@ const SHOP = {
   };
   for (const f of FLASKS) addOffer('flask', f);
   for (const it of ITEMS) addOffer('item', it);
-  E.go = mk('div', 'bg', p); E.go.id = 'shGo'; tap(E.go, () => SHOP.startWave());
+  E.go = mk('div', 'bg', p); E.go.id = 'shGo'; tap(E.go, () => (typeof LIMBO !== 'undefined' && LIMBO.on) ? SHOP.closeShop() : SHOP.startWave());
   E.close = mk('div', 'bg', p); E.close.id = 'shClose'; tap(E.close, () => SHOP.closeShop());
 
   const ROM = ['', 'I', 'II', 'III'];
@@ -312,7 +312,8 @@ const SHOP = {
     const rest = SHOP.phase === 'rest';
     E.waveGo.style.display = rest && !SHOP.open ? 'flex' : 'none';
     E.waveTxt.textContent = 'ВОЛНА ' + (rest ? wave + 1 : wave);
-    E.go.textContent = 'В бой — волна ' + (wave + 1);
+    const lim = typeof LIMBO !== 'undefined' && LIMBO.on;   // в Междумирье назад — только через портал
+    E.go.textContent = lim ? 'Закрыть' : 'В бой — волна ' + (wave + 1);
     E.back.style.display = SHOP.open ? 'flex' : 'none';
     for (const { d, kind, o } of E.offers) {
       const lvl = kind === 'item' ? SHOP.items[o.id] || 0 : SHOP.flasks[o.id], max = kind === 'item' && lvl >= MAXLVL;
