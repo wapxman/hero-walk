@@ -190,6 +190,7 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyR') cast('r');
 });
 addEventListener('keyup', e => { if (e.code === 'Space' || e.code === 'KeyJ') held.key = false; });
+addEventListener('blur', () => { held.key = held.mouse = held.touch = false; });   // окно потеряло фокус — огонь не залипает
 // геймпад: A / R1 / R2 — огонь, X — нова, Y — оковы, B — град, L1 — буря
 const padPrev = {};
 function padButtons() {
@@ -275,7 +276,7 @@ function hurtPlayer(d) {
   d *= P.armMul || 1;
   P.hp -= d; P.hurt = 0.25;
   say(P.x + rnd(-12, 12), P.y - CH * 1.05 * HS(), '-' + Math.round(d), '#ff8a7a');
-  if (P.hp <= 0) { P.hp = 0; P.dead = typeof LIMBO !== 'undefined' && !(window.NETC && NETC.on) ? 2.2 : 3; P.ult = 0; held.touch = held.mouse = false; snd('hero_death', 0.75); }
+  if (P.hp <= 0) { P.hp = 0; P.dead = P.deadMax = typeof LIMBO !== 'undefined' && !(window.NETC && NETC.on) ? 2.2 : 3; P.ult = 0; held.touch = held.mouse = false; snd('hero_death', 0.75); }
 }
 // ледяной осколок, падающий с неба: через delay бьёт по кругу
 function shard(x, y, R, dmg, sk, st) {
@@ -425,7 +426,7 @@ function drawHero() {
   if (!c.ok || location.hash.indexOf('lira') >= 0) return false;
   const M = c.hero && HERO.mul, ms = a => mulAnim(HERO, a).ms / 1000;   // у новых листов — темп кадров художника
   let anim = 'idle', fi = Math.floor(P.heroT / (M ? ms('idle') : 1 / 3)) % frames(c, 'idle'), row = runRow(P.face.x, P.face.y);
-  if (P.dead > 0) { anim = 'die'; fi = M ? Math.floor((3 - P.dead) / ms('die')) : Math.floor((3 - P.dead) / 0.6 * frames(c, 'die')); }
+  if (P.dead > 0) { anim = 'die'; const dd = Math.max(0, (P.deadMax || 3) - P.dead); fi = M ? Math.floor(dd / ms('die')) : Math.floor(dd / 0.6 * frames(c, 'die')); }
   else if (P.act) { anim = P.act.anim; fi = Math.floor(P.act.t / P.act.dur * frames(c, anim)); if (P.act.row != null) row = P.act.row; }
   else if (P.moving) { anim = 'run'; fi = M ? Math.floor(P.heroT / ms('run') * (P.running ? 1 : 0.8)) % frames(c, 'run') : Math.floor(P.heroT * (P.running ? 9.5 : 7.5)) % 8; }
   ctx.save(); ctx.translate(P.x, P.y); ctx.scale(u.scale, u.scale);
@@ -732,7 +733,7 @@ function updateEnemy(e, dt) {
   }
   if (e.root > 0) {
     if (e.leap) { e.leap = null; collide(e); }   // пойман в прыжке: остаётся на месте, но не внутри камня
-    e.root -= dt; e.act = null; e.jump = 0; e.anim = 'idle'; hurtTick(e, e.dot * dt); return;
+    e.root -= dt; e.act = null; e.jump = 0; e.anim = 'idle'; hurtTick(e, e.dot * dt); if (e.root <= 0 && e.acc > 0 && e.hp > 0) { hurtEnemy(e, e.acc, '#9fe0ff'); e.acc = 0; } return;   // остаток урона оков не теряется
   }
   const k = e.k, sk = e.slowT > 0 ? e.slowK : 1;
   let dx = (P.x - e.x), dy = (P.y - e.y) / YK; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m;
@@ -859,7 +860,7 @@ function combatUpdate(dt) {
   if (SHOP.phase === 'fight' && !(P.dead > 0)) runTick(dt);
   if (typeof SHOP !== 'undefined') SHOP.tick(dt);
 
-  for (const e of enemies) updateEnemy(e, dt);
+  for (const e of enemies) if (e.hp > 0) updateEnemy(e, dt);   // убитый в этом кадре не делает лишний шаг (иначе затирал анимацию смерти)
   // враги не слипаются
   for (let i = 0; i < enemies.length; i++) for (let j = i + 1; j < enemies.length; j++) {
     const a = enemies[i], b = enemies[j];

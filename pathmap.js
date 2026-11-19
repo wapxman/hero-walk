@@ -116,6 +116,7 @@ const PATHMAP = (() => {
     // клавиатура на карте не доходит до игры; Enter/пробел — «Продолжить»
     addEventListener('keydown', e => {
       if (!PATHMAP.on) return;
+      if (/^F\d+$/.test(e.code) || e.ctrlKey || e.metaKey || e.altKey) return;   // F5, Ctrl+R и прочие клавиши браузера не глотаем
       e.stopImmediatePropagation(); e.preventDefault();
       if ((e.code === 'Enter' || e.code === 'Space') && st && st.select) { st.picked = st.cur; st.skip = true; BTN.style.display = 'none'; }
     }, true);
@@ -326,6 +327,8 @@ const PATHMAP = (() => {
     preload,
     show(o) {
       if (!cv) mk();
+      // карта уже открыта (выбор главы поверх перехода между мирами) — не запоминать «пауза» от прошлого показа и не плодить второй цикл
+      const prevPaused = st ? st.wasPaused : null; if (st) cancelAnimationFrame(raf);
       preload(); resize();
       const full = o.mode === 'full';
       const t0 = Math.max(0, Math.min(9, o.t0)), t1 = Math.max(0, Math.min(9, o.t1));
@@ -339,7 +342,7 @@ const PATHMAP = (() => {
       if (o.mode === 'select') { const p = at(st.anim.from), q = at(t1); cam = { z: 2.2, fx: (p.x + q.x) / 2, fy: (p.y + q.y) / 2 }; }
       cv.style.display = 'block'; PATHMAP.on = true; last = performance.now(); goBtn();
       // пока открыта карта, герой не ходит и не колдует (клавиши и кнопки не доходят до боя)
-      if (typeof SHOP !== 'undefined') { st.wasPaused = SHOP.paused; SHOP.paused = true; } held.key = held.touch = held.mouse = false;
+      if (typeof SHOP !== 'undefined') { st.wasPaused = prevPaused != null ? prevPaused : SHOP.paused; SHOP.paused = true; } held.key = held.touch = held.mouse = false;
       raf = requestAnimationFrame(tick);
     },
     // положение на пути по сквозному номеру волны: глава мира и доля пройденных раундов

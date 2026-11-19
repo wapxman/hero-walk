@@ -153,7 +153,8 @@
     for (const [id, m, f] of parts) {
       v.setUint16(o, id); o += 2; v.setUint8(o, m); o += 1;
       if (m & M_POS) { v.setUint16(o, f.x); o += 2; v.setUint16(o, f.y); o += 2; }
-      if (m & M_HP) { v.setUint16(o, Math.min(65535, f.hp)); o += 2; v.setUint16(o, Math.min(65535, f.max)); o += 2; }
+      if (m & M_HP) { const k = f.max > 65535 ? 65535 / f.max : 1;   // у боссов поздних миров HP больше 65535 — шлём в масштабе, полоса здоровья остаётся верной
+        v.setUint16(o, Math.min(65535, f.hp > 0 ? Math.max(1, Math.round(f.hp * k)) : 0)); o += 2; v.setUint16(o, Math.min(65535, Math.round(f.max * k))); o += 2; }
       if (m & M_MP) { v.setUint16(o, f.mp); o += 2; v.setUint16(o, f.maxMp); o += 2; v.setUint8(o, f.spd); o += 1; }
       if (m & M_FLAGS) { v.setUint8(o, f.flags); o += 1; }
       if (m & M_ROW) { v.setUint8(o, f.row); o += 1; }

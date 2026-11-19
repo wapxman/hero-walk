@@ -66,14 +66,16 @@ function runRow(ax, ay) { const deg = Math.atan2(ay, ax) * 180 / Math.PI; return
 const rooms = new Map();
 let nextRoom = 1;
 function makeRoom(mode, code) {
-  const r = { code: code || String(1000 + (nextRoom++ % 9000)), mode, max: mode === 'duel' ? 2 : 4, clients: new Set(), ents: new Map(),
+  if (!code) do { code = String(1000 + (nextRoom++ % 9000)); } while (rooms.has(code));   // авто-код не должен совпасть с живой комнатой
+  const r = { code, mode, max: mode === 'duel' ? 2 : 4, clients: new Set(), ents: new Map(),
     shots: [], zones: [], shards: [], tick: 0, wave: TEST_WAVE, phase: 0, nextId: 1, hist: [], events: [],
     world: 1, map: MAPS[1], pzones: [], orbs: [], queue: [], relT: 0, nextT: 0, endW: 0, roundFrom: 0, worldT: 0, dist: null, distT: 0, duelT: 0 };
   if (mode === 'coop' && TEST_WAVE) { r.world = BAL.at(TEST_WAVE + 1).M; r.map = MAPS[r.world]; }
   rooms.set(r.code, r);
   return r;
 }
-const newId = r => { r.nextId = (r.nextId % 60000) + 1; return r.nextId; };
+// номера сущностей идут в события как Int16 — не больше 32767; занятые (живые игроки, злодеи) пропускаем
+const newId = r => { do { r.nextId = (r.nextId % 32000) + 1; } while (r.ents.has(r.nextId)); return r.nextId; };
 const ev = (r, ...e) => r.events.push(e);
 const hostile = (a, b) => a.team !== b.team;
 const alive = e => e.hp > 0 && !(e.dead > 0);
@@ -113,9 +115,9 @@ function spawnPoint(r, team) {
   return p;
 }
 function addPlayer(r, c, hero, prog) {
-  const team = r.mode === 'duel' ? (r.clients.size === 0 ? 1 : 2) : 1;
+  const team = r.mode === 'duel' ? ([...r.clients].some(x => x.player && x.player.team === 1) ? 2 : 1) : 1;   // свободная сторона, а не «второй — всегда 2»
   const sp = spawnPoint(r, team);
-  const p = { id: newId(r), player: true, kind: HERO[hero] ? hero : 'mage', team, x: NET.qpos(sp.x), y: NET.qpos(sp.y), face: { x: team === 2 ? -1 : 1, y: 0 },
+  const p = { id: newId(r), player: true, kind: typeof hero === 'string' && Object.prototype.hasOwnProperty.call(HERO, hero) ? hero : 'mage', team, x: NET.qpos(sp.x), y: NET.qpos(sp.y), face: { x: team === 2 ? -1 : 1, y: 0 },
     row: 0, rad: 22, cd: { q: 0, e: 0, f: 0, r: 0 }, atkCd: 0, dead: 0, slowT: 0, slowK: 1, root: 0, silT: 0, ult: 0, ultTick: 0, focus: 0, focusT: 0,
     shield: 0, shieldT: 0, kills: 0, inputs: [], seq: 0, btn: 0, castT: 0, atkT: 0, spdNow: 1, prog: cleanProg(prog || {}), client: c };
   heroStats(p);
@@ -707,9 +709,13 @@ function send(c, data) {
   c.outAt = at;
   setTimeout(() => { if (c.ws.readyState === 1) c.ws.send(data); }, at - Date.now());
 }
+// кривое сообщение одного клиента не должно ронять сервер со всеми комнатами
+function safeMessage(c, data, isBin) { try { onMessage(c, data, isBin); } catch (e) { log('bad message', e && e.message); } }
+process.on('uncaughtException', e => { try { log('uncaught', e && e.stack || e); } catch (x) {} });
 function onMessage(c, data, isBin) {
   if (!isBin) {
     let m; try { m = JSON.parse(data.toString()); } catch (e) { return; }
+    if (!m || typeof m !== 'object') return;
     if (m.t === 'join') {
       leave(c);
       if (m.proto !== NET.PROTO) {
@@ -750,6 +756,7 @@ function onMessage(c, data, isBin) {
     }
     return;
   }
+  if (!data.byteLength) return;
   const v = new DataView(data.buffer, data.byteOffset, data.byteLength), t = v.getUint8(0);
   if (t === NET.C_INPUT && c.player && data.byteLength >= 6) {
     if (c.player.inputs.length < 30) c.player.inputs.push({ seq: v.getUint16(1), ax: v.getInt8(3), ay: v.getInt8(4), btn: v.getUint8(5) });
@@ -767,7 +774,7 @@ function leave(c) {
   r.clients.delete(c); if (c.player) r.ents.delete(c.player.id);
   for (const x of r.clients) x.ws.send(JSON.stringify({ t: 'left', id: c.player && c.player.id }));
   c.room = null; c.player = null;
-  if (!r.clients.size) rooms.delete(r.code);
+  if (!r.clients.size && rooms.get(r.code) === r) rooms.delete(r.code);
 }
 function log(...a) { console.log(new Date().toISOString().slice(11, 19), ...a); }
 
@@ -790,9 +797,9 @@ wss.on('connection', ws => {
   const c = { ws, room: null, player: null };
   ws.binaryType = 'nodebuffer';
   ws.on('message', (data, isBin) => {
-    if (!LAG && !JITTER) return onMessage(c, data, isBin);
+    if (!LAG && !JITTER) return safeMessage(c, data, isBin);
     const at = Math.max(c.inAt || 0, Date.now() + LAG + Math.random() * JITTER); c.inAt = at;
-    setTimeout(() => onMessage(c, data, isBin), at - Date.now());
+    setTimeout(() => safeMessage(c, data, isBin), at - Date.now());
   });
   ws.on('close', () => leave(c));
   ws.on('error', () => leave(c));

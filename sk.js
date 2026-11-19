@@ -65,10 +65,11 @@ const SK = (() => {
   }
   function beam(e, o) { BEAMS.push(Object.assign({ e, t: 0, dur: 0.8, w: 70 }, o)); }
   function line(e, o) { const [dx, dy] = dirTo2(e, P); LINES.push(Object.assign({ x: e.x, y: e.y, dx, dy, len: 700, w: 110, t: 0, run: 0.5, dur: 1.2, hit: false, src: e }, o)); }
-  function mark(o) { MARKS.push(Object.assign({ t: 0, dur: 5, s: 1 }, o)); }   // картинка на герое (front)
-  function ring(o) { RINGS.push(Object.assign({ t: 0, dur: 3 }, o)); }        // кольцо-стена вокруг героя: не выйти
-  function ground(o) { GROUND.push(Object.assign({ t: 0, dur: 1, a: 0.95, rot: 0 }, o)); }   // картинка на земле
-  function zone(o) { ZONES.push(Object.assign({ t: 0, dur: 3, tick: 0.5, acc: 0 }, o)); }   // зона урона/эффекта у героя
+  const fill = (o, D) => { for (const k in D) if (o[k] === undefined) o[k] = D[k]; return o; };   // сам объект уходит в список — вызывающий может менять его дальше (dur, size)
+  function mark(o) { MARKS.push(fill(o, { t: 0, dur: 5, s: 1 })); return o; }   // картинка на герое (front)
+  function ring(o) { RINGS.push(fill(o, { t: 0, dur: 3 })); return o; }        // кольцо-стена вокруг героя: не выйти
+  function ground(o) { GROUND.push(fill(o, { t: 0, dur: 1, a: 0.95, rot: 0 })); return o; }   // картинка на земле
+  function zone(o) { ZONES.push(fill(o, { t: 0, dur: 3, tick: 0.5, acc: 0 })); return o; }   // зона урона/эффекта у героя
   const groundImg = (src, x, y, R, dur, extra) => ground(Object.assign({ img: img(src), x, y, R, dur }, extra || {}));
 
   // ---------- состояния героя (в дополнение к relics.js) ----------
@@ -125,10 +126,10 @@ const SK = (() => {
     if (e.skMove) { e.skMove(dt); return; }   // особые движения (полёт беса, скольжение жаба, шаровая молния)
     const hp0 = P.hp, d = gdist(P, e);
     if (P.dead <= 0 && schedule(e, dt, d)) return;
-    const wasAtk = e.act && e.act.anim === 'atk' && !e.act.hit;
+    const wasAtk = e.act && (e.act.anim === 'atk' || e.act.anim === 'tr_logattack') && !e.act.hit;
     _ue(e, dt);
     // пассивы «каждый 3-й удар»: срабатывают на попадании обычного удара
-    if (P.hp < hp0 && e.mel && wasAtk && ON_HIT[e.type]) { e.hits = (e.hits || 0) + 1; ON_HIT[e.type](e, e.hits); }
+    if (P.hp < hp0 && e.mel && wasAtk) { e.hits = (e.hits || 0) + 1; if (ON_HIT[e.type]) ON_HIT[e.type](e, e.hits); }
   };
   const ON_HIT = {};
   // помощники
@@ -139,10 +140,11 @@ const SK = (() => {
   // ---------- тик эффектов ----------
   function tick(dt) {
     const now = T();
-    if (P.dead > 0 || (typeof LIMBO !== 'undefined' && LIMBO.on)) { PR.length = BEAMS.length = LINES.length = MARKS.length = RINGS.length = WALLS.length = MOV.length = ZONES.length = 0; for (const k of ['bind', 'pin', 'hex', 'atkSlow', 'weak', 'called', 'gaze', 'hunger', 'wounds']) S[k] = 0; S.poison.n = 0; S.pull = null; return; }
+    if (P.dead > 0 || (typeof LIMBO !== 'undefined' && LIMBO.on)) { PR.length = BEAMS.length = LINES.length = MARKS.length = RINGS.length = WALLS.length = ZONES.length = GROUND.length = 0; keepA(MOV, m => m.dur >= 1e8);   // постоянные пассивы (dur 1e9) переживают смерть героя
+      for (const e of enemies) e.rust = 0; for (const k of ['bind', 'pin', 'hex', 'atkSlow', 'weak', 'called', 'gaze', 'hunger', 'wounds']) S[k] = 0; S.poison.n = 0; S.pull = null; return; }
     for (const k of ['bind', 'pin', 'hex', 'atkSlow', 'weak', 'called', 'hunger', 'wounds']) if (S[k] > 0) S[k] = Math.max(0, S[k] - dt);
     if (S.hex > 0) slowHero(S.hexK, 0.2);
-    if (S.atkSlow > 0) P.atkCd = Math.max(P.atkCd, 0) + dt * (1 - S.atkSlowK) / S.atkSlowK;   // атаки медленнее
+    if (S.atkSlow > 0 && P.atkCd > 0) P.atkCd += dt * (1 - S.atkSlowK);   // атаки медленнее
     // яд змей: стаки урона и замедления
     if (S.poison.n > 0) { S.poison.t -= dt; if ((S.poison.acc = (S.poison.acc || 0) - dt) <= 0) { S.poison.acc = 1; hurtPlayer(4 * S.poison.dm * S.poison.n, 'poison'); } slowHero(1 - 0.05 * S.poison.n, 0.2); if (S.poison.t <= 0) S.poison.n = 0; }
     // жажда битвы: урон каждую секунду, медленнее, пока герой кого-нибудь не убьёт
@@ -192,7 +194,7 @@ const SK = (() => {
     // зоны у героя
     for (const z of ZONES) { z.t += dt; if (z.follow) { z.x = z.follow.x; z.y = z.follow.y; } const inside = dist(P, z) < z.R; z.acc -= dt; if (z.acc <= 0) { z.acc = z.tick; if (inside && z.onTick) z.onTick(z); } if (inside && z.onStay) z.onStay(z, dt); if (z.update) z.update(z, dt); }
     keepA(ZONES, z => z.t < z.dur);
-    for (const g of GROUND) { g.t += dt; if (g.follow) { g.x = g.follow.x; g.y = g.follow.y; } }
+    for (const g of GROUND) { g.t += dt; if (g.follow) { g.x = g.follow.x; g.y = g.follow.y; if (g.follow.hp <= 0) g.t = Math.max(g.t, g.dur - 0.01); } }   // хозяин погиб — круг под ним гаснет
     keepA(GROUND, g => g.t < g.dur);
     for (const m of MOV) { m.t += dt; m.update(m, dt); }
     keepA(MOV, m => m.t < m.dur);
@@ -257,12 +259,12 @@ const SK = (() => {
   };
 
   // ---------- урон по злодеям: щиты, защита от атак, ауры ----------
-  const isSpell = () => (typeof heroSpell !== 'undefined' && heroSpell > 0) || P.ult > 0;
+  const isSpell = (e, col) => (typeof heroSpell !== 'undefined' && heroSpell > 0) || P.ult > 0 || col === '#9fe0ff' || !!(e && typeof zones !== 'undefined' && zones.some(z => z.type === 'hail' && gdist(z, e) < z.R + e.rad));   // град и урон оков — тоже умения
   const _he = hurtEnemy;
   hurtEnemy = function (e, dmg, col) {
     if (e.hp <= 0) return;
     if (e.untarget > 0) return;                                                   // Сияние Судьи
-    if (!isSpell()) {
+    if (!isSpell(e, col)) {
       if (e.atkImm > 0 || enemies.some(o => o.guard > 0 && o.dieT == null && dist(o, e) < 450)) { if (!e.immSaid || T() - e.immSaid > 0.7) { tag(e, 'не ранить', '#fff3c4'); e.immSaid = T(); } return; }
       if (enemies.some(o => o.rustAura && o.dieT == null && dist(o, e) < 350)) dmg *= 0.75;   // аура ржавчины голема
     }

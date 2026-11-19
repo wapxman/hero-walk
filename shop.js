@@ -121,6 +121,7 @@ const SHOP = {
   // ----- фласки -----
   use(id) {
     if (P.dead > 0 || !SHOP.flasks[id]) return;
+    if (SHOP.el && SHOP.el.pause && SHOP.el.pause.style.display === 'flex') return;   // в меню паузы фласки не пьются
     if (id === 'heal') { if (P.hp >= P.maxHp) return; P.hp = Math.min(P.maxHp, P.hp + 280); say(P.x, P.y - CH * HS() * 1.1, '+280', '#7dff8a'); }
     else if (id === 'frost') { for (const k in P.cd) P.cd[k] = 0; say(P.x, P.y - CH * HS() * 1.1, 'Скиллы готовы', '#bfe6ff'); }
     else if (id === 'swift') { SHOP.buffs.swift = 8; say(P.x, P.y - CH * HS() * 1.1, 'Скорость!', '#a8ffb5'); }

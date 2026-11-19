@@ -76,7 +76,8 @@ var NETC = { on: false };   // NETC.limboBack — вернуться из Меж
       ws.send(JSON.stringify({ t: 'join', proto: N.PROTO, mode, room: room || undefined, hero: HERO_ID, name: HEROES[HERO_ID].name, prog: progOf() }));
     };
     ws.onmessage = m => {
-      if (typeof m.data === 'string') return onJson(JSON.parse(m.data));
+      if (S.ws !== ws) return;   // сообщения старого соединения после переподключения не нужны
+      if (typeof m.data === 'string') { let j; try { j = JSON.parse(m.data); } catch (e) { return; } if (j && typeof j === 'object') onJson(j); return; }
       const t = new DataView(m.data).getUint8(0);
       if (t === N.S_SNAP) onSnap(m.data);
       else if (t === N.S_EVENTS) onEvents(N.decEvents(m.data));
@@ -87,7 +88,15 @@ var NETC = { on: false };   // NETC.limboBack — вернуться из Меж
         ws.send(b);
       }
     };
-    ws.onclose = () => { if (NETC.on) { status('Связь с сервером потеряна'); NETC.on = false; } else status('Сервер недоступен (' + SERVER + ')'); };
+    ws.onclose = () => {
+      if (S.ws !== ws) return;
+      if (NETC.on) {
+        // связь пропала посреди игры: бой шёл на сервере, продолжать его в одиночку нельзя (злодеи — сетевые копии) — сообщаем и выходим в меню
+        status('Связь с сервером потеряна');
+        try { say(P.x, P.y - CH * HS() * 1.4, 'Связь с сервером потеряна', '#ff9a6a'); } catch (e) {}
+        setTimeout(() => location.reload(), 2200);
+      } else status('Сервер недоступен (' + SERVER + ')');
+    };
     ws.onerror = () => {};
   }
   // уровень, очки и предметы: сервер считает урон, здоровье и ману героя по ним же (it — как SHOP.recompute)
@@ -133,7 +142,7 @@ var NETC = { on: false };   // NETC.limboBack — вернуться из Меж
     if (!S.clkOk) { S.clk = st; S.clkOk = true; } else if (Math.abs(st - S.clk) > 0.3) S.clk = st; else S.clk += (st - S.clk) * 0.08;
     if (wave !== s.wave) { wave = s.wave; SHOP.refresh(); }
     const ph = s.phase ? 'fight' : 'rest';
-    if (SHOP.phase !== ph) { SHOP.phase = ph; SHOP.refresh(); }
+    if (SHOP.phase !== ph && !(typeof LIMBO !== 'undefined' && LIMBO.on)) { SHOP.phase = ph; SHOP.refresh(); }   // в Междумирье лавка открыта, фазу боя не навязываем
     for (const id of s.changed) {
       const f = S.known.get(id);
       if (id === S.myId) continue;
@@ -154,7 +163,7 @@ var NETC = { on: false };   // NETC.limboBack — вернуться из Меж
     // свой герой: здоровье, мана и состояния — как на сервере
     P.hp = me.hp; P.maxHp = me.max; P.mp = me.mp; P.maxMp = me.maxMp;
     const dead = me.flags & N.F_DEAD;
-    if (dead && !(P.dead > 0)) P.dead = 3;
+    if (dead && !(P.dead > 0)) P.dead = P.deadMax = 3;
     if (!dead && P.dead > 0) P.dead = 0;
     P.ult = me.ex & 16 ? 1 : 0; P.shieldT = me.flags & N.F_SHIELD ? 1 : 0; P.focus = me.ex & 15; P.kills = me.ex >> 8;
     S.spd = (me.spd == null ? 100 : me.spd) / 100;
@@ -224,7 +233,7 @@ var NETC = { on: false };   // NETC.limboBack — вернуться из Меж
         if (v === P) { P.hurt = 0.25; vo('hurt', 0.15, 20); } else v.flash = 0.08;
       } else if (t === E.DIE) {
         const [, id] = e, v = viewOf(id);
-        if (v === P) { if (!(typeof LIMBO !== 'undefined' && LIMBO.on)) { P.dead = 3; snd('hero_death', 0.75); } }
+        if (v === P) { if (!(typeof LIMBO !== 'undefined' && LIMBO.on)) { P.dead = P.deadMax = 3; snd('hero_death', 0.75); } }
         else if (v && !v.hero) {
           v.dieT = 0; v.anim = 'die'; v.act = null; snd('enemy_death', v.boss ? 1 : 0.45);
           if (e[2] === S.myId) { kills++; SHOP.onKill(v); }      // золото, сундук и фласки — тому, кто добил
@@ -253,7 +262,7 @@ var NETC = { on: false };   // NETC.limboBack — вернуться из Меж
       } else if (t === E.QUAKE) {
         fx.push({ type: 'quake', x: e[1], y: e[2], t: 0, dur: 0.75, R: e[3] }); snd('boss_slam', 0.85);
       } else if (t === E.WAVE_START) {
-        if (typeof setArena === 'function') setArena(WORLD, arenaIdx(e[1]), true);   // арена части мира (картинка; раскладка та же)
+        if (typeof setArena === 'function' && !(typeof LIMBO !== 'undefined' && LIMBO.on)) setArena(WORLD, arenaIdx(e[1]), true);   // арена части мира (картинка; раскладка та же)
         say(P.x, P.y - CH * 1.3 * HS(), e[2] ? 'Волна ' + e[1] + ' — БОСС МИРА' : 'Волна ' + e[1] + (e[3] ? '' : '  · дальше без передышки'), e[2] ? '#ff9a6a' : '#ffe9a8'); snd('wave_horn', 0.8);
       } else if (t === E.WAVE_END) {
         // раунд отбит: награда за все его волны — каждому игроку
@@ -262,6 +271,7 @@ var NETC = { on: false };   // NETC.limboBack — вернуться из Меж
       } else if (t === E.WORLD) {
         // следующий мир: затемнение, новая карта, герой у базы (позицию пришлёт сервер)
         const a = BAL.at(wave + 1);
+        if (typeof LIMBO !== 'undefined' && LIMBO.on) { LIMBO.S.from = e[1]; return; }   // герой в Междумирье: новый мир применится при возвращении
         applyWorld(e[1]); syncMap(); S.cur = null; S.pending = []; shots.length = 0; zones.length = 0; fx.length = 0;
         if (typeof PATHMAP !== 'undefined' && e[1] > 1) PATHMAP.show({ mode: 'full', t0: e[1] - 2 + 0.75, t1: e[1] - 1 });   // переход по карте «Путь героев»
         else {

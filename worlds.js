@@ -62,7 +62,7 @@ SHOP.tick = function (dt) {
   const wasFight = SHOP.phase === 'fight';
   _shopTick(dt);
   if (window.NETC && NETC.on) return;
-  if (wasFight && SHOP.phase === 'rest' && BAL.at(wave).W === 10) {
+  if (wasFight && SHOP.phase === 'rest' && BAL.at(wave).W === 10 && !(typeof LIMBO !== 'undefined' && LIMBO.on)) {
     worldNext = worldOf(wave + 1); SHOP.restT = 0;
     const a = BAL.at(wave + 1), a0 = BAL.at(wave);
     say(P.x, P.y - CH * 1.6 * HS(), 'Мир ' + a0.M + ' пройден!', '#ffd95e');

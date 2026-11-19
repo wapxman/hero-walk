@@ -55,9 +55,10 @@ const LIMBO = (() => {
     const c = document.getElementById('c'); if (c) c.style.filter = '';
     flash(1);
     S.on = true; S.t = 0; S.from = WORLD; S.wave = wave; S.near = null; S.opened = null; S.online = !!(window.NETC && NETC.on); S.phase0 = SHOP.phase;
+    if (!S.online) wave = Math.max(0, S.wave - 1);   // волна, на которой погиб, не пройдена — иначе сохранение засчитает её (и босса)
     // поле боя очищается: враги, снаряды, зоны, очередь волны (в онлайне бой идёт на сервере — его не трогаем)
-    enemies.length = 0; shots.length = 0; fx.length = 0; if (typeof zones !== 'undefined') zones.length = 0; if (typeof SPELL_FX !== 'undefined') SPELL_FX.length = 0;
-    if (!S.online) { ROUND.queue.length = 0; ROUND.endW = wave; ROUND.fin = null; }
+    enemies.length = 0; shots.length = 0; fx.length = 0; if (typeof corpses !== 'undefined') corpses.length = 0; if (typeof zones !== 'undefined') zones.length = 0; if (typeof SPELL_FX !== 'undefined') SPELL_FX.length = 0;
+    if (!S.online) { ROUND.queue.length = 0; ROUND.endW = S.wave; ROUND.fin = null; }
     SHOP.drops.length = 0; SHOP.phase = 'rest'; SHOP.restT = 0; SHOP.open = false;
     // карта Междумирья: эллипс площади, препятствия у мест
     WALK.length = 0; SOLID.length = 0; SPAWNS.length = 0; OBJ.length = 0;

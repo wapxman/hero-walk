@@ -280,7 +280,7 @@ SHOP.pick = (function (orig) {
       if (USED_IN[id]) {
         mk('div', 'inn', info, 'Входит в:');
         const u = mk('div', 'use', info);
-        for (const r of USED_IN[id]) { const c = cell(r); tap(c, () => { ui.sel = r; draw(); }); u.appendChild(c); }
+        for (const r of USED_IN[id]) { const c = cell(r); tap(c, () => { ui.sel = r; ui.selBag = -1; draw(); }); u.appendChild(c); }
       }
       if (ui.selBag >= 0) { cost = Math.floor(fullPrice(id) / 2); can = true; label = 'Продать за'; }
       else if (it.relic) { cost = it.pr; const own = SHOP.bag.includes(id); can = !own && SHOP.gold >= cost; label = own ? 'Уже есть' : 'Купить'; }

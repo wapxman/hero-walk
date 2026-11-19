@@ -118,9 +118,9 @@
       cast(e) {   // через 0,6 с — полосы-предупреждения, ещё через 0,6 с поперёк арены через героя проносятся 3 коня
         const dir = Math.random() < 0.5 ? 1 : -1, y0 = P.y;
         MOV.push({ t: 0, dur: 3.2, hits: false,
-          update(m) {
+          update(m, dt) {
             if (!m.horses && m.t > 1.2) m.horses = [-1, 0, 1].map(i => ({ y: y0 + i * 70, x: dir > 0 ? cam.x - 200 : cam.x + cam.vw + 200 }));
-            if (m.horses) for (const h of m.horses) { h.x += dir * 900 / 60; if (!h.hit && Math.abs(h.x - P.x) < 70 && Math.abs(h.y - P.y) < 50 && P.dead <= 0) { h.hit = true; hurtPlayer(45 * e.dm); slowHero(0.6, 2); } }
+            if (m.horses) for (const h of m.horses) { h.x += dir * 900 * dt; if (!h.hit && Math.abs(h.x - P.x) < 70 && Math.abs(h.y - P.y) < 50 && P.dead <= 0) { h.hit = true; hurtPlayer(45 * e.dm); slowHero(0.6, 2); } }
           },
           draw(m, t) {
             if (m.t > 0.6 && !m.horses) { ctx.save(); ctx.globalAlpha = 0.25 + 0.15 * Math.sin(t * 20); ctx.fillStyle = '#ff2a2a'; for (const i of [-1, 0, 1]) ctx.fillRect(cam.x - 100, y0 + i * 70 - 22, cam.vw + 200, 44); ctx.restore(); }
@@ -240,10 +240,15 @@
     { ph: 'Цепкие лозы', col: '#b9e37a', cd: 10, first: 2, an: 'tr_grasp_cast', dur: 0.8, at: 0.5, can: (e, d) => d < 650,
       cast(e) { line(e, { img: F('thornroot', 'tr_grasp'), len: 600, w: 110, run: 0.6, dur: 3.6, onStay(l, dt) { slowHero(0.55, 0.2); l.acc = (l.acc || 0) - dt; if (l.acc <= 0) { l.acc = 1; hurtPlayer(12 * e.dm, 'nature'); } } }); } },
     { ph: 'Бревно', col: '#d9b37a', cd: 18, first: 5, an: 'tr_grab_cast', dur: 0.9, at: 0.6, can: (e, d) => d < 400,
-      cast(e) { e.logs = 5; } },
+      cast(e) { e.logs = 5; e.logSw = 0; if (!e.k0) { e.k0 = e.k; e.k = Object.assign({}, e.k, { reach: e.k.reach + 60 }); } } },
   ];
-  ON_HIT.thornroot = e => { if (e.logs > 0) { e.logs--; hurtPlayer(rnd(e.k.dmg[0], e.k.dmg[1]) * e.dm * 0.5); mark({ img: F('thornroot', 'tr_splinter'), dur: 0.5, at: SK.HEAD() * 0.5, size: 130 }); if (!e.logs) tag(e, 'бревно сломалось', '#d9b37a'); } };
-  { const _sa = startAct; startAct = function (e, anim, dur, at, fn) { if (anim === 'atk' && e.logs > 0 && e.ch.mul && e.ch.mul.tr_logattack) anim = 'tr_logattack'; return _sa(e, anim, dur, at, fn); }; }
+  ON_HIT.thornroot = e => { if (e.logs > 0) { hurtPlayer(rnd(e.k.dmg[0], e.k.dmg[1]) * e.dm * 0.5); mark({ img: F('thornroot', 'tr_splinter'), dur: 0.5, at: SK.HEAD() * 0.5, size: 130 }); } };
+  { const _sa = startAct; startAct = function (e, anim, dur, at, fn) {
+    if (anim === 'atk' && e.logs > 0) {
+      if (e.logSw >= 5) { e.logs = 0; if (e.k0) { e.k = e.k0; e.k0 = null; } tag(e, 'бревно сломалось', '#d9b37a'); }   // 5 взмахов — дерево ломается, даже если герой уворачивался
+      else { e.logSw = (e.logSw || 0) + 1; if (e.ch.mul && e.ch.mul.tr_logattack) anim = 'tr_logattack'; }
+    }
+    return _sa(e, anim, dur, at, fn); }; }
   // Осенний медведь: Прыжок-удар (волна листьев: урон и замедление вокруг)
   const BEARLEAP = { ph: 'Прыжок-удар', col: '#ffb347', cd: 9, first: 2, an: 'ab_shock_cast', dur: 0.6, at: 0.1, can: (e, d) => d < 400 && d > 120,
     cast(e) {
@@ -256,7 +261,7 @@
     cast(e) { let hits = 3; const h0 = e.hits || 0; mark({ img: F('autumnbear', 'ab_rage'), on: e, at: e.ch.top * e.ch.U * e.sc * 0.5, dur: 4, size: 220, add: 1, until: () => (e.hits || 0) - h0 >= hits });
       MOV.push({ t: 0, dur: 4, update: () => { if ((e.hits || 0) - h0 < hits) e.atkCd = Math.min(e.atkCd, e.k.cd * 0.5); } }); } }];
   // Теневой волк: Прыжок из тени — прикован 2 с
-  DEF.shadowwolf = [{ ph: 'Прыжок из тени', col: '#9a8aff', cd: 10, first: 2, an: 'sw_cast', dur: 0.5, at: 0.1, first: 0.8, can: (e, d) => d < 420,
+  DEF.shadowwolf = [{ ph: 'Прыжок из тени', col: '#9a8aff', cd: 10, first: 0.8, an: 'sw_cast', dur: 0.5, at: 0.1, can: (e, d) => d < 420,
     cast(e) { leapTo(e, P.x, P.y, 0.5, 0, 0, 'sw_cast');
       setTimeout(() => { if (e.dieT != null || dist(P, e) > 110) return; hurtPlayer(30 * e.dm); pin(2); groundImg(F('shadowwolf', 'sw_pin'), P.x, P.y, 90, 2); }, 520); } }];
   // Лис-оборотень: Удар в спину — исчезает в дыму и появляется за спиной героя
@@ -296,7 +301,7 @@
   DEF.boarbrute = [{ ph: 'Топот', col: '#ffb36a', cd: 10, first: 2, an: 'bb_cast', dur: 1.0, at: 0.65, can: (e, d) => d < 260,
     cast(e) { groundImg(F('boarbrute', 'bb_wave'), e.x, e.y, 260, 0.9, { grow: 0.4 }); if (dist(P, e) < 260) { hurtPlayer(35 * e.dm); stun(1.2); } } }];
   // Пугало-жнец: Серп на верёвке — зацепил, тянет к себе
-  DEF.scarecrow = [{ ph: 'Серп на верёвке', col: '#d9b37a', cd: 12, first: 2, an: 'sc_cast', dur: 0.7, at: 0.5, first: 0.8, can: (e, d) => d < 700,
+  DEF.scarecrow = [{ ph: 'Серп на верёвке', col: '#d9b37a', cd: 12, first: 0.8, an: 'sc_cast', dur: 0.7, at: 0.5, can: (e, d) => d < 700,
     cast(e) { proj(e, { img: F('scarecrow', 'sc_sickle'), sp: 900, left: 700, w: 80, size: 110, spin: 14, rope: e,
       onHit() { hurtPlayer(30 * e.dm); S.pull = { x: e.x + (P.x > e.x ? 70 : -70), y: e.y, t: 0.5 }; } }); } }];
   // Грибной шаман: каждый 3-й выстрел — спора-пиявка (замедление, корень 0,4 с, злодеи рядом лечатся)
@@ -434,7 +439,7 @@
         startAct(e, 'atk', 0.5, 0.45, () => { if (dist(P, e) < 150) hurtPlayer(rnd(e.k.dmg[0], e.k.dmg[1]) * e.dm); }); } },
     { ph: 'Зеркальные двойники', col: '#bfe6ff', cd: 20, first: 4.5,
       cast(e) { for (const s of [-1, 1]) { const c = summon('ml_clone', e.x + s * 140, e.y); c.clone = true; c.hp = c.max = 1; c.dm = e.dm * 0.25; c.cloneT = 8; mark({ img: F('b_mirrorlord', 'ml_clones'), on: { x: c.x, y: c.y }, at: 80, dur: 0.5, size: 200, add: 1 }); } } },
-    { ph: 'Обмен отражений', col: '#e6e6ff', cd: 40, first: 9, an: 'ml_sunder_cast', dur: 0.9, at: 0.6, can: () => P.hp / P.maxHp > 0.4,
+    { ph: 'Обмен отражений', col: '#e6e6ff', cd: 40, first: 9, an: 'ml_sunder_cast', dur: 0.9, at: 0.6, can: e => P.hp / P.maxHp > 0.4 && P.hp / P.maxHp > e.hp / e.max,
       cast(e) { if (P.hp / P.maxHp <= e.hp / e.max) return;
         SK.beam(e, { img: F('b_mirrorlord', 'ml_sunder'), dur: 0.6, w: 70, from: e.ch.top * e.ch.U * e.sc * 0.6 });
         const ph = Math.max(0.25, e.hp / e.max), pe = Math.max(0.25, P.hp / P.maxHp); P.hp = Math.max(1, P.maxHp * ph); e.hp = e.max * pe; SK.say2('здоровье поменялось!', '#e6e6ff'); } },
@@ -442,7 +447,7 @@
   KIND.ml_clone = Object.assign({}, KIND.b_mirrorlord, { nm: 'Двойник', boss: 0, spells: [], xp: 0, gold: 0 }); MECH.ml_clone = () => false;
   // двойники: живут 8 с, полупрозрачные; бьются с одного удара (sk.js: e.clone)
   MOV.push({ t: 0, dur: 1e9, update(m, dt) { for (const e of enemies) if (e.clone && e.dieT == null && (e.cloneT -= dt) <= 0) { e.hp = 0; e.dieT = 0; e.anim = 'die'; } } });
-  { const _de = drawEnemy; drawEnemy = function (e) { if (e.clone) { ctx.save(); ctx.globalAlpha = 0.55; ctx.filter = 'hue-rotate(160deg) brightness(1.2)'; _de(e); ctx.restore(); return; } _de(e); }; }
+  { const _de = drawEnemy; drawEnemy = function (e) { if (e.hide) return; if (e.clone) { ctx.save(); ctx.globalAlpha = 0.55; ctx.filter = 'hue-rotate(160deg) brightness(1.2)'; _de(e); ctx.restore(); return; } _de(e); }; }
   // танец рапиры: 25 % крит ×2 с росчерком и крупной цифрой
   ON_HIT.b_mirrorlord = e => { if (Math.random() < 0.25) { const d = rnd(e.k.dmg[0], e.k.dmg[1]) * e.dm; hurtPlayer(d); mark({ img: F('b_mirrorlord', 'ml_crit'), dur: 0.5, at: SK.HEAD() * 0.6, size: 160, add: 1 }); say(P.x + 30, P.y - SK.HEAD() * 1.5, 'КРИТ ' + Math.round(d * 2), '#ffe27a'); } };
   // Витражная плясунья: Витражный вихрь — 2,5 с кружится к герою, режет вокруг, её не остановить
@@ -455,7 +460,7 @@
   // Хранитель призмы: Луч призмы — канал до 2 с, потом широкая волна; удар по нему прерывает
   DEF.prismkeeper = [{ ph: 'Луч призмы', col: '#e6f4ff', cd: 11, first: 2, can: (e, d) => d < 900,
     cast(e) { let held = 0; const glow = { img: F('prismkeeper', 'pk_wave'), on: e, at: e.ch.top * e.ch.U * e.sc * 0.6, dur: 2.1, size: 60, add: 1 }; mark(glow);
-      const fire = () => { glow.dur = 0; proj(e, { img: F('prismkeeper', 'pk_wave'), sp: 800, left: 900, w: 160, size: 240, pierce: true, onHit: () => hurtPlayer((20 + 25 * held) * e.dm) }); };
+      const fire = () => { glow.dur = 0; if (e.dieT != null || e.hp <= 0) return; proj(e, { img: F('prismkeeper', 'pk_wave'), sp: 800, left: 900, w: 160, size: 240, pierce: true, onHit: () => hurtPlayer((20 + 25 * held) * e.dm) }); };
       MOV.push({ t: 0, dur: 2.1, update(m, dt) { held = m.t; glow.size = 60 + 70 * m.t; } });
       SK.channelFn(e, 'pk_cast', 2, { breakHits: 1, stop: fire }); } }];
   // ===================== Мир 8: Огненный вулкан (бес, пёс, культисты, призрак — как в мире 2) =====================
@@ -465,6 +470,7 @@
       cast(e) { proj(e, { img: F('b_ashlord', 'al_void'), sp: 650, left: 1000, w: 90, size: 140, onHit() { hurtPlayer(40 * e.dm); stun(0.8); slowHero(0.5, 3); } }); } },
     { ph: 'Выжженная земля', col: '#ff6a2a', cd: 20, first: 5, an: 'cast2', dur: 0.8, at: 0.5,
       cast(e) { ground({ img: SK.img(F('b_ashlord', 'al_scorch')), x: e.x, y: e.y, R: 300, dur: 10, follow: e, a: 0.8, rot: 0.1 });
+        if (!e.scorchSp) { e.scorchSp = e.speed; e.speed *= 1.2; MOV.push({ t: 0, dur: 10, update(m, dt) { if (m.t + dt >= m.dur) { e.speed = e.scorchSp; e.scorchSp = 0; } } }); }
         zone({ x: e.x, y: e.y, R: 300, dur: 10, tick: 1, follow: e, onTick: () => hurtPlayer(10 * e.dm, 'fire'), update(z, dt) { e.hp = Math.min(e.max, e.hp + e.max * 0.01 * dt); } }); } },
     { ph: 'Рок', col: '#ff3a1a', cd: 25, first: 8, an: 'al_doom_cast', dur: 0.9, at: 0.6, can: (e, d) => d < 900,
       cast(e) { P.ss.rshield = 0; if (typeof P.shield === 'number') P.shield = 0; STATUS.add('silence', 6);
@@ -496,7 +502,7 @@
       cast(e) { const g = summon('sk_spirit', e.x - 120, e.y - 40); g.dm = e.dm; } },
     { ph: 'Сияние', col: '#fff3c4', cd: 16, first: 5,
       cast(e) { e.untarget = 4; e.nextX2 = 1; mark({ img: F('b_skyjudge', 'sj_realm'), on: e, at: e.ch.top * e.ch.U * e.sc * 0.55, dur: 4, size: 320, add: 1, until: () => !(e.untarget > 0) });
-        MOV.push({ t: 0, dur: 4, update(m, dt) { e.untarget = Math.max(0, e.untarget - dt); if (e.act && e.act.anim === 'atk') e.untarget = 0; } }); } },
+        MOV.push({ t: 0, dur: 4, update() { if (e.act && e.act.anim === 'atk') e.untarget = 0; } }); } },
     { ph: 'Ангел-хранитель', col: '#fff3c4', cd: 30, first: 9, an: 'sj_angel_cast', dur: 0.9, at: 0.6,
       cast(e) { e.guard = 5; mark({ img: F('b_skyjudge', 'sj_angel'), on: e, at: e.ch.top * e.ch.U * e.sc * 1.1, dur: 5, size: 520 });
         MOV.push({ t: 0, dur: 5, update(m, dt) { e.guard = Math.max(0, e.guard - dt); } }); } },
@@ -553,4 +559,6 @@
   };
 }
 // элита и перекрашенные копии ходят на листах базового злодея и колдуют его умения (если своих нет)
+// перекрашенные копии берут всё у прямого родителя (Жрец Бездны — у Верховного культиста, а не у простого)
+if (typeof VARIANT !== 'undefined') for (const id in VARIANT) { const p = VARIANT[id][0]; for (const T of [SK.DEF, SK.ON_HIT, SK.SHOT_HIT, SK.SHOT_IMG]) if (T && !T[id] && T[p]) T[id] = T[p]; }
 for (const id in KIND) { const b = KIND[id].base; if (b && !SK.DEF[id] && SK.DEF[b]) SK.DEF[id] = SK.DEF[b]; }

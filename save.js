@@ -7,7 +7,7 @@
 const SAVE = (() => {
   const key = () => 'hw_run_' + HERO_ID;
   const net = () => !!(window.NETC && NETC.on);
-  const ALL = () => !!window.ALL_WORLDS || /[?&]allworlds/.test(location.search);   // тестовая сборка: открыты все 10 миров
+  const allOpen = () => !!window.ALL_WORLDS || /[?&]allworlds/.test(location.search);   // тестовая сборка: открыты все 10 миров
   let best = 0;   // сколько волн пройдено всего (самая дальняя точка)
   let ready = false;   // сохраняем только после того, как забег загружен (иначе пустое меню затрёт прогресс)
   function read() { try { const d = JSON.parse(localStorage.getItem(key())); return d && typeof d === 'object' ? d : null; } catch (e) { return null; } }
@@ -41,18 +41,18 @@ const SAVE = (() => {
     if (net() || typeof PATHMAP === 'undefined') return;
     const d = read() || { wave: 0, best: 0 };
     best = Math.max(best, d.best || 0);
-    const curC = Math.min(10, BAL.at((d.wave || 0) + 1).M), open = Math.min(10, BAL.at(best + 1).M), done = Math.floor(best / BAL.WAVES);
+    const curC = Math.min(10, BAL.at((d.wave || 0) + 1).M), open = best >= BAL.WAVES * BAL.WORLDS ? 10 : Math.min(10, BAL.at(best + 1).M), done = Math.floor(best / BAL.WAVES);
     const t = curC - 1;
     const w = d.wave || 0;
-    PATHMAP.show({ mode: 'select', t0: posOf(w), t1: posOf(w), from: lastT(posOf(w)), litT: posOf(best), best: done, open: ALL() ? 10 : Math.max(open, curC), onPick: c => { start(c); fight(); } });
+    PATHMAP.show({ mode: 'select', t0: posOf(w), t1: posOf(w), from: lastT(posOf(w)), litT: posOf(best), best: done, open: allOpen() ? 10 : Math.max(open, curC), onPick: c => { start(c); fight(); } });
     lastT(null, posOf(w));
   }
   // положение фишки на карте миров по числу пройденных волн: после волн 3, 6, 9 — промежуточные пункты, после босса — следующий медальон
-  function posOf(w) { if (w <= 0) return 0; const a = BAL.at(w); return Math.min(9, a.W >= 10 ? a.M : a.M - 1 + Math.floor(a.W / 3) / 4); }
+  function posOf(w) { if (w <= 0) return 0; const a = BAL.at(w); return Math.min(9, a.W >= 10 ? BAL.at(w + 1).M - 1 : a.M - 1 + Math.floor(a.W / 3) / 4); }   // после босса — медальон следующего мира (после 10-го — снова первый, круг 2)
   // где фишка стояла в прошлый показ — оттуда она плавно идёт к новой точке
   function lastT(def, set) { const k = 'hw_mapt_' + HERO_ID; try { if (set != null) { localStorage.setItem(k, String(set)); return set; } const v = localStorage.getItem(k); return v == null ? def : +v; } catch (e) { return def; } }
   function wipe() {
-    try { for (const k of Object.keys(localStorage)) if (/^hw_(run|prog)_/.test(k)) localStorage.removeItem(k); } catch (e) {}
+    try { for (const k of Object.keys(localStorage)) if (/^hw_(run|prog|mapt)_/.test(k)) localStorage.removeItem(k); } catch (e) {}
     location.reload();
   }
   // перед каждым боем — карта «Путь героев»: выбрать главу (текущую или пройденную) и нажать «Продолжить»
@@ -61,12 +61,14 @@ const SAVE = (() => {
   function hook() {
     real = SHOP.startWave;
     SHOP.startWave = function () {
+      // забег ещё не загружен (Enter в меню, «Магазин» → «В бой») — сначала карта и загрузка сохранения, иначе прогресс не пишется
+      if (!direct && !ready && !net() && typeof PATHMAP !== 'undefined' && !PATHMAP.on && !/[?&](mode|auto)=/.test(location.search) && !(window.NETC && NETC.S && NETC.S.mode !== 'single')) { chooser(); return; }
       if (direct || net() || !ready || typeof PATHMAP === 'undefined' || PATHMAP.on || (typeof LIMBO !== 'undefined' && LIMBO.on)) return real.apply(this, arguments);
       if (SHOP.phase !== 'rest' || P.dead > 0) return;
       if (SHOP.open) SHOP.closeShop();
-      const curC = Math.min(10, BAL.at(wave + 1).M), open = Math.max(curC, Math.min(10, BAL.at(best + 1).M)), t = curC - 1;
+      const curC = Math.min(10, BAL.at(wave + 1).M), open = best >= BAL.WAVES * BAL.WORLDS ? 10 : Math.max(curC, Math.min(10, BAL.at(best + 1).M)), t = curC - 1;
       const tw = posOf(wave);
-      PATHMAP.show({ mode: 'select', t0: tw, t1: tw, from: lastT(tw), litT: posOf(Math.max(best, wave)), best: Math.floor(best / BAL.WAVES), open: ALL() ? 10 : open, onPick: c => { if (c !== curC) start(c); fight(); } });
+      PATHMAP.show({ mode: 'select', t0: tw, t1: tw, from: lastT(tw), litT: posOf(Math.max(best, wave)), best: Math.floor(best / BAL.WAVES), open: allOpen() ? 10 : open, onPick: c => { if (c !== curC) start(c); fight(); } });
       lastT(null, tw);
     };
   }
@@ -102,6 +104,7 @@ const SAVE = (() => {
     mb.addEventListener('pointerdown', e => {
       e.stopImmediatePropagation(); e.stopPropagation();
       document.getElementById('mMain').style.display = 'none';
+      if (window.NETC && NETC.S) NETC.S.mode = 'single';   // «Продолжить» — всегда одиночный забег, даже если до этого выбирали онлайн
       if (go) go.dispatchEvent(new PointerEvent('pointerdown'));   // как «В бой» у выбора героя: герой — сохранённый
     }, true);
   }

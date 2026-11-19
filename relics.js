@@ -28,7 +28,7 @@ const STATUS = {
   },
   locked: () => P.ss.freeze > 0 || P.ss.stun > 0,                 // ни шагу, ни удара
   mute: () => P.ss.freeze > 0 || P.ss.stun > 0 || P.ss.silence > 0, // без умений
-  clear() { const S = P.ss; for (const k of ['poison', 'burn', 'cold', 'shred']) S[k].n = 0; S.freeze = S.stun = S.silence = S.blind = 0; S.rshield = 0; },
+  clear() { const S = P.ss; for (const k of ['poison', 'burn', 'cold', 'shred']) S[k].n = 0; S.freeze = S.stun = S.silence = S.blind = 0; S.rshield = 0; S.spd = S.noMiss = S.rshT = 0; for (const k in S.imm) S.imm[k] = 0; },
 };
 
 // ---------- 10 предметов-ответов ----------
@@ -85,7 +85,7 @@ const _castS = cast;
 cast = function (id) {
   if (STATUS.mute()) { if (!P.muteSaid || performance.now() - P.muteSaid > 900) { say(P.x, P.y - CH * HS(), P.ss.silence > 0 ? 'безмолвие' : 'не двинуться', '#c9a8ff'); P.muteSaid = performance.now(); } return; }
   // дым: умение срывается с шансом 50 % (Око Ясности даёт 2 с без промахов)
-  if (P.ss.blind > 0 && !(P.ss.noMiss > 0) && Math.random() < 0.5 && P.cd[id] <= 0 && P.mp >= MANA[id]) {
+  if (P.ss.blind > 0 && !(P.ss.noMiss > 0) && !SHOP.paused && !(HERO_ID === 'archer' && id === 'r') && P.cd[id] <= 0 && P.mp >= MANA[id] && Math.random() < 0.5) {
     P.cd[id] = 1.2; say(P.x, P.y - CH * HS(), 'промах в дыму', '#c0c0c0'); return;
   }
   _castS(id);

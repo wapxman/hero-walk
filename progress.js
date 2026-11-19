@@ -122,7 +122,7 @@ let progWasPaused = false;
 function progOpen(on) {
   if (on === (PE.box.style.display === 'flex')) return;
   if (on) { progWasPaused = SHOP.paused; SHOP.paused = true; held.touch = held.mouse = held.key = false; }
-  else SHOP.paused = progWasPaused;
+  else SHOP.paused = progWasPaused || !!(SHOP.el && SHOP.el.pause && SHOP.el.pause.style.display === 'flex');   // меню паузы ещё открыто — игра стоит
   PE.box.style.display = on ? 'flex' : 'none';
   progUI();
 }
