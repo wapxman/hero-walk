@@ -514,7 +514,7 @@
     e.skBusy = 2.2; e.untarget = 2.2; e.act = { anim: 'die', dur: 2.2, at: 2, fn: () => {}, t: 0, hit: false }; e.anim = 'die';
     mark({ img: F('skyharpist', 'sh_pillar'), on: e, at: 140, dur: 2.2, size: 300, add: 1 });
     const i = corpses.indexOf(e); if (i >= 0) corpses.splice(i, 1);
-    MOV.push({ t: 0, dur: 2.1, update(m) { if (SK.dist(e, P) < 300) slowHero(0.7, 0.2); e.act && (e.act.t = 2.2 - m.t); e.untarget = 2.2 - m.t; if (m.t + 1 / 60 >= m.dur) { e.hp = e.max; e.untarget = 0; e.act = null; e.anim = 'idle'; tag(e, 'Второе рождение!', '#fff3c4'); } } });
+    MOV.push({ t: 0, dur: 2.1, update(m) { if (SK.dist(e, P) < 300) slowHero(0.7, 0.2); e.act && (e.act.t = 2.2 - m.t); e.untarget = 2.2 - m.t; if (m.t + 1 / 60 >= m.dur && !m.done) { m.done = 1; e.hp = e.max; e.untarget = 0; e.act = null; e.anim = 'idle'; tag(e, 'Второе рождение!', '#fff3c4'); } } });
   };
   // ===================== Мир 10: Бездна =====================
   // Архимаг Бездны: + Тёмное исцеление, Голем Бездны, Шаровая молния, Безмолвие Бездны

@@ -271,9 +271,10 @@ const SK = (() => {
     if (e.dr > 0) dmg *= 0.6;                                                      // вызов на поединок: рыцарь в золотой броне
     if (S.weak > 0) dmg *= S.weakK;
     if (e.skChannel) { e.skChannel.taken = (e.skChannel.taken || 0) + dmg * (P.dmgMul || 1); e.skChannel.hits = (e.skChannel.hits || 0) + 1; }
-    const was = e.hp;
+    const was = e.hp, rb = e.k.reborn && !e.reborn, BIG = 1e12;
+    if (rb) e.hp += BIG;                                                           // смерть не засчитывается — награды нет, пока не встанет снова
     _he(e, dmg, col);
-    if (e.hp <= 0 && e.k.reborn && !e.reborn) { e.reborn = true; e.hp = 1; e.dieT = null; e.anim = 'idle'; kills--; rebirth(e); }
+    if (rb) { e.hp -= BIG; if (e.hp <= 0) { e.reborn = true; e.hp = 1; e.dieT = null; e.anim = 'idle'; rebirth(e); } }
   };
 
   return { F, A, img, ready, dirTo2, dist, attach, cre, drawCre, proj, beam, line, mark, ring, ground, groundImg, zone, WALLS, MOV, PR, ZONES, MARKS, LINES, BEAMS, RINGS, GROUND,
