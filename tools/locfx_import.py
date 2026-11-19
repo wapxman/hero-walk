@@ -7,7 +7,9 @@ sys.stdout.reconfigure(encoding='utf-8')
 SRC = r'C:\Users\User\Desktop\night_19_11\locfx'
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'ui', 'locfx'); os.makedirs(OUT, exist_ok=True)
-done = {k for k, v in json.load(open(os.path.join(SRC, '_done.json'), encoding='utf-8')).items() if v == 'ok'}
+# мирное посреди боя Создатель убрал (19.11): эти листы не берём
+SKIP = {'w1_pigeons', 'w1_cart', 'w3_fox', 'w5_smith'}
+done = {k for k, v in json.load(open(os.path.join(SRC, '_done.json'), encoding='utf-8')).items() if v == 'ok'} - SKIP
 spec = importlib.util.spec_from_file_location('pl', r'C:\Users\User\browser-tools\locfx_place.py'); pl = importlib.util.module_from_spec(spec); spec.loader.exec_module(pl)
 defs = {}
 for id in sorted(done):
@@ -20,6 +22,9 @@ for id in sorted(done):
     defs[id] = {k: d[k] for k in ('cell', 'frames', 'fps', 'blend') if k in d}
 place = {w: {id: v for id, v in m.items() if id in defs} for w, m in pl.PLACE.items()}
 place = {w: m for w, m in place.items() if m}
+for id in SKIP:
+    f = os.path.join(OUT, id + '.webp')
+    if os.path.exists(f): os.remove(f)
 with open(os.path.join(OUT, 'locfx.js'), 'w', encoding='utf-8') as f:
     f.write('// Создано tools/locfx_import.py: листы живых элементов и выстрелов (Клауди) и их места на аренах.\n')
     f.write('const LOCFX = ' + json.dumps({'defs': defs, 'place': place}, ensure_ascii=False, separators=(',', ':')) + ';\n')
