@@ -83,7 +83,7 @@ combatGround = function (t) {
     const im = f.img && spellImg(f.img);
     if (!im || !im.complete || !im.naturalWidth) continue;
     const a = Math.min(1, f.t / 0.15, (f.dur - f.t) / 0.4), w = f.R * 2.3;
-    ctx.save(); ctx.globalAlpha = Math.max(0, a); ctx.translate(f.x, f.y); ctx.scale(1, YK); ctx.rotate(f.t * (f.rot || 0) + (f.mv ? f.t * 3 : 0));
+    ctx.save(); ctx.globalAlpha = Math.max(0, a); ctx.translate(f.x, f.y); ctx.scale(1, YK); ctx.rotate(f.mv && f.mv.gaze ? Math.atan2(f.mv.dy, f.mv.dx) : f.t * (f.rot || 0) + (f.mv ? f.t * 3 : 0));   // луч-змей летит головой вперёд
     ctx.drawImage(im, -w / 2, -w / 2, w, w);
     ctx.restore();
   }

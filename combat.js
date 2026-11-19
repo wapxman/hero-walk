@@ -561,6 +561,10 @@ KIND.b_blackknight = { nm: ['Чёрный Рыцарь', 'страж Корол�
   xp: 150, gold: 100, col: '#2a2a3a', sz: 1.15, spells: [
     { nm: 'Зеркальный щит', ph: 21, how: 'self', R: 140, warn: 0.7, dmg: 0, cd: 10, an: 'cast1' },
     { nm: 'Таран', ph: 21, how: 'target', R: 120, warn: 0.8, dmg: 40, cd: 7, an: 'cast2' }] };
+KIND.b_serpentqueen = { nm: ['Королева Змей', 'хозяйка Осеннего леса'], ch: 'b_serpentqueen', boss: 1, mel: 1, hp: 2050, rad: 52, speed: 100, dmg: [46, 58], cd: 1.25, reach: 125,
+  xp: 150, gold: 100, col: '#3a5a1a', sz: 1.15, spells: [
+    { nm: 'Змеиный рой', ph: 20, how: 'multi', R: 110, warn: 1.0, dmg: 35, cd: 9, an: 'cast1' },
+    { nm: 'Ядовитый взгляд', ph: 20, how: 'moving', R: 120, warn: 0, dmg: 50, cd: 8, an: 'cast2' }] };
 // мини-боссы середины мира (5-я волна): Жнец Урожая в Горящей деревне, Королева Колючек в Осеннем лесу — как элита
 KIND.mb_thornqueen = Object.assign({}, KIND.b_thornqueen, { nm: 'Королева Колючек', boss: 0, elite: 1, hp: 520, sz: 1, xp: 40, gold: 30, base: 'b_thornqueen' });
 KIND.mb_reaper = Object.assign({}, KIND.b_reaper, { nm: 'Жнец Урожая', boss: 0, elite: 1, hp: 540, sz: 1, xp: 40, gold: 30, base: 'b_reaper' });
@@ -569,7 +573,7 @@ const ROSTER = {
   1: { mel: ['cs_hound', 'cs_guard', 'cs_hound', 'cs_brute'], rng: ['cs_archer'], elite: ['el_castellan'], boss: 'b_blackknight' },
   2: { mel: ['fireimp', 'magmahound', 'bv_scare', 'fireimp'], rng: ['ashcultist', 'cinderwraith'], elite: ['el_cultist'], mini: 'mb_reaper', boss: 'tb_plaguelord' },
   3: { mel: ['shadowwolf', 'werefox', 'rotdryad', 'autumnbear', 'boarbrute', 'scarecrow'], rng: ['sporeshaman', 'thornimp', 'crowharpy', 'hollowarcher'],
-    elite: ['thornroot', 'el_bear'], mini: 'mb_thornqueen', boss: 'tb_serpentqueen' },
+    elite: ['thornroot', 'el_bear'], mini: 'mb_thornqueen', boss: 'b_serpentqueen' },
   4: { mel: ['bogghoul', 'leechworm', 'bogghoul', 'drownedknight'], rng: ['toadwitch', 'wisplantern'], elite: ['el_drowned', 'el_witch'], boss: 'b_toadking' },
   5: { mel: ['mn_worm', 'mn_boar', 'mn_imp', 'mn_imp'], rng: ['mn_thrower'], elite: ['el_forgeman'], boss: 'tb_forgegolem' },
   6: { mel: ['ic_wolf', 'ic_fox', 'ic_bear', 'ic_wolf'], rng: ['ic_wisp', 'ic_harpy'], elite: ['el_icebear'], boss: 'tb_frostqueen' },

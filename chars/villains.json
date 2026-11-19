@@ -1046,5 +1046,63 @@
     "how": "target"
    }
   ]
+ },
+ "b_serpentqueen": {
+  "size": 300,
+  "nm": "Королева Змей",
+  "mul": {
+   "run": {
+    "at": "vl_b_serpentqueen_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 376
+   },
+   "atk": {
+    "at": "vl_b_serpentqueen_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 472
+   },
+   "cast1": {
+    "at": "vl_b_serpentqueen_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 472
+   },
+   "cast2": {
+    "at": "vl_b_serpentqueen_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 472
+   },
+   "die": {
+    "at": "vl_b_serpentqueen_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 472
+   },
+   "idle": {
+    "at": "vl_b_serpentqueen_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 376
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_b_serpentqueen_1.webp",
+    "how": "multi"
+   },
+   {
+    "img": "fx/vfx_b_serpentqueen_2.webp",
+    "how": "moving"
+   }
+  ]
  }
 }

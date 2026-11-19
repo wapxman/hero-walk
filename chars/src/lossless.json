@@ -114,5 +114,11 @@
  "vl_b_blackknight_cast1": 448,
  "vl_b_blackknight_cast2": 448,
  "vl_b_blackknight_death": 448,
- "vl_b_blackknight_idle": 352
+ "vl_b_blackknight_idle": 352,
+ "vl_b_serpentqueen_walk": 416,
+ "vl_b_serpentqueen_attack": 512,
+ "vl_b_serpentqueen_cast1": 512,
+ "vl_b_serpentqueen_cast2": 512,
+ "vl_b_serpentqueen_death": 512,
+ "vl_b_serpentqueen_idle": 416
 }

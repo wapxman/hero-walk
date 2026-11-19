@@ -261,10 +261,13 @@ var NETC = { on: false };   // NETC.limboBack — вернуться из Меж
       } else if (t === E.WORLD) {
         // следующий мир: затемнение, новая карта, герой у базы (позицию пришлёт сервер)
         const a = BAL.at(wave + 1);
-        FADE.innerHTML = '<div>' + WORLDS[e[1] - 1].name + '</div><div style="font-size:2.6vh;opacity:.85;margin-top:1vh">мир ' + e[1] + (e[2] > 1 ? ' · круг ' + e[2] : '') + '</div>';
-        FADE.style.transition = 'none'; FADE.style.opacity = '1';
         applyWorld(e[1]); syncMap(); S.cur = null; S.pending = []; shots.length = 0; zones.length = 0; fx.length = 0;
-        setTimeout(() => { FADE.style.transition = 'opacity .9s'; FADE.style.opacity = '0'; }, 1300);
+        if (typeof PATHMAP !== 'undefined' && e[1] > 1) PATHMAP.show({ mode: 'full', t0: e[1] - 2 + 0.75, t1: e[1] - 1 });   // переход по карте «Путь героев»
+        else {
+          FADE.innerHTML = '<div>' + WORLDS[e[1] - 1].name + '</div><div style="font-size:2.6vh;opacity:.85;margin-top:1vh">мир ' + e[1] + (e[2] > 1 ? ' · круг ' + e[2] : '') + '</div>';
+          FADE.style.transition = 'none'; FADE.style.opacity = '1';
+          setTimeout(() => { FADE.style.transition = 'opacity .9s'; FADE.style.opacity = '0'; }, 1300);
+        }
         snd('wave_horn', 0.9, 0.8);
       } else if (t === E.VFX) {
         // картинка заклинания босса: [вид, номер магии, x, y, R, длительность ×100, dx, dy] (dx, dy — у летящей сферы)

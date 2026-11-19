@@ -71,7 +71,7 @@ function serpentqueen(e, dt, d) {
   if (e.act) return;
   if (e.sw <= 0) {
     e.sw = 9 * bossCd(e); tag(e, 'Змеиный рой!', '#9be37a');
-    startAct(e, 'cast1', 1.0, 0.55, () => { for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283; BM.snakes.push({ img: vfxOf(e, 0), x: e.x + Math.cos(a) * 70, y: e.y + Math.sin(a) * 70 * YK, t: 0, life: 7, sp: 150 + rnd(0, 50), dm: e.dm }); } });
+    startAct(e, 'cast1', 1.0, 0.55, () => { if (vfxOf(e, 0)) spellFx({ img: vfxOf(e, 0), x: e.x, y: e.y, R: 170, dur: 0.9 }); for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283; BM.snakes.push({ img: vfxOf(e, 0), x: e.x + Math.cos(a) * 70, y: e.y + Math.sin(a) * 70 * YK, t: 0, life: 7, sp: 150 + rnd(0, 50), dm: e.dm }); } });
     return true;
   }
   if (e.gz <= 0 && d < 950) {
@@ -267,8 +267,10 @@ function bmOver(t) {
   for (const e of enemies) {
     if (!(e.shield > 0 || e.shieldWarn > 0) || e.dieT) continue;
     const im = vfxOf(e, 0) && spellImg(vfxOf(e, 0)); if (!im || !im.complete || !im.naturalWidth) continue;
-    const h = e.ch.top * e.ch.U * e.sc, w = h * 0.75, k = e.shield > 0 ? 0.75 + 0.2 * Math.sin(t * 12) : 0.35 + 0.35 * Math.sin(t * 25);
-    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = k; ctx.drawImage(im, e.x - w / 2, e.y - h * 0.85, w, w); ctx.restore();
+    // щит — перед рыцарем, со стороны героя, на высоте груди
+    const h = e.ch.top * e.ch.U * e.sc, w = h * 0.5, k = e.shield > 0 ? 0.6 + 0.2 * Math.sin(t * 12) : 0.3 + 0.3 * Math.sin(t * 25);
+    const [dx, dy] = dirTo(e, P.x, P.y), sx = e.x + dx * e.rad * 0.9, sy = e.y + dy * e.rad * 0.5 - h * 0.45;
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = k; ctx.drawImage(im, sx - w / 2, sy - w / 2, w, w); ctx.restore();
   }
   // облака дыма поверх всего
   for (const s of BM.smoke) {
