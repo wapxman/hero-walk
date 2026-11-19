@@ -8,9 +8,10 @@ const SAVE = (() => {
   const key = () => 'hw_run_' + HERO_ID;
   const net = () => !!(window.NETC && NETC.on);
   let best = 0;   // сколько волн пройдено всего (самая дальняя точка)
+  let ready = false;   // сохраняем только после того, как забег загружен (иначе пустое меню затрёт прогресс)
   function read() { try { const d = JSON.parse(localStorage.getItem(key())); return d && typeof d === 'object' ? d : null; } catch (e) { return null; } }
   function save() {
-    if (net() || (typeof LIMBO !== 'undefined' && LIMBO.on && false)) return;
+    if (net() || !ready) return;
     // в бою сохраняем начало текущего раунда — после перезапуска раунд начнётся заново
     const w = SHOP.phase === 'fight' ? Math.max(0, (SHOP.roundFrom || wave + 1) - 1) : wave;
     best = Math.max(best, w);
@@ -20,6 +21,7 @@ const SAVE = (() => {
   }
   // открыть главу c: текущую — с места остановки, пройденную — с начала
   function start(c) {
+    ready = true;
     const d = read() || {};
     best = Math.max(best, d.best || 0);
     if (d.gold != null) SHOP.gold = d.gold;
@@ -60,6 +62,11 @@ const SAVE = (() => {
   };
   if (typeof applyWorld === 'function') { const _a = applyWorld; applyWorld = function (m) { _a(m); if (wave > 0) SAVE.save(); }; }
   addEventListener('pagehide', () => { if (wave > 0) SAVE.save(); });
+  // покупки, продажи, фласки, закрытие лавки — сразу сохраняем (приложение могут закрыть в любой момент)
+  const after = (o, k) => { const f = o[k]; if (typeof f !== 'function') return; o[k] = function () { const r = f.apply(this, arguments); SAVE.save(); return r; }; };
+  if (typeof buyItem === 'function') { const f = buyItem; buyItem = function (id) { const r = f(id); if (r) SAVE.save(); return r; }; }
+  if (typeof sellItem === 'function') { const f = sellItem; sellItem = function (i) { const r = f(i); SAVE.save(); return r; }; }
+  after(SHOP, 'buy'); after(SHOP, 'use'); after(SHOP, 'closeShop');
   document.addEventListener('visibilitychange', () => { if (document.hidden && wave > 0) SAVE.save(); });
   // «В главное меню» в паузе перезагружает страницу — сначала сохраняем
   for (const b of document.querySelectorAll('.mb')) b.addEventListener('pointerdown', () => { if (wave > 0) SAVE.save(); }, true);
