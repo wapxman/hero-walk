@@ -1,0 +1,1128 @@
+{
+ "b_thornqueen": {
+  "a": {
+   "tq_gale_cast": {
+    "at": "sk_b_thornqueen_tq_gale_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   }
+  },
+  "f": {
+   "tq_wrap": {
+    "img": "fx/sk/b_thornqueen_tq_wrap.webp",
+    "view": "front"
+   },
+   "tq_gale": {
+    "img": "fx/sk/b_thornqueen_tq_gale.webp",
+    "view": "side"
+   }
+  }
+ },
+ "b_serpentqueen": {
+  "a": {
+   "sq_shoot": {
+    "at": "sk_b_serpentqueen_sq_shoot",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 472
+   },
+   "sq_strike_cast": {
+    "at": "sk_b_serpentqueen_sq_strike_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 472
+   },
+   "sq_ward_cast": {
+    "at": "sk_b_serpentqueen_sq_ward_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 472
+   },
+   "sq_snake": {
+    "at": "sk_b_serpentqueen_sq_snake",
+    "n": 6,
+    "ms": 95,
+    "rows": 1,
+    "foot": 262,
+    "size": 120
+   },
+   "sq_idol": {
+    "at": "sk_b_serpentqueen_sq_idol",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294,
+    "size": 150
+   }
+  },
+  "f": {
+   "sq_bolt": {
+    "img": "fx/sk/b_serpentqueen_sq_bolt.webp",
+    "view": "side"
+   },
+   "sq_venom": {
+    "img": "fx/sk/b_serpentqueen_sq_venom.webp",
+    "view": "front"
+   },
+   "sq_gaze": {
+    "img": "fx/sk/b_serpentqueen_sq_gaze.webp",
+    "view": "side"
+   },
+   "sq_strike": {
+    "img": "fx/sk/b_serpentqueen_sq_strike.webp",
+    "view": "side"
+   },
+   "sq_spit": {
+    "img": "fx/sk/b_serpentqueen_sq_spit.webp",
+    "view": "side"
+   }
+  }
+ },
+ "ashcultist": {
+  "a": {
+   "ac_drain_cast": {
+    "at": "sk_ashcultist_ac_drain_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "ac_wave_cast": {
+    "at": "sk_ashcultist_ac_wave_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   }
+  },
+  "f": {
+   "ac_drain": {
+    "img": "fx/sk/ashcultist_ac_drain.webp",
+    "view": "side"
+   },
+   "ac_wave": {
+    "img": "fx/sk/ashcultist_ac_wave.webp",
+    "view": "side"
+   }
+  }
+ },
+ "autumnbear": {
+  "a": {
+   "ab_shock_cast": {
+    "at": "sk_autumnbear_ab_shock_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 440
+   },
+   "ab_roar_cast": {
+    "at": "sk_autumnbear_ab_roar_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 440
+   }
+  },
+  "f": {
+   "ab_shock": {
+    "img": "fx/sk/autumnbear_ab_shock.webp",
+    "view": "ground"
+   },
+   "ab_rage": {
+    "img": "fx/sk/autumnbear_ab_rage.webp",
+    "view": "front"
+   }
+  }
+ },
+ "b_ashlord": {
+  "a": {
+   "al_void_cast": {
+    "at": "sk_b_ashlord_al_void_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 440
+   },
+   "al_doom_cast": {
+    "at": "sk_b_ashlord_al_doom_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 440
+   }
+  },
+  "f": {
+   "al_void": {
+    "img": "fx/sk/b_ashlord_al_void.webp",
+    "view": "side"
+   },
+   "al_scorch": {
+    "img": "fx/sk/b_ashlord_al_scorch.webp",
+    "view": "ground"
+   },
+   "al_bash": {
+    "img": "fx/sk/b_ashlord_al_bash.webp",
+    "view": "front"
+   },
+   "al_doom": {
+    "img": "fx/sk/b_ashlord_al_doom.webp",
+    "view": "front"
+   }
+  }
+ },
+ "b_blackknight": {
+  "a": {
+   "bk_chaos_cast": {
+    "at": "sk_b_blackknight_bk_chaos_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "bk_call_cast": {
+    "at": "sk_b_blackknight_bk_call_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "bk_hunger_cast": {
+    "at": "sk_b_blackknight_bk_hunger_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "bk_horn_cast": {
+    "at": "sk_b_blackknight_bk_horn_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "bk_horse": {
+    "at": "sk_b_blackknight_bk_horse",
+    "n": 6,
+    "ms": 95,
+    "rows": 1,
+    "foot": 344,
+    "size": 210
+   }
+  },
+  "f": {
+   "bk_chaos": {
+    "img": "fx/sk/b_blackknight_bk_chaos.webp",
+    "view": "side"
+   },
+   "bk_call": {
+    "img": "fx/sk/b_blackknight_bk_call.webp",
+    "view": "ground"
+   },
+   "bk_hunger": {
+    "img": "fx/sk/b_blackknight_bk_hunger.webp",
+    "view": "front"
+   },
+   "bk_dust": {
+    "img": "fx/sk/b_blackknight_bk_dust.webp",
+    "view": "ground"
+   }
+  }
+ },
+ "b_forgegolem": {
+  "a": {
+   "fg_slam_cast": {
+    "at": "sk_b_forgegolem_fg_slam_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 472
+   },
+   "fg_spirit_cast": {
+    "at": "sk_b_forgegolem_fg_spirit_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 472
+   }
+  },
+  "f": {
+   "fg_fissure": {
+    "img": "fx/sk/b_forgegolem_fg_fissure.webp",
+    "view": "ground"
+   },
+   "fg_rust": {
+    "img": "fx/sk/b_forgegolem_fg_rust.webp",
+    "view": "ground"
+   },
+   "fg_temper": {
+    "img": "fx/sk/b_forgegolem_fg_temper.webp",
+    "view": "front"
+   },
+   "fg_spirit": {
+    "img": "fx/sk/b_forgegolem_fg_spirit.webp",
+    "view": "front"
+   }
+  }
+ },
+ "b_frostqueen": {
+  "a": {
+   "fq_rift_cast": {
+    "at": "sk_b_frostqueen_fq_rift_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "fq_blast_cast": {
+    "at": "sk_b_frostqueen_fq_blast_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   }
+  },
+  "f": {
+   "fq_rift": {
+    "img": "fx/sk/b_frostqueen_fq_rift.webp",
+    "view": "ground"
+   },
+   "fq_blast": {
+    "img": "fx/sk/b_frostqueen_fq_blast.webp",
+    "view": "ground"
+   }
+  }
+ },
+ "b_mirrorlord": {
+  "a": {
+   "ml_sunder_cast": {
+    "at": "sk_b_mirrorlord_ml_sunder_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   }
+  },
+  "f": {
+   "ml_clones": {
+    "img": "fx/sk/b_mirrorlord_ml_clones.webp",
+    "view": "front"
+   },
+   "ml_blink": {
+    "img": "fx/sk/b_mirrorlord_ml_blink.webp",
+    "view": "front"
+   },
+   "ml_crit": {
+    "img": "fx/sk/b_mirrorlord_ml_crit.webp",
+    "view": "front"
+   },
+   "ml_sunder": {
+    "img": "fx/sk/b_mirrorlord_ml_sunder.webp",
+    "view": "side"
+   }
+  }
+ },
+ "b_plaguelord": {
+  "a": {
+   "pl_golem_cast": {
+    "at": "sk_b_plaguelord_pl_golem_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "pl_fog_cast": {
+    "at": "sk_b_plaguelord_pl_fog_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "pl_word_cast": {
+    "at": "sk_b_plaguelord_pl_word_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "pl_hex_cast": {
+    "at": "sk_b_plaguelord_pl_hex_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "golem_walk": {
+    "at": "sk_b_plaguelord_golem_walk",
+    "n": 6,
+    "ms": 110,
+    "rows": 8,
+    "foot": 294,
+    "size": 250
+   },
+   "golem_attack": {
+    "at": "sk_b_plaguelord_golem_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 344,
+    "size": 250
+   },
+   "golem_death": {
+    "at": "sk_b_plaguelord_golem_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294,
+    "size": 250
+   },
+   "pl_rat": {
+    "at": "sk_b_plaguelord_pl_rat",
+    "n": 6,
+    "ms": 110,
+    "rows": 8,
+    "foot": 230,
+    "size": 70
+   }
+  },
+  "f": {
+   "pl_golem_fall": {
+    "img": "fx/sk/b_plaguelord_pl_golem_fall.webp",
+    "view": "ground"
+   },
+   "pl_fog": {
+    "img": "fx/sk/b_plaguelord_pl_fog.webp",
+    "view": "ground"
+   },
+   "pl_word": {
+    "img": "fx/sk/b_plaguelord_pl_word.webp",
+    "view": "front"
+   },
+   "pl_hex_puff": {
+    "img": "fx/sk/b_plaguelord_pl_hex_puff.webp",
+    "view": "front"
+   }
+  }
+ },
+ "b_reaper": {
+  "a": {
+   "rp_stakes_cast": {
+    "at": "sk_b_reaper_rp_stakes_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 440
+   }
+  },
+  "f": {
+   "rp_stakes": {
+    "img": "fx/sk/b_reaper_rp_stakes.webp",
+    "view": "ground"
+   }
+  }
+ },
+ "b_skyjudge": {
+  "a": {
+   "sj_spirit_cast": {
+    "at": "sk_b_skyjudge_sj_spirit_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 504
+   },
+   "sj_angel_cast": {
+    "at": "sk_b_skyjudge_sj_angel_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 504
+   },
+   "spirit_float": {
+    "at": "sk_b_skyjudge_spirit_float",
+    "n": 6,
+    "ms": 110,
+    "rows": 8,
+    "foot": 230,
+    "size": 180
+   },
+   "spirit_attack": {
+    "at": "sk_b_skyjudge_spirit_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294,
+    "size": 180
+   }
+  },
+  "f": {
+   "sj_bolt": {
+    "img": "fx/sk/b_skyjudge_sj_bolt.webp",
+    "view": "side"
+   },
+   "sj_realm": {
+    "img": "fx/sk/b_skyjudge_sj_realm.webp",
+    "view": "front"
+   },
+   "sj_ribbons": {
+    "img": "fx/sk/b_skyjudge_sj_ribbons.webp",
+    "view": "front"
+   },
+   "sj_angel": {
+    "img": "fx/sk/b_skyjudge_sj_angel.webp",
+    "view": "front"
+   }
+  }
+ },
+ "b_toadking": {
+  "a": {
+   "tk_tongue_cast": {
+    "at": "sk_b_toadking_tk_tongue_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 472
+   },
+   "tk_slide_cast": {
+    "at": "sk_b_toadking_tk_slide_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 472
+   },
+   "tk_slam_cast": {
+    "at": "sk_b_toadking_tk_slam_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 472
+   }
+  },
+  "f": {
+   "tk_tongue": {
+    "img": "fx/sk/b_toadking_tk_tongue.webp",
+    "view": "side"
+   },
+   "tk_splash": {
+    "img": "fx/sk/b_toadking_tk_splash.webp",
+    "view": "ground"
+   },
+   "tk_bash": {
+    "img": "fx/sk/b_toadking_tk_bash.webp",
+    "view": "front"
+   },
+   "tk_tentacles": {
+    "img": "fx/sk/b_toadking_tk_tentacles.webp",
+    "view": "ground"
+   }
+  }
+ },
+ "b_voidmage": {
+  "a": {
+   "vm_heal_cast": {
+    "at": "sk_b_voidmage_vm_heal_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "vm_star_cast": {
+    "at": "sk_b_voidmage_vm_star_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "vm_ball_cast": {
+    "at": "sk_b_voidmage_vm_ball_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "vm_silence_cast": {
+    "at": "sk_b_voidmage_vm_silence_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "golem_void_walk": {
+    "at": "sk_b_voidmage_golem_void_walk",
+    "n": 6,
+    "ms": 110,
+    "rows": 8,
+    "foot": 294,
+    "size": 250
+   },
+   "golem_void_attack": {
+    "at": "sk_b_voidmage_golem_void_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 344,
+    "size": 250
+   },
+   "golem_void_death": {
+    "at": "sk_b_voidmage_golem_void_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294,
+    "size": 250
+   }
+  },
+  "f": {
+   "vm_heal": {
+    "img": "fx/sk/b_voidmage_vm_heal.webp",
+    "view": "ground"
+   },
+   "vm_fall": {
+    "img": "fx/sk/b_voidmage_vm_fall.webp",
+    "view": "ground"
+   },
+   "vm_ball": {
+    "img": "fx/sk/b_voidmage_vm_ball.webp",
+    "view": "front"
+   },
+   "vm_silence": {
+    "img": "fx/sk/b_voidmage_vm_silence.webp",
+    "view": "ground"
+   }
+  }
+ },
+ "boarbrute": {
+  "a": {
+   "bb_cast": {
+    "at": "sk_boarbrute_bb_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   }
+  },
+  "f": {
+   "bb_wave": {
+    "img": "fx/sk/boarbrute_bb_wave.webp",
+    "view": "ground"
+   }
+  }
+ },
+ "bogghoul": {
+  "a": {
+   "bg_cast": {
+    "at": "sk_bogghoul_bg_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   }
+  },
+  "f": {
+   "bg_wounds": {
+    "img": "fx/sk/bogghoul_bg_wounds.webp",
+    "view": "front"
+   }
+  }
+ },
+ "cinderwraith": {
+  "a": {
+   "cw_cast": {
+    "at": "sk_cinderwraith_cw_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   }
+  },
+  "f": {
+   "cw_swarm": {
+    "img": "fx/sk/cinderwraith_cw_swarm.webp",
+    "view": "side"
+   }
+  }
+ },
+ "crowharpy": {
+  "a": {
+   "ch_cast": {
+    "at": "sk_crowharpy_ch_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   }
+  },
+  "f": {
+   "ch_feathers": {
+    "img": "fx/sk/crowharpy_ch_feathers.webp",
+    "view": "front"
+   }
+  }
+ },
+ "drownedknight": {
+  "a": {
+   "dk_torrent_cast": {
+    "at": "sk_drownedknight_dk_torrent_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   }
+  },
+  "f": {
+   "dk_torrent": {
+    "img": "fx/sk/drownedknight_dk_torrent.webp",
+    "view": "ground"
+   },
+   "dk_wave": {
+    "img": "fx/sk/drownedknight_dk_wave.webp",
+    "view": "ground"
+   }
+  }
+ },
+ "dwarfbomber": {
+  "a": {
+   "db_cast": {
+    "at": "sk_dwarfbomber_db_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   }
+  },
+  "f": {
+   "db_mine": {
+    "img": "fx/sk/dwarfbomber_db_mine.webp",
+    "view": "ground"
+   },
+   "db_boom": {
+    "img": "fx/sk/dwarfbomber_db_boom.webp",
+    "view": "ground"
+   }
+  }
+ },
+ "fireimp": {
+  "a": {
+   "fi_cast": {
+    "at": "sk_fireimp_fi_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   }
+  },
+  "f": {
+   "fi_trail": {
+    "img": "fx/sk/fireimp_fi_trail.webp",
+    "view": "ground"
+   }
+  }
+ },
+ "frostlynx": {
+  "a": {
+   "fl_cast": {
+    "at": "sk_frostlynx_fl_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   }
+  },
+  "f": {
+   "fl_wall": {
+    "img": "fx/sk/frostlynx_fl_wall.webp",
+    "view": "ground"
+   }
+  }
+ },
+ "gembeetle": {
+  "a": {
+   "gb_cast": {
+    "at": "sk_gembeetle_gb_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   }
+  },
+  "f": {
+   "gb_flash": {
+    "img": "fx/sk/gembeetle_gb_flash.webp",
+    "view": "front"
+   }
+  }
+ },
+ "glassdancer": {
+  "a": {
+   "gd_cast": {
+    "at": "sk_glassdancer_gd_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   }
+  },
+  "f": {
+   "gd_whirl": {
+    "img": "fx/sk/glassdancer_gd_whirl.webp",
+    "view": "ground"
+   }
+  }
+ },
+ "hollowarcher": {
+  "a": {},
+  "f": {
+   "ha_arrow": {
+    "img": "fx/sk/hollowarcher_ha_arrow.webp",
+    "view": "side"
+   }
+  }
+ },
+ "jester": {
+  "a": {
+   "js_cast": {
+    "at": "sk_jester_js_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   }
+  },
+  "f": {
+   "js_ring": {
+    "img": "fx/sk/jester_js_ring.webp",
+    "view": "ground"
+   }
+  }
+ },
+ "leechworm": {
+  "a": {
+   "lw_cast": {
+    "at": "sk_leechworm_lw_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   }
+  },
+  "f": {
+   "lw_bolt": {
+    "img": "fx/sk/leechworm_lw_bolt.webp",
+    "view": "side"
+   }
+  }
+ },
+ "magmahound": {
+  "a": {},
+  "f": {
+   "mh_bite": {
+    "img": "fx/sk/magmahound_mh_bite.webp",
+    "view": "front"
+   }
+  }
+ },
+ "marblegriffin": {
+  "a": {
+   "mg_cast": {
+    "at": "sk_marblegriffin_mg_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 376
+   }
+  },
+  "f": {
+   "mg_wave": {
+    "img": "fx/sk/marblegriffin_mg_wave.webp",
+    "view": "ground"
+   }
+  }
+ },
+ "porcelainmaid": {
+  "a": {
+   "pm_cast": {
+    "at": "sk_porcelainmaid_pm_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   }
+  },
+  "f": {
+   "pm_bolt": {
+    "img": "fx/sk/porcelainmaid_pm_bolt.webp",
+    "view": "front"
+   }
+  }
+ },
+ "prismkeeper": {
+  "a": {
+   "pk_cast": {
+    "at": "sk_prismkeeper_pk_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   }
+  },
+  "f": {
+   "pk_wave": {
+    "img": "fx/sk/prismkeeper_pk_wave.webp",
+    "view": "side"
+   }
+  }
+ },
+ "rotdryad": {
+  "a": {
+   "rd_cast": {
+    "at": "sk_rotdryad_rd_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   }
+  },
+  "f": {
+   "rd_orb": {
+    "img": "fx/sk/rotdryad_rd_orb.webp",
+    "view": "front"
+   }
+  }
+ },
+ "salamander": {
+  "a": {
+   "sl_cage_cast": {
+    "at": "sk_salamander_sl_cage_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   },
+   "sl_breath_cast": {
+    "at": "sk_salamander_sl_breath_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   },
+   "sl_bash_cast": {
+    "at": "sk_salamander_sl_bash_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   }
+  },
+  "f": {
+   "sl_cage": {
+    "img": "fx/sk/salamander_sl_cage.webp",
+    "view": "ground"
+   },
+   "sl_breath": {
+    "img": "fx/sk/salamander_sl_breath.webp",
+    "view": "ground"
+   },
+   "sl_bash": {
+    "img": "fx/sk/salamander_sl_bash.webp",
+    "view": "front"
+   }
+  }
+ },
+ "scarecrow": {
+  "a": {
+   "sc_cast": {
+    "at": "sk_scarecrow_sc_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   }
+  },
+  "f": {
+   "sc_sickle": {
+    "img": "fx/sk/scarecrow_sc_sickle.webp",
+    "view": "side"
+   }
+  }
+ },
+ "shadowwolf": {
+  "a": {
+   "sw_cast": {
+    "at": "sk_shadowwolf_sw_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   }
+  },
+  "f": {
+   "sw_pin": {
+    "img": "fx/sk/shadowwolf_sw_pin.webp",
+    "view": "ground"
+   }
+  }
+ },
+ "skyharpist": {
+  "a": {},
+  "f": {
+   "sh_pillar": {
+    "img": "fx/sk/skyharpist_sh_pillar.webp",
+    "view": "front"
+   }
+  }
+ },
+ "sporeshaman": {
+  "a": {},
+  "f": {
+   "ss_seed": {
+    "img": "fx/sk/sporeshaman_ss_seed.webp",
+    "view": "front"
+   }
+  }
+ },
+ "thornimp": {
+  "a": {
+   "ti_cast": {
+    "at": "sk_thornimp_ti_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   }
+  },
+  "f": {
+   "ti_burst": {
+    "img": "fx/sk/thornimp_ti_burst.webp",
+    "view": "ground"
+   }
+  }
+ },
+ "thornroot": {
+  "a": {
+   "tr_grasp_cast": {
+    "at": "sk_thornroot_tr_grasp_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   },
+   "tr_grab_cast": {
+    "at": "sk_thornroot_tr_grab_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   },
+   "tr_logattack": {
+    "at": "sk_thornroot_tr_logattack",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   }
+  },
+  "f": {
+   "tr_grasp": {
+    "img": "fx/sk/thornroot_tr_grasp.webp",
+    "view": "ground"
+   },
+   "tr_splinter": {
+    "img": "fx/sk/thornroot_tr_splinter.webp",
+    "view": "front"
+   }
+  }
+ },
+ "toadwitch": {
+  "a": {
+   "tw_hex_cast": {
+    "at": "sk_toadwitch_tw_hex_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "tw_bubble_cast": {
+    "at": "sk_toadwitch_tw_bubble_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "tw_gourd_cast": {
+    "at": "sk_toadwitch_tw_gourd_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "tw_frog": {
+    "at": "sk_toadwitch_tw_frog",
+    "n": 6,
+    "ms": 110,
+    "rows": 8,
+    "foot": 230,
+    "size": 70
+   }
+  },
+  "f": {
+   "tw_puff": {
+    "img": "fx/sk/toadwitch_tw_puff.webp",
+    "view": "front"
+   },
+   "tw_bubble": {
+    "img": "fx/sk/toadwitch_tw_bubble.webp",
+    "view": "side"
+   },
+   "tw_gourd": {
+    "img": "fx/sk/toadwitch_tw_gourd.webp",
+    "view": "front"
+   }
+  }
+ },
+ "werefox": {
+  "a": {},
+  "f": {
+   "wf_puff": {
+    "img": "fx/sk/werefox_wf_puff.webp",
+    "view": "front"
+   }
+  }
+ },
+ "wisplantern": {
+  "a": {
+   "wl_cast": {
+    "at": "sk_wisplantern_wl_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   }
+  },
+  "f": {
+   "wl_cloud": {
+    "img": "fx/sk/wisplantern_wl_cloud.webp",
+    "view": "front"
+   }
+  }
+ },
+ "yeti": {
+  "a": {
+   "yt_cast": {
+    "at": "sk_yeti_yt_cast",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   }
+  },
+  "f": {
+   "yt_ice": {
+    "img": "fx/sk/yeti_yt_ice.webp",
+    "view": "front"
+   }
+  }
+ }
+}
