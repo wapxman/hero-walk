@@ -191,7 +191,7 @@ SHOP.flaskPrice = f => BAL.price(f.id === 'heal' ? 40 + 10 * (BAL.mw(wave + 1) -
   .bg { background-size: 100% 100%; background-repeat: no-repeat; background-position: center; }
   .tap { cursor: pointer; touch-action: manipulation; }
   /* HUD v3 по референсу: все рамки и кнопки — картинки ui/h_*.webp из ChatGPT; размеры — в долях высоты экрана */
-  #hHero { top: calc(1.2vh + env(safe-area-inset-top)); left: calc(1.5vh + env(safe-area-inset-left)); width: 52vh; height: 15vh; pointer-events: none; }
+  #hHero { top: calc(1.2vh + var(--sat)); left: calc(1.5vh + var(--sal)); width: 52vh; height: 15vh; pointer-events: none; }
   #hHero .pt { position: absolute; left: 0; top: 0; width: 14vh; height: 14vh; background-image: ${U('h_portrait')}; }
   #hHero .lv { position: absolute; left: 9.6vh; top: 9.4vh; width: 5.2vh; height: 5.2vh; background-image: ${U('h_badge')}; display: flex; align-items: center; justify-content: center; font: bold 2.5vh system-ui; }
   #hHero .bar { position: absolute; left: 13.2vh; width: 37vh; height: 4.6vh; background-image: ${U('h_barframe')}; }
@@ -199,15 +199,15 @@ SHOP.flaskPrice = f => BAL.price(f.id === 'heal' ? 40 + 10 * (BAL.mw(wave + 1) -
   #hHero .bar .f { position: absolute; left: 9%; right: 9%; top: 31%; bottom: 25%; }
   #hHero .bar.hp .f { background-image: ${U('h_hp')}; } #hHero .bar.mp .f { background-image: ${U('h_mp')}; }
   #hHero .bar span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font: bold 2.1vh system-ui; }
-  #hWave { top: calc(1vh + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: .4vh; }
+  #hWave { top: calc(1vh + var(--sat)); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: .4vh; }
   #hWave .pl { width: 30vh; height: 7.9vh; background-image: ${U('h_plaque')}; display: flex; align-items: center; justify-content: center; font: bold 3.1vh system-ui; letter-spacing: .08em; }
   #hWave .go { width: 33vh; height: 8.8vh; background-image: ${U('h_button')}; display: flex; align-items: center; justify-content: center; font: bold 2.9vh system-ui; color: #ffe9a8; letter-spacing: .05em; animation: shPulse 1.6s ease-in-out infinite; }
   @keyframes shPulse { 50% { transform: scale(1.05); } }
-  #hTopR { top: calc(1.4vh + env(safe-area-inset-top)); right: calc(1.5vh + env(safe-area-inset-right)); display: flex; gap: 1.2vh; align-items: center; }
+  #hTopR { top: calc(1.4vh + var(--sat)); right: calc(1.5vh + var(--sar)); display: flex; gap: 1.2vh; align-items: center; }
   #hTopR .gd { position: relative; width: 24vh; height: 8.3vh; background-image: ${U('h_gold')}; }
   #hTopR .gd span { position: absolute; left: 34%; right: 8%; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font: bold 3vh system-ui; color: #ffe9a8; }
   #hTopR .sq { width: 8.4vh; height: 8.9vh; }
-  #hInv { bottom: calc(2.4vh + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-60%); display: flex; gap: 1vh; align-items: center; }
+  #hInv { bottom: calc(2.4vh + var(--sab)); left: 50%; transform: translateX(-60%); display: flex; gap: 1vh; align-items: center; }
   .hs { position: relative; width: 9.4vh; height: 9.2vh; background-image: ${U('h_slot')}; }
   .hs .ic { position: absolute; left: 17%; top: 17%; width: 66%; height: 66%; }
   .hs b { position: absolute; right: .7vh; bottom: .4vh; font: bold 2.2vh system-ui; }

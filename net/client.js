@@ -35,7 +35,7 @@ var NETC = { on: false };   // NETC.limboBack — вернуться из Меж
     #hSel .md.on { opacity: 1; filter: drop-shadow(0 0 1.2vh rgba(255,226,122,.55)); color: #ffe9a8; }
     #hSel input { width: 14vh; height: 5.4vh; border-radius: 1vh; border: .3vh solid rgba(170,190,230,.5); background: rgba(8,16,32,.85); color: #fff;
       font: bold 2.2vh system-ui; text-align: center; }
-    #netStat { position: fixed; top: calc(19vh + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 5; color: #cfe3ff;
+    #netStat { position: fixed; top: calc(19vh + var(--sat)); left: 50%; transform: translateX(-50%); z-index: 5; color: #cfe3ff;
       font: bold 1.9vh system-ui; text-shadow: 0 1px 3px #000; pointer-events: none; white-space: nowrap; }`;
     document.head.appendChild(css);
     const row = document.createElement('div'); row.className = 'modes';

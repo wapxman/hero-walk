@@ -4,9 +4,23 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Duel Arena · лесная арена</title>
+<!-- установка на экран «Домой» (iPhone и Android): открывается как приложение, без адресной строки -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Duel Arena">
+<meta name="theme-color" content="#0c1017">
+<link rel="apple-touch-icon" sizes="180x180" href="ui/app/icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="ui/app/icon-192.png">
+<link rel="manifest" href="manifest.json">
 <style>
   * { margin:0; padding:0; }
-  html, body { height:100%; overflow:hidden; background:#0c1017; touch-action:none; }
+  /* вырез экрана и полоска «Домой»: отступы одним местом, остальной интерфейс берёт var(--sal) и т. д., код — SAFE */
+  :root { --sat: env(safe-area-inset-top, 0px); --sar: env(safe-area-inset-right, 0px); --sab: env(safe-area-inset-bottom, 0px); --sal: env(safe-area-inset-left, 0px); }
+  html, body { height:100%; overflow:hidden; background:#0c1017; touch-action:none; overscroll-behavior:none;
+    -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
+  body { position:fixed; inset:0; }
+  #safeProbe { position:fixed; visibility:hidden; pointer-events:none; padding:var(--sat) var(--sar) var(--sab) var(--sal); }
   canvas { display:block; width:100vw; height:100dvh; }
   #hud { display:none; }
   #hud0 {
@@ -20,6 +34,7 @@
 </head>
 <body>
 <canvas id="c"></canvas>
+<div id="safeProbe"></div>
 <div id="hud"><b>Duel Arena</b> · <span id="tip">стик — движение, кнопки справа — огонь и скилы (ПК: WASD, пробел, Q E F R, фласки 1–4, Enter — волна, B — магазин)</span><br>
 <span id="snd">🔇 коснитесь экрана, чтобы включить звук</span> <span id="pad">🎮 геймпад подключён</span></div>
 <script>
@@ -33,24 +48,34 @@
   Storage.prototype.removeItem = function (k) { rem.call(this, k); if (this === window.localStorage && /^hw_/.test(k)) try { B.remove(k); } catch (e) {} };
 })();
 </script>
-<script src="data.js?v=94"></script>
-<script src="chars/atlas.js?v=94"></script>
-<script src="chars/villains.js?v=94"></script>
-<script src="chars/skills.js?v=94"></script>
+<script src="data.js?v=95"></script>
+<script src="chars/atlas.js?v=95"></script>
+<script src="chars/villains.js?v=95"></script>
+<script src="chars/skills.js?v=95"></script>
 <script>
-const V = '?v=94';
+const V = '?v=95';
 const cv = document.getElementById('c');
 const ctx = cv.getContext('2d');
 // Чёткость: холст рисуется не больше чем в 2 точки на точку экрана. Если телефон не успевает
 // (средний кадр дольше 20 мс две секунды подряд), чёткость понижается ступенями до 1.25 и обратно не растёт.
 let DPR = 1, DPR_CAP = 2, W = 0, H = 0, VIG = null;
+// вырез экрана и полоска «Домой» (iPhone): отступы в точках экрана — джойстик и кнопки на холсте отодвигаются на них
+const SAFE = { t: 0, r: 0, b: 0, l: 0 };
+function safeRead() {
+  const s = getComputedStyle(document.getElementById('safeProbe')), n = k => parseFloat(s[k]) || 0;
+  SAFE.t = n('paddingTop'); SAFE.r = n('paddingRight'); SAFE.b = n('paddingBottom'); SAFE.l = n('paddingLeft');
+}
 function resize() {
   DPR = Math.min(DPR_CAP, window.devicePixelRatio || 1);
-  W = window.innerWidth; H = window.innerHeight;
+  W = window.innerWidth; H = window.innerHeight; safeRead();
   cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
   VIG = null;
 }
 window.addEventListener('resize', resize); resize();
+window.addEventListener('orientationchange', () => setTimeout(resize, 300));   // iPhone: отступы выреза приходят с опозданием
+// iPhone: зум щипком и двойным касанием, прокрутка страницы
+for (const ev of ['gesturestart', 'gesturechange', 'gestureend', 'dblclick']) document.addEventListener(ev, e => e.preventDefault(), { passive: false });
+document.addEventListener('touchmove', e => { if (e.cancelable && !e.target.closest('#shList')) e.preventDefault(); }, { passive: false });
 const perf = { t: 0, n: 0, skip: 3 };
 function perfTick(dt) {
   if (perf.skip > 0) { perf.skip -= dt; return; }   // первые секунды картинки загружаются в видеопамять — не считаем
@@ -150,7 +175,7 @@ addEventListener('keyup', e => { keys[e.code] = false; });
 const stick = { active: false, id: null, x0: 0, y0: 0, dx: 0, dy: 0 };
 // стик как в референсе: резное кольцо слева внизу; касание в любом свободном месте переносит его под палец
 const stickR = () => Math.min(H, W * 0.56) * 0.135;          // радиус кольца на экране
-const stickHome = () => ({ x: Math.min(H, W * 0.56) * 0.25 + stickR() * 0.1, y: H - Math.min(H, W * 0.56) * 0.2 });
+const stickHome = () => ({ x: SAFE.l + Math.min(H, W * 0.56) * 0.25 + stickR() * 0.1, y: H - Math.min(H, W * 0.56) * 0.2 });
 addEventListener('touchstart', e => {
   for (const t of e.changedTouches) {
     if (window.COMBAT_READY && touchButtonDown(t)) continue;
@@ -468,33 +493,33 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 </script>
-<script src="roster.js?v=94"></script>
-<script src="combat.js?v=94"></script>
-<script src="shop.js?v=94"></script>
-<script src="heroes.js?v=94"></script>
-<script src="progress.js?v=94"></script>
-<script src="worlds.js?v=94"></script>
-<script src="pathmap.js?v=94"></script>
-<script src="mapfx.js?v=94"></script>
-<script src="arenafx.js?v=94"></script>
-<script src="ui/locfx/locfx.js?v=94"></script>
-<script src="locfx.js?v=94"></script>
-<script src="limbo.js?v=94"></script>
-<script src="enemies.js?v=94"></script>
-<script src="items.js?v=94"></script>
-<script src="relics.js?v=94"></script>
-<script src="bossmech.js?v=94"></script>
-<script src="sk.js?v=94"></script>
-<script src="sk_defs.js?v=94"></script>
-<script src="mini.js?v=94"></script>
-<script src="status.js?v=94"></script>
-<script src="dash.js?v=94"></script>
-<script src="itemfx.js?v=94"></script>
-<script src="bossvo_map.js?v=94"></script>
-<script src="bossvo.js?v=94"></script>
-<script src="net/shared.js?v=94"></script>
-<script src="net/client.js?v=94"></script>
-<script src="menu.js?v=94"></script>
-<script src="save.js?v=94"></script>
+<script src="roster.js?v=95"></script>
+<script src="combat.js?v=95"></script>
+<script src="shop.js?v=95"></script>
+<script src="heroes.js?v=95"></script>
+<script src="progress.js?v=95"></script>
+<script src="worlds.js?v=95"></script>
+<script src="pathmap.js?v=95"></script>
+<script src="mapfx.js?v=95"></script>
+<script src="arenafx.js?v=95"></script>
+<script src="ui/locfx/locfx.js?v=95"></script>
+<script src="locfx.js?v=95"></script>
+<script src="limbo.js?v=95"></script>
+<script src="enemies.js?v=95"></script>
+<script src="items.js?v=95"></script>
+<script src="relics.js?v=95"></script>
+<script src="bossmech.js?v=95"></script>
+<script src="sk.js?v=95"></script>
+<script src="sk_defs.js?v=95"></script>
+<script src="mini.js?v=95"></script>
+<script src="status.js?v=95"></script>
+<script src="dash.js?v=95"></script>
+<script src="itemfx.js?v=95"></script>
+<script src="bossvo_map.js?v=95"></script>
+<script src="bossvo.js?v=95"></script>
+<script src="net/shared.js?v=95"></script>
+<script src="net/client.js?v=95"></script>
+<script src="menu.js?v=95"></script>
+<script src="save.js?v=95"></script>
 </body>
 </html>

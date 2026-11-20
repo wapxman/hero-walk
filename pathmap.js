@@ -156,7 +156,7 @@ const PATHMAP = (() => {
     cv.addEventListener('wheel', e => { if (!st || !st.select) return; e.preventDefault(); const p = pos(e); zoomAt(e.deltaY < 0 ? 1.15 : 1 / 1.15, p.x, p.y); st.userCam = true; }, { passive: false });
     // кнопка «Продолжить»
     BTN = document.createElement('div'); BTN.id = 'pmGo';
-    BTN.style.cssText = 'position:fixed;right:calc(3vh + env(safe-area-inset-right));bottom:3vh;z-index:61;display:none;min-width:42vh;height:11vh;padding:0 4vh;' +
+    BTN.style.cssText = 'position:fixed;right:calc(3vh + var(--sar));bottom:3vh;z-index:61;display:none;min-width:42vh;height:11vh;padding:0 4vh;' +
       'background:url(ui/h_button.webp' + V0 + ') center/100% 100% no-repeat;align-items:center;justify-content:center;flex-direction:column;' +
       'font:bold 3.2vh Georgia,serif;color:#ffe9a8;text-shadow:0 .3vh .6vh #000;cursor:pointer;animation:shPulse 1.6s ease-in-out infinite';
     document.body.appendChild(BTN);

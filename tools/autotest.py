@@ -116,8 +116,8 @@ async def extra(br, res):
           for (const id in LOCFX.defs) L.push('ui/locfx/' + id + '.webp');
           for (const w of WORLDS) L.push(w.ground); for (const m in ARENAS) for (const a of ARENAS[m]) L.push(a);
           for (const id in RELICS) L.push('ui/relics/' + id + '.webp'); L.push('ui/items.webp', 'ui/icons.webp', 'ui/map/map.webp');
-          for (const d of HSTAT.DEF) L.push('ui/status/' + d[0] + '.webp'); L.push('ui/status/star.webp', 'ui/status/dash.webp');
-          await Promise.all(L.map(async u => { try { const x = await fetch(u, { method: 'HEAD' }); if (!x.ok) bad.push(u + ' — ' + x.status); else if (+x.headers.get('content-length') < 500) bad.push(u + ' — пустой файл'); } catch (e) { bad.push(u + ' — ' + e); } }));
+          for (const d of HSTAT.DEF) L.push('ui/status/' + d[0] + '.webp'); L.push('ui/status/star.webp', 'ui/status/dash.webp', 'manifest.json', 'ui/app/icon-180.png', 'ui/app/icon-192.png', 'ui/app/icon-512.png');
+          await Promise.all(L.map(async u => { try { const x = await fetch(u, { method: 'HEAD' }); if (!x.ok) bad.push(u + ' — ' + x.status); else if (+x.headers.get('content-length') < 300) bad.push(u + ' — пустой файл'); } catch (e) { bad.push(u + ' — ' + e); } }));
           return { n: L.length, bad }; }""")
         # значки состояний: всё наложили разом — в ряду 8 плохих и хорошие, после снятия ряд пуст
         r['stat'] = await p.evaluate("""async () => { const hp = P.hp; P.hp = P.maxHp = 1e6; STATUS.add('stun', 3); STATUS.add('silence', 3); STATUS.add('blind', 3); STATUS.add('freeze', 3);

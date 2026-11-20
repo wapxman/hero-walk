@@ -20,7 +20,11 @@ const SND_GAP = { hit: 0.05, step: 0.1, coins: 0.08, enemy_melee: 0.06, enemy_ar
 const SND = {}, sndLast = {}, sndAt = {};
 let AC = null;
 function audioInit() {
-  if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
+  if (AC) {   // iPhone: первое событие касания ещё не даёт права на звук — добираем на следующем
+    if (AC.state !== 'running') AC.resume();
+    if (mus.el && mus.on && mus.el.paused && !document.hidden) mus.el.play().catch(() => {});
+    return;
+  }
   const C = window.AudioContext || window.webkitAudioContext;
   if (!C) return;
   AC = new C();
@@ -151,7 +155,7 @@ const BTN = [
 const BTN_POS = { atk: [140, 101, 66], q: [287, 88, 41], e: [267, 180, 41], r: [192, 240, 39], f: [102, 222, 39] };
 function layoutButtons() {
   const u = Math.min(H, W * 0.56) / 576;
-  for (const b of BTN) { const p = BTN_POS[b.id]; b.x = W - p[0] * u; b.y = H - p[1] * u; b.r = p[2] * u; }
+  for (const b of BTN) { const p = BTN_POS[b.id]; b.x = W - SAFE.r - p[0] * u; b.y = H - p[1] * u; b.r = p[2] * u; }
 }
 function buttonAt(x, y) {
   layoutButtons();

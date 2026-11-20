@@ -52,7 +52,7 @@ const HSTAT = (function () {
 
   // ---------- ряд значков (DOM, внизу по центру над ячейками предметов) ----------
   const css = document.createElement('style');
-  css.textContent = `#hStat { position: fixed; z-index: 6; left: calc(50% - 14vh); transform: translateX(-50%); bottom: calc(14.6vh + env(safe-area-inset-bottom)); display: flex; pointer-events: none; --s: clamp(32px, 9.4vh, 46px); }
+  css.textContent = `#hStat { position: fixed; z-index: 6; left: calc(50% - 14vh); transform: translateX(-50%); bottom: calc(14.6vh + var(--sab)); display: flex; pointer-events: none; --s: clamp(32px, 9.4vh, 46px); }
   #hStat .st { position: relative; width: var(--s); height: var(--s); margin: 0 calc(var(--s) * 0.05); border-radius: 50%; box-sizing: border-box; flex: none;
     background: radial-gradient(circle at 50% 38%, #2a3242, #10141c 72%); --c: #e2463a; box-shadow: 0 0 0 1px #000, 0 2px 5px rgba(0,0,0,.6); animation: hstPop .3s ease-out; }
   #hStat .st.good { --c: #4ec96b; } #hStat .st.gap { margin-left: calc(var(--s) * 0.35); }
