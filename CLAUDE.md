@@ -17,6 +17,9 @@
 - **Токен GitHub** — через `git credential fill` (protocol=https, host=github.com), пароль не печатать. Обычный `git push origin HEAD` работает.
 - **Коммиты** заканчивать строкой `Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>`.
 - **ChatGPT** (когда нужна новая картинка) — через отладочный Chrome на ПК: `C:\Users\User\browser-tools\pc_gpt.py`, порт 9222, максимальное усилие рассуждения.
+- **Чужие процессы не трогать.** Никогда не закрывать все `node.exe` (или `python.exe`) разом — на этом ПК работают и другие программы (админка Taketool на `localhost:3000`,
+  сервер GitHub в приложении Claude). Останавливать только свой процесс: по PID, который запомнил при запуске, или по порту
+  (`netstat -ano | findstr :8765`, потом `taskkill /PID <номер>`). Никаких `taskkill /IM node.exe`, `Stop-Process -Name node`, `pkill node`.
 - Названия: «Карта миров» — `ui/map/map.webp` (экран «Путь героев»); «арена» — поле боя мира.
 
 ## Как устроен код
