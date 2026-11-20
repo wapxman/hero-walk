@@ -122,8 +122,8 @@ async def extra(br, res):
         # значки состояний: всё наложили разом — в ряду 8 плохих и хорошие, после снятия ряд пуст
         r['stat'] = await p.evaluate("""async () => { const hp = P.hp; P.hp = P.maxHp = 1e6; STATUS.add('stun', 3); STATUS.add('silence', 3); STATUS.add('blind', 3); STATUS.add('freeze', 3);
           for (const k of ['poison', 'burn', 'cold', 'shred']) STATUS.add(k, 2); slowHero(0.6, 3); slowHero(0, 1); P.ss.spd = 2; P.ss.noMiss = 2; P.ss.imm.sil = 1; P.ss.rshield = 1e9; P.ss.rshT = 2; HSTAT.show('fear', 2);
-          await new Promise(r => setTimeout(r, 400)); const on = HSTAT.list(); STATUS.clear(); P.slowT = 0; P.slowK = 1; HSTAT.show('fear', 0);
-          await new Promise(r => setTimeout(r, 400)); return { on, off: HSTAT.list() }; }""")
+          combatUpdate(0.02); const on = HSTAT.list(); STATUS.clear(); P.slowT = 0; P.slowK = 1; HSTAT.show('fear', 0);
+          combatUpdate(0.02); return { on, off: HSTAT.list() }; }""")
         r['ver'] = await p.evaluate("({ v: V, lvlMax: LVL_MAX, k: BAL.K })")
     except Exception as ex:
         red('общее', 'проверка сохранения/предметов/файлов оборвалась: ' + str(ex)[:300])
