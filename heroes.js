@@ -39,8 +39,8 @@ function setHero(id) {
 Object.assign(SFX_SETS, {
   archer_bow_shot: 4, archer_arrow_hit: 6, archer_gust: 2, archer_volley: 1, archer_shield_on: 2, archer_shield_break: 2,
   archer_ult_proc: 2, archer_step: 14, archer_death: 2,
-  archer_vo_attack: 4, archer_vo_move: 3, archer_vo_gust: 1, archer_vo_volley: 1, archer_vo_shield: 1, archer_vo_ult: 1,
-  archer_vo_kill: 2, archer_vo_hurt: 1, archer_vo_death: 1, archer_vo_respawn: 1, archer_vo_levelup: 1, archer_vo_cooldown: 1, archer_vo_nomana: 1,
+  // реплики Эйры — Suno, набор 21.11 (v98): тексты в sfx_suno_eira/MAP.txt
+  archer_vo_attack: 8, archer_vo_boss: 2, archer_vo_cooldown: 2, archer_vo_dash: 2, archer_vo_death: 3, archer_vo_gust: 1, archer_vo_hurt: 3, archer_vo_kill: 4, archer_vo_laugh: 1, archer_vo_levelup: 2, archer_vo_lowhp: 2, archer_vo_move: 4, archer_vo_move_rare: 2, archer_vo_nomana: 2, archer_vo_respawn: 2, archer_vo_shield: 1, archer_vo_shop: 1, archer_vo_stunned: 2, archer_vo_ult: 1, archer_vo_victory: 2, archer_vo_volley: 1, archer_vo_wave: 1,
 });
 Object.assign(SND_GAP, { archer_arrow_hit: 0.05, archer_step: 0.1 });
 // общие события боя у лучницы звучат её звуками: шаги, выстрел, смерть
@@ -51,11 +51,10 @@ snd = function (name, vol, rate) {
   if (HERO_ID === 'archer' && ARCHER_SND[name]) name = ARCHER_SND[name];
   return _sndBase(name, vol, rate);
 };
-// Реплики Ganfaul (Higgsfield, голос по фразе Бахтиёра «Холод не прощает!!!»). v96: набор от 21.11 — тексты и правила в
-// sfx_higgs_ganfaul/game_2111/MAP.txt (Создатель трижды переозвучивал: ударения, произношение, скорость); имена файлов и число вариантов прежние.
+// Реплики Ganfaul — Suno, набор 21.11 (v98): Создатель записал фразы одним треком, Клауди нарезала; тексты — sfx_suno_ganfaul/MAP.txt.
+// Заменяют все прежние (Higgsfield и game_2111).
 Object.assign(SFX_SETS, {
-  vo_attack: 6, vo_move: 3, vo_move_rare: 1, vo_nova: 1, vo_chains: 1, vo_hail: 1, vo_storm: 1, vo_kill: 3, vo_hurt: 2,
-  vo_death: 2, vo_respawn: 1, vo_levelup: 1, vo_cooldown: 1, vo_nomana: 1,
+  vo_attack: 8, vo_boss: 2, vo_chains: 1, vo_cooldown: 2, vo_dash: 2, vo_death: 3, vo_hail: 1, vo_hurt: 3, vo_kill: 5, vo_levelup: 2, vo_lowhp: 2, vo_move: 5, vo_move_rare: 2, vo_nomana: 2, vo_nova: 1, vo_respawn: 2, vo_shop: 1, vo_storm: 1, vo_stunned: 2, vo_victory: 2, vo_wave: 1,
 });
 // Реплики героя (ночь 19.11, DESIGN.md п.6 — реже): chance — шанс, gap — не чаще раза в gap секунд для этой группы
 // (группа grp: все скиллы — одна группа), и любая реплика — не чаще раза в VO_ANY секунд. Смерть, возрождение и уровень
@@ -94,17 +93,48 @@ function voAttack() { if (performance.now() - (P.lastShot || 0) > 1500) vo('atta
 const VO_SKILL = { mage: { q: ['nova', 0.35], e: ['chains', 0.35], f: ['hail', 0.35], r: ['storm', 0.7] },
   archer: { q: ['gust', 0.35], e: ['volley', 0.35], f: ['shield', 0.35] } };
 function voSkill(id) { const v = VO_SKILL[HERO_ID][id]; if (v) vo(v[0], v[1], 20, false, 'skill'); }
-// события, на которые герой отвечает репликой: шаг с места, убийство, смерть, возрождение, новый уровень
-const heroEv = { moving: false, kills: 0, dead: 0, lvl: 0 };
+// события, на которые герой отвечает репликой: шаг с места, убийство, смерть, возрождение, новый уровень;
+// v98 (набор Suno): рывок, мало здоровья, оглушён / заморожен / безмолвие, начало раунда, босс вышел, босс побеждён, покупка, смех Эйры
+const heroEv = { moving: false, kills: 0, dead: 0, lvl: 0, dash: 0, low: false, ctl: false, phase: 'rest', boss: null, minis: null };
+const voLive = e => e.hp > 0 && e.dieT == null;
 function heroVoiceTick() {
-  const st = heroEv;
-  if (P.moving && !st.moving) { if (HERO_ID === 'mage' && Math.random() < 0.01) vo('move_rare', 1, 45, false, 'move'); else vo('move', 0.2, 45); }
-  if (kills > st.kills) vo('kill', 0.1, 25);
+  const st = heroEv, alive = !(P.dead > 0);
+  if (P.moving && !st.moving) { if (Math.random() < 0.01) vo('move_rare', 1, 45, false, 'move'); else vo('move', 0.2, 45); }
+  // босс побеждён — всегда (раньше фразы убийства: иначе она займёт голос, и победная пропадёт)
+  const won = !!st.boss && st.boss.dieT != null;   // убит в бою (сброс боя здоровье обнуляет, но dieT не ставит)
+  if (won) { st.boss = null; if (alive) vo('victory', 1, 0, true); }
+  // убийство; у Эйры в 8 % случаев вместо фразы — смех
+  if (kills > st.kills && !won) { if (HERO_ID === 'archer' && Math.random() < 0.08) vo('laugh', 1, 25, false, 'kill'); else vo('kill', 0.1, 25); }
   if (P.dead > 0 && !(st.dead > 0)) vo('death', 1, 0, true);
-  if (!(P.dead > 0) && st.dead > 0) vo('respawn', 1, 0, true);
+  if (alive && st.dead > 0) vo('respawn', 1, 0, true);
   if (P.lvl > st.lvl && st.lvl) vo('levelup', 1, 0, true);
+  // рывок: перезарядка рывка только что пошла
+  const dc = (P.cd && P.cd.dash) || 0; if (dc > st.dash + 1) vo('dash', 0.5, 8); st.dash = dc;
+  // здоровье упало ниже четверти
+  const low = alive && P.hp < P.maxHp * 0.25; if (low && !st.low) vo('lowhp', 1, 30); st.low = low;
+  // оглушён, заморожен или без умений — когда появляется значок
+  const ss = P.ss || {}, sk = P.sk || {}, ctl = alive && (ss.stun > 0 || ss.freeze > 0 || ss.silence > 0 || sk.hex > 0);
+  if (ctl && !st.ctl) vo('stunned', 0.6, 10); st.ctl = ctl;
+  // начало первой волны раунда (не на волне босса — там своя реплика)
+  const ph = typeof SHOP !== 'undefined' ? SHOP.phase : 'rest';
+  if (ph === 'fight' && st.phase !== 'fight' && BAL.at(wave).W !== 10 && !(typeof LIMBO !== 'undefined' && LIMBO.on)) vo('wave', 0.5, 0);
+  st.phase = ph;
+  // босс вышел — всегда; мини-босс — в половине случаев (решил сам: он выходит трижды за мир, каждый раз — слишком часто)
+  if (!st.minis) st.minis = new WeakSet();
+  if (st.boss && !enemies.includes(st.boss)) st.boss = null;   // бой сброшен (новая игра, другой мир)
+  for (const e of enemies) {
+    if (!voLive(e)) continue;
+    if (e.boss && !e.clone && st.boss !== e && !st.minis.has(e)) { st.minis.add(e); st.boss = e; vo('boss', 1, 0, true); }
+    else if (e.mini && !st.minis.has(e)) { st.minis.add(e); vo('boss', 0.5, 0); }
+  }
   st.moving = P.moving; st.kills = kills; st.dead = P.dead; st.lvl = P.lvl;
 }
+// покупка в лавке (предмет, часть, фласка): золото ушло — реплика с шансом 40 %, не чаще раза в 20 с
+addEventListener('load', () => {
+  const paid = fn => function () { const g = SHOP.gold, r = fn.apply(this, arguments); if (SHOP.gold < g) vo('shop', 0.4, 20); return r; };
+  if (typeof SHOP !== 'undefined' && SHOP.buy) SHOP.buy = paid(SHOP.buy);
+  if (typeof buyItem === 'function') buyItem = paid(buyItem);
+});
 
 // ---------- эффекты лучницы ----------
 const FX3 = {};
@@ -308,6 +338,20 @@ function heroGround(t) {
     }
   }
 }
+// «Меткость» работает — под ногами Эйры лежит зелёно-золотое кольцо (fx3_aura): на земле, под спрайтом, медленно вращается и дышит.
+// Гаснет, когда враг ближе 350, и загорается снова плавно, за 0,3 с.
+{
+  const _dp = drawPlayer; let a = 0, last = 0;
+  drawPlayer = function () {
+    if (HERO_ID === 'archer' && ctx.globalAlpha > 0.99) {   // копии-след рывка рисуются полупрозрачными — им кольцо не нужно
+      const now = performance.now() / 1000, dt = Math.min(0.1, Math.max(0, now - last)); last = now;
+      const on = markOn() && P.dead <= 0;
+      a = Math.max(0, Math.min(1, a + (on ? dt : -dt) / 0.3));
+      if (a > 0.01 && FX3.aura.ok) { const d = 160 * HS(); fx3('aura', P.x, P.y, d, d, 0.5, 0.5, a * (0.675 + 0.125 * Math.sin(now * 2.2)), now * 0.3, true); }
+    }
+    _dp();
+  };
+}
 function heroOver(t) {
   // печать тишины над врагами
   for (const e of enemies) {
@@ -316,12 +360,7 @@ function heroOver(t) {
     fx3('silence', e.x, e.y - top - 34 + Math.sin(t * 4 + e.x) * 3, 44, 44, 0.5, 0.5, Math.min(1, e.silT * 2));
   }
   if (HERO_ID !== 'archer' || P.dead > 0) return;
-  // Меткость работает — зелёное свечение на луке (гаснет, когда враг ближе 350)
-  if (markOn() && FX3.markglow.ok) {
-    const h = CH * 0.92 * HS() * (1 + 0.04 * Math.sin(t * 5)), w = h * FX3.markglow.img.naturalWidth / FX3.markglow.img.naturalHeight;
-    const side = Math.abs(P.face.x) < 0.35 ? 0.75 : 1;   // лицом или спиной к нам лук виден уже
-    fx3('markglow', P.x + P.face.x * 34 * HS(), P.y - CH * 0.62 * HS() + P.face.y * YK * 16 * HS(), w * side, h, 0.5, 0.5, 0.85 + 0.15 * Math.sin(t * 5));
-  }
+  // свечение «Меткости» — кольцо под ногами (drawPlayer ниже); овал на поясе убран в v98: читался как кольцо на животе
   // купол щита
   if (P.shieldT > 0) {
     const s = 230 * HS() * (1 + 0.03 * Math.sin(t * 5));
