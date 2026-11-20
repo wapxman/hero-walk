@@ -165,7 +165,7 @@ var NETC = { on: false };   // NETC.limboBack — вернуться из Меж
     const dead = me.flags & N.F_DEAD;
     if (dead && !(P.dead > 0)) P.dead = P.deadMax = 3;
     if (!dead && P.dead > 0) P.dead = 0;
-    P.ult = me.ex & 16 ? 1 : 0; P.shieldT = me.flags & N.F_SHIELD ? 1 : 0; P.focus = me.ex & 15; P.kills = me.ex >> 8;
+    P.netFl = me.flags; P.netSpd = (me.spd == null ? 100 : me.spd) / 100; P.ult = me.ex & 16 ? 1 : 0; P.shieldT = me.flags & N.F_SHIELD ? 1 : 0; P.focus = me.ex & 15; P.kills = me.ex >> 8;
     S.spd = (me.spd == null ? 100 : me.spd) / 100;
     if (!S.cur) { S.cur = { x: me.x, y: me.y, face: P.face, moving: false, running: false }; S.prev = { x: me.x, y: me.y }; P.x = me.x; P.y = me.y; }
     // сверка: берём позицию сервера на момент последнего учтённого ввода и заново проигрываем ещё не учтённые

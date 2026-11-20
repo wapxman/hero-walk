@@ -116,9 +116,14 @@ async def extra(br, res):
           for (const id in LOCFX.defs) L.push('ui/locfx/' + id + '.webp');
           for (const w of WORLDS) L.push(w.ground); for (const m in ARENAS) for (const a of ARENAS[m]) L.push(a);
           for (const id in RELICS) L.push('ui/relics/' + id + '.webp'); L.push('ui/items.webp', 'ui/icons.webp', 'ui/map/map.webp');
-          for (const t in VILLAINS) { }
+          for (const d of HSTAT.DEF) L.push('ui/status/' + d[0] + '.webp'); L.push('ui/status/star.webp');
           await Promise.all(L.map(async u => { try { const x = await fetch(u, { method: 'HEAD' }); if (!x.ok) bad.push(u + ' — ' + x.status); else if (+x.headers.get('content-length') < 500) bad.push(u + ' — пустой файл'); } catch (e) { bad.push(u + ' — ' + e); } }));
           return { n: L.length, bad }; }""")
+        # значки состояний: всё наложили разом — в ряду 8 плохих и хорошие, после снятия ряд пуст
+        r['stat'] = await p.evaluate("""async () => { const hp = P.hp; P.hp = P.maxHp = 1e6; STATUS.add('stun', 3); STATUS.add('silence', 3); STATUS.add('blind', 3); STATUS.add('freeze', 3);
+          for (const k of ['poison', 'burn', 'cold', 'shred']) STATUS.add(k, 2); slowHero(0.6, 3); slowHero(0, 1); P.ss.spd = 2; P.ss.noMiss = 2; P.ss.imm.sil = 1; P.ss.rshield = 1e9; P.ss.rshT = 2; HSTAT.show('fear', 2);
+          await new Promise(r => setTimeout(r, 400)); const on = HSTAT.list(); STATUS.clear(); P.slowT = 0; P.slowK = 1; HSTAT.show('fear', 0);
+          await new Promise(r => setTimeout(r, 400)); return { on, off: HSTAT.list() }; }""")
         r['ver'] = await p.evaluate("({ v: V, lvlMax: LVL_MAX, k: BAL.K })")
     except Exception as ex:
         red('общее', 'проверка сохранения/предметов/файлов оборвалась: ' + str(ex)[:300])
@@ -182,6 +187,11 @@ if 'items' in x:
     if not it['full'] or not it['fullGold']: red('общее', 'предметы: полная сумка — лишняя часть купилась или золото списалось неверно')
     if not it['sell']: red('общее', 'предметы: продажа не за полцены')
     L.append('Предметы: части собираются, свиток докупается, полная сумка не переполняется, продажа за полцены — ' + ('в порядке.' if it['combine'] == 'blade' and it['scroll'] == 'sange' and it['full'] and it['fullGold'] and it['sell'] else 'ЕСТЬ ОШИБКИ.'))
+if 'stat' in x:
+    st = x['stat']; want = 'stun,freeze,root,silence,blind,poison,burn,cold,shield,haste,immune,clarity'
+    if ','.join(st['on']) != want: red('общее', 'значки состояний: в ряду %s, а должно быть %s' % (','.join(st['on']), want))
+    if st['off']: red('общее', 'значки состояний: после снятия остались ' + ','.join(st['off']))
+    L.append('Значки состояний: всё наложено разом — в ряду ' + str(len(st['on'])) + ' значков в нужном порядке, после снятия ряд пуст' + ('.' if ','.join(st['on']) == want and not st['off'] else ' — НЕТ.'))
 if 'files' in x:
     for e in x['files']['bad']: red('общее', 'файл: ' + e)
     L.append(f"Файлы (звуки боссов, живые элементы, арены, иконки): проверено {x['files']['n']}, плохих {len(x['files']['bad'])}.")
