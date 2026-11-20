@@ -35,7 +35,7 @@ let heroSpell = 0;   // > 0 — сейчас бьёт умение героя (�
   const _c = cast; cast = function (id) { heroSpell++; try { _c(id); } finally { heroSpell--; } };
   const _h = hurtEnemy;
   hurtEnemy = function (e, dmg, col) {
-    if (e.shield > 0 && e.hp > 0) {
+    if (e.shield > 0 && e.hp > 0 && !P.trueShot) {   // пронзающая стрела Эйры щит не замечает
       const spell = heroSpell > 0 || P.ult > 0 || zones.some(z => z.type === 'hail' && gdist(z, e) < z.R + e.rad);
       if (spell && P.pierce) { P.pierce = false; tag(e, 'пробито!', '#9fe8ff'); return _h(e, dmg * 1.2, col); }
       if (spell) { if (!e.refSaid || performance.now() - e.refSaid > 600) { tag(e, 'отражено!', '#ffd95e'); e.refSaid = performance.now(); } hurtPlayer(dmg * (P.dmgMul || 1)); }

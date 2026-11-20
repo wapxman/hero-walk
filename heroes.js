@@ -3,11 +3,11 @@
 // Использует из combat.js: P, enemies, shots, fx, HERO, MAGE, loadHero, RANGE, CDMAX, MANA, SK_ICONS, cast, shoot, hurtPlayer...
 'use strict';
 
-// ---------- лучница: листы кадров (как у мага: три листа по 400 px) ----------
-const ARCHER = { pre: 'archer_', U: 118, zc: 0.9, cell: 400,
-  sheets: { a: { wrap: 6, rows: 2 }, b: { wrap: 6, rows: 2 }, d: { wrap: 5, rows: 1 } },
-  an: { idle: { s: 'a', i: 0, n: 4, o: 2.4 }, run: { s: 'a', i: 4, n: 8, o: 2.4 }, atk: { s: 'b', i: 0, n: 5, o: 2.4 },
-    cast: { s: 'b', i: 5, n: 6, o: 2.6 }, die: { s: 'd', i: 0, n: 5, o: 3.0 } } };
+// ---------- лучница Эйра (v85): спрайты ChatGPT, как Ganfaul — клетка 384, 8 рядов-направлений, смерть 1 ряд ----------
+// k подобран по росту фигуры (Эйра в кадре 235 px, Ganfaul 248 px при k 0.8173). Каждому умению — своя анимация.
+const EIRA_ROW = (at, n, ms, rows) => ({ at: 'eira_' + at, n, ms, rows: rows || 8, foot: 344 });
+const ARCHER = { k: 0.8625, mul: { idle: EIRA_ROW('idle', 4, 230), run: EIRA_ROW('run', 6, 90), atk: EIRA_ROW('attack', 6, 85),
+  wave: EIRA_ROW('wave', 6, 90), volley: EIRA_ROW('volley', 6, 95), shield: EIRA_ROW('shield', 6, 110), die: EIRA_ROW('death', 6, 170, 1) } };
 
 // hp — запас здоровья, range — дальность выстрела, cd — перезарядка скиллов, mana — их цена
 const HEROES = {
@@ -16,7 +16,7 @@ const HEROES = {
     skills: ['Ледяная стрела', 'Нова — взрыв льда', 'Оковы — заморозка цели', 'Град — дождь сосулек', 'Буря — ульт'] },
   archer: { def: ARCHER, name: 'Эйра', role: 'лучница', icons: 'ui/sk_icons_archer.webp', portrait: 'ui/h_portrait_archer.webp',
     hp: 520, range: 720, cd: { q: 9, e: 6, f: 15, r: 0 }, mana: { q: 70, e: 60, f: 90, r: 0 },
-    skills: ['Меткий выстрел', 'Волна — отбрасывает и лишает скиллов', 'Залп — 5 стрел веером', 'Щит — поглощает урон', 'Фокус — пассивка: урон, дальность, скорость атаки'] },
+    skills: ['Меткий выстрел', 'Порыв ветра — волна вперёд: отброс и немота', 'Залп — 3 волны по 5 стрел', 'Щит листьев — снимает путы, в конце взрыв', 'Меткость — пассивка: урон, дальность, пронзающие стрелы'] },
 };
 let HERO_ID = 'mage';
 const HERO_KEY = 'hw_hero';
@@ -30,7 +30,7 @@ function setHero(id) {
   SK_ICONS.src = h.icons + V;
   const pt = document.querySelector('#hHero .pt');
   if (pt) pt.style.backgroundImage = 'url(' + h.portrait + V + ')';
-  P.focus = 0; P.focusT = 0; P.shield = 0; P.shieldT = 0;
+  P.focus = 0; P.mark = false; P.gust = null; P.volley = null; P.shield = 0; P.shieldT = 0; P.shieldMax = 0;
   if (typeof SHOP !== 'undefined') { SHOP.recompute(); P.hp = P.maxHp; P.mp = P.maxMp; }
   try { localStorage.setItem(HERO_KEY, id); } catch (e) {}
 }
@@ -120,40 +120,50 @@ function fx3(k, x, y, w, h, ax, ay, alpha, rot, ground) {
   ctx.restore();
 }
 
-// ---------- Фокус охотника (пассивка, кнопка R) ----------
-// каждое попадание стрелой даёт заряд (до 10); за заряд: +5% урона, +4% скорости атаки, +3% дальности.
-// Без попаданий 3 секунды заряды по одному гаснут.
-// уровень пассивки (прокачка R) добавляет +0,6% урона к каждому заряду
-const FOCUS_MAX = 10;
-function focusHit() {
-  const was = P.focus || 0;
-  P.focus = Math.min(FOCUS_MAX, was + 1); P.focusT = 3;
-  if (was < FOCUS_MAX && P.focus === FOCUS_MAX) { snd('archer_ult_proc', 0.8); vo('ult', 0.7, 20, false, 'skill'); say(P.x, P.y - CH * 1.3 * HS(), 'Фокус!', '#ffe27a'); }
-}
-const focusK = () => 1 + (0.05 + 0.006 * (skLv('r') - 1)) * (P.focus || 0);
+// ---------- Меткость (пассивка, кнопка R; Drow Ranger — Marksmanship) ----------
+// Пока ни один враг не ближе 350 к Эйре: +12 % урона и +10 % дальности (+2 % и +1 % за уровень R), а 25 % стрел
+// (+2 % за уровень R) — пронзающие: +60 % урона, не смотрят на щиты и броню врага, пролетают насквозь и бьют ещё одного.
+const MARK_R = 350;
+const markOn = () => (window.NETC && NETC.on) ? P.focus > 0 : !!P.mark;   // в онлайне решает сервер (флаг приходит в P.focus)
+const markK = () => markOn() ? 1.12 + 0.02 * (skLv('r') - 1) : 1;
+const markRange = () => markOn() ? 1.10 + 0.01 * (skLv('r') - 1) : 1;
+const markPierce = () => 0.25 + 0.02 * (skLv('r') - 1);
+// урон умения: щиты боссов видят его как умение, а не как обычную атаку
+function eiraSpell(fn) { const g = typeof heroSpell !== 'undefined'; if (g) heroSpell++; try { fn(); } finally { if (g) heroSpell--; } }
 
 // ---------- атака: стрела ----------
 const _shootMage = shoot;
 shoot = function () {
   if (HERO_ID !== 'archer') { _shootMage(); voAttack(); return; }
+  if (P.volley) return;   // идёт Залп
   const t = nearestEnemy(RANGE);
   let dx = P.face.x, dy = P.face.y;
   if (t) { dx = t.x - P.x; dy = (t.y - P.y) / YK; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m; }
-  arrow(dx, dy, t, rnd(40, 52) * focusK());
-  P.atkCd = 0.6 / (1 + 0.04 * (P.focus || 0)); P.cast = 0.12;
-  P.act = { anim: 'atk', t: 0, dur: Math.min(0.45, P.atkCd * 0.9), row: t ? runRow(t.x - P.x, t.y - P.y) : null };
+  const pr = markOn() && Math.random() < markPierce();
+  arrow(dx, dy, t, rnd(40, 52) * markK() * (pr ? 1.6 : 1), pr ? { pierce: true, trueShot: true } : null);
+  if (pr) snd('archer_ult_proc', 0.3, 1.6);   // короткий звон пронзающей стрелы
+  P.atkCd = 0.6; P.cast = 0.12;
+  P.act = { anim: 'atk', t: 0, dur: Math.min(mulDur(HERO, 'atk'), P.atkCd * 0.9), row: t ? runRow(t.x - P.x, t.y - P.y) : null };
   snd('archer_shot', 0.8);
   voAttack();
 };
-function arrow(dx, dy, tgt, dmg) {
-  shots.push({ own: 'p', arrow: true, x: P.x + dx * 26 * HS(), y: P.y + dy * 26 * YK * HS(), dx, dy, sp: 1300, tgt, left: RANGE + 120,
-    dmg, h: CH * 0.6 * HS(), sc: HS(), onHit: focusHit });
+function arrow(dx, dy, tgt, dmg, extra) {
+  const s = { own: 'p', arrow: true, x: P.x + dx * 26 * HS(), y: P.y + dy * 26 * YK * HS(), dx, dy, sp: 1300, tgt, left: RANGE + 120,
+    dmg, h: CH * 0.6 * HS(), sc: HS() };
+  if (extra) Object.assign(s, extra);
+  shots.push(s);
 }
 const _drawShot = drawShot;
 drawShot = function (s) {
   if (!s.arrow || !FX3.arrow.ok) return _drawShot(s);
   ctx.save(); ctx.translate(s.x, s.y - s.h); ctx.rotate(Math.atan2(s.dy * YK, s.dx));
   const w = 170 * (s.sc || 1);
+  if (s.pierce) {   // пронзающая: светлый шлейф из той же стрелы
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 3; i >= 1; i--) { ctx.globalAlpha = 0.5 - i * 0.12; ctx.drawImage(FX3.arrow.img, -w * 0.92 - i * 30 * (s.sc || 1), -w / 2, w, w); }
+    ctx.globalAlpha = 1; ctx.drawImage(FX3.arrow.img, -w * 0.92, -w / 2, w, w);
+    ctx.globalCompositeOperation = 'source-over';
+  }
   ctx.drawImage(FX3.arrow.img, -w * 0.92, -w / 2, w, w);
   ctx.restore();
 };
@@ -171,77 +181,132 @@ cast = function (id) {
     return;
   }
   if (P.dead > 0 || (typeof SHOP !== 'undefined' && SHOP.paused)) return;
-  if (id === 'r') { say(P.x, P.y - CH * 1.2 * HS(), 'Фокус ' + (P.focus || 0) + '/' + FOCUS_MAX + ' — пассивка', '#d9ffb0'); return; }
+  if (id === 'r') { say(P.x, P.y - CH * 1.2 * HS(), markOn() ? 'Меткость работает — пассивка' : 'Меткость: враг ближе ' + MARK_R + ' — отойди', '#d9ffb0'); return; }
+  if (P.volley) return;   // канал Залпа не прерывается другим умением
   if (P.cd[id] > 0) { vo('cooldown', 1, 15); return; }
   if (P.mp < MANA[id]) { vo('nomana', 1, 15); if (!P.noMana || P.noMana < performance.now()) { say(P.x, P.y - CH * HS(), 'мало маны', '#8ab8ff'); P.noMana = performance.now() + 700; } return; }
-  let row = null;
+  let row = runRow(P.face.x, P.face.y * YK), an = 'wave', dur = 0.55;
+  // прицел: к ближайшему врагу в радиусе R, иначе туда, куда смотрит Эйра
+  const aim = R => {
+    const t = nearestEnemy(R); let dx = P.face.x, dy = P.face.y;
+    if (t) { dx = t.x - P.x; dy = (t.y - P.y) / YK; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m; row = runRow(t.x - P.x, t.y - P.y); }
+    return [dx, dy];
+  };
   if (id === 'q') {
-    // Волна: удар ветра вокруг лучницы — урон, отбрасывание и тишина (враг не может стрелять и применять скиллы)
-    const R = 290 * HS();
-    fx.push({ type: 'wave3', x: P.x, y: P.y, t: 0, dur: 0.55, R });
-    for (const e of enemies) {
-      const d = gdist(P, e);
-      if (d > R + e.rad) continue;
-      hurtEnemy(e, 70 * focusK() * skDmg('q'), '#d9ffb0');
-      let dx = e.x - P.x, dy = (e.y - P.y) / YK; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m;
-      const push = (e.boss ? 120 : 280) * (1 - 0.5 * d / (R + e.rad)), t = 0.28;
-      e.kb = { vx: dx * push / t, vy: dy * push / t * YK, t };
-      e.silT = 3.5 + 0.15 * (skLv('q') - 1);
-    }
+    // Порыв ветра: волна вперёд — полоса 900, ширина 140 → 320, скорость 1400; урон, немота, отброс от Эйры.
+    // Стрела слетает на 3-м кадре анимации — тогда и идёт волна.
+    const [dx, dy] = aim(1100);
+    an = 'wave'; dur = mulDur(HERO, 'wave');
+    P.gust = { t: 0, at: 3 * 0.09, dx, dy, lv: skLv('q'), k: markK() * skDmg('q') };
     snd('archer_wave', 0.9); voSkill('q');
   } else if (id === 'e') {
-    // Залп: пять стрел веером в сторону ближайшего врага (или туда, куда смотрит лучница)
-    const t = nearestEnemy(RANGE * 1.1);
-    let dx = P.face.x, dy = P.face.y;
-    if (t) { dx = t.x - P.x; dy = (t.y - P.y) / YK; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m; row = runRow(t.x - P.x, t.y - P.y); }
-    const a0 = Math.atan2(dy, dx);
-    for (let i = -2; i <= 2; i++) { const a = a0 + i * 0.2; arrow(Math.cos(a), Math.sin(a), null, rnd(52, 64) * focusK() * skDmg('e')); }
+    // Залп: канал 0,9 с — 3 волны по 5 стрел веером 60°; Эйра идёт на половине скорости
+    aim(RANGE * 1.1);
+    an = 'volley'; dur = 0.9;
+    P.volley = { t: 0, n: 0, k: markK() * skDmg('e') };
     snd('archer_volley', 0.9); voSkill('e');
   } else if (id === 'f') {
-    // Щит: купол поглощает 260 урона (плюс 15 за уровень героя) 6 секунд
-    P.shield = Math.round((260 + 6 * (P.lvl - 1)) * skDmg('f')); P.shieldT = 6;
+    // Щит листьев: снимает замедления, оглушение, немоту и яд; держит 260 (+12 за уровень героя) 8 с; в конце — взрыв
+    eiraCleanse();
+    P.shieldMax = P.shield = Math.round((260 + 12 * (P.lvl - 1)) * skDmg('f')); P.shieldT = 8;
+    an = 'shield'; dur = mulDur(HERO, 'shield');
     say(P.x, P.y - CH * 1.2 * HS(), 'Щит ' + P.shield, '#b9ffcf');
     snd('archer_shield', 0.85); voSkill('f');
   }
   P.cd[id] = CDMAX[id] * (P.cdMul || 1) * skCd(id); P.cast = 0.25; P.mp -= MANA[id];
-  P.act = { anim: 'cast', t: 0, dur: 0.55, row };
+  P.act = { anim: an, t: 0, dur, row };
 };
+function eiraCleanse() {
+  P.slowT = 0; P.slowK = 1;
+  if (P.ss) { const s = P.ss; s.freeze = s.stun = s.silence = 0; for (const k of ['poison', 'burn', 'cold']) if (s[k]) s[k].n = 0; }
+  if (typeof SK !== 'undefined' && SK.S) { const s = SK.S; for (const k of ['bind', 'pin', 'hex', 'atkSlow', 'weak', 'called', 'hunger', 'wounds']) s[k] = 0; if (s.poison) s.poison.n = 0; s.pull = null; }
+}
+// щит лопнул или кончился: взрыв R 320 — урон, равный поглощённому, но не меньше 80
+function eiraShieldBurst() {
+  const took = Math.max(0, (P.shieldMax || 0) - Math.max(0, P.shield || 0)), dmg = Math.max(80, took), R = 320;
+  P.shield = 0; P.shieldT = 0; P.shieldMax = 0;
+  fx.push({ type: 'wave3', x: P.x, y: P.y, t: 0, dur: 0.55, R });
+  eiraSpell(() => { for (const e of enemies.slice()) if (e.hp > 0 && gdist(P, e) < R + e.rad) hurtEnemy(e, dmg, '#b9ffcf'); });
+  say(P.x, P.y - CH * 1.2 * HS(), 'взрыв щита ' + Math.round(dmg), '#b9ffcf'); snd('archer_shield_break', 0.8);
+}
 // щит забирает урон на себя, пока не кончится
 const _hurtPlayer = hurtPlayer;
-hurtPlayer = function (d) {
+hurtPlayer = function (d, kind) {
   if (P.dead <= 0 && P.shieldT > 0 && P.shield > 0) {
     const a = Math.min(P.shield, d);
     P.shield -= a; d -= a;
-    if (P.shield <= 0) { P.shieldT = 0; say(P.x, P.y - CH * 1.2 * HS(), 'щит разбит', '#b9ffcf'); snd('archer_shield_break', 0.8); }
+    if (P.shield <= 0) eiraShieldBurst();
     if (d <= 0) return;
   }
-  _hurtPlayer(d);
+  _hurtPlayer(d, kind);
   if (P.dead <= 0) vo('hurt', 0.15, 20);
 };
-// каждый кадр: заряды фокуса, дальность, время щита
+// каждый кадр: Меткость, дальность, волна ветра, канал Залпа, время щита
 const _combatUpdate = combatUpdate;
 combatUpdate = function (dt) {
   _combatUpdate(dt);
   heroVoiceTick();
   if (HERO_ID !== 'archer') return;
-  RANGE = HEROES.archer.range * (1 + 0.03 * (P.focus || 0));
-  if (P.focus > 0) { P.focusT -= dt; if (P.focusT <= 0) { P.focus--; P.focusT = 0.5; } }
-  if (P.shieldT > 0) { P.shieldT -= dt; if (P.shieldT <= 0) { P.shield = 0; snd('archer_shield_break', 0.6); } }
-  if (P.dead > 0) { P.focus = 0; P.shield = 0; P.shieldT = 0; }
+  P.mark = P.dead <= 0 && !enemies.some(e => e.hp > 0 && gdist(P, e) < MARK_R);
+  RANGE = HEROES.archer.range * markRange();
+  if (P.dead > 0) { P.shield = 0; P.shieldT = 0; P.shieldMax = 0; P.gust = null; P.volley = null; return; }
+  const g = P.gust;
+  if (g) {
+    g.t += dt;
+    if (!g.go && g.t >= g.at) { g.go = true; g.w = 0; g.x = P.x; g.y = P.y; g.hit = new Set(); fx.push({ type: 'gust3', x: P.x, y: P.y, ang: Math.atan2(g.dy, g.dx), t: 0, dur: 900 / 1400 + 0.3 }); }
+    if (g.go) {
+      g.w += dt;
+      const front = Math.min(900, 1400 * g.w);
+      eiraSpell(() => {
+        for (const e of enemies.slice()) {
+          if (e.hp <= 0 || g.hit.has(e)) continue;
+          const ex = e.x - g.x, ey = (e.y - g.y) / YK, along = ex * g.dx + ey * g.dy, perp = Math.abs(ex * g.dy - ey * g.dx);
+          if (along < -e.rad || along > front + e.rad) continue;
+          const u = Math.max(0, Math.min(1, along / 900));
+          if (perp > (140 + 180 * u) / 2 + e.rad) continue;
+          g.hit.add(e);
+          hurtEnemy(e, 70 * g.k, '#d9ffb0');
+          const m = Math.hypot(ex, ey) || 1, push = e.boss ? 120 : 350 - 230 * u, t = 0.28;   // чем ближе к Эйре, тем дальше летит
+          e.kb = { vx: ex / m * push / t, vy: ey / m * push / t * YK, t };
+          e.silT = 3.5 + 0.15 * (g.lv - 1);
+        }
+      });
+      if (g.w > 900 / 1400 + 0.05) P.gust = null;
+    }
+  }
+  const v = P.volley;
+  if (v) {
+    v.t += dt; slowHero(0.5, 0.12); P.atkCd = Math.max(P.atkCd, 0.2);
+    while (v.n < 3 && v.t >= 0.15 + 0.3 * v.n) {
+      v.n++;
+      const t = nearestEnemy(RANGE * 1.1);
+      let dx = P.face.x, dy = P.face.y;
+      if (t) { dx = t.x - P.x; dy = (t.y - P.y) / YK; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m; if (P.act && P.act.anim === 'volley') P.act.row = runRow(t.x - P.x, t.y - P.y); }
+      const a0 = Math.atan2(dy, dx);
+      for (let i = -2; i <= 2; i++) { const a = a0 + i * Math.PI / 12; arrow(Math.cos(a), Math.sin(a), null, rnd(34, 42) * v.k, { onHit: e => slow(e, 0.85, 1.5) }); }
+      snd('archer_shot', 0.6, 1.1);
+    }
+    if (v.t >= 0.9 || (typeof STATUS !== 'undefined' && STATUS.locked())) { P.volley = null; if (P.act && P.act.anim === 'volley' && v.t < 0.9) P.act = null; }
+  }
+  if (P.shieldT > 0) { P.shieldT -= dt; if (P.shieldT <= 0) eiraShieldBurst(); }
 };
 
 // ---------- рисование эффектов лучницы ----------
 function heroGround(t) {
-  if (HERO_ID !== 'archer') return;
-  // круг фокуса под ногами: ярче и шире с каждым зарядом
-  if (P.focus > 0 && P.dead <= 0) {
-    const s = 170 * HS() * (0.85 + 0.035 * P.focus);
-    fx3('aura', P.x, P.y, s, s, 0.5, 0.5, 0.25 + 0.06 * P.focus, t * 0.5, true);
-  }
   for (const f of fx) {
-    if (f.type !== 'wave3') continue;
-    const k = f.t / f.dur, s = f.R * 2.3 * (0.3 + 0.75 * easeOut(Math.min(1, k * 1.4)));
-    fx3('wave', f.x, f.y, s, s, 0.5, 0.5, k < 0.5 ? 1 : (1 - k) / 0.5, k * 0.8, true);
+    if (f.type === 'wave3') {   // взрыв щита: кольцо ветра с листьями
+      const k = f.t / f.dur, s = f.R * 2.3 * (0.3 + 0.75 * easeOut(Math.min(1, k * 1.4)));
+      fx3('wave', f.x, f.y, s, s, 0.5, 0.5, k < 0.5 ? 1 : (1 - k) / 0.5, k * 0.8, true);
+    } else if (f.type === 'gust3' && FX3.wave.ok) {   // Порыв ветра: тот же ветер, растянутый вдоль полосы, бежит от Эйры
+      const front = Math.min(900, 1400 * f.t), tail = Math.max(0, front - 560), k = f.t / f.dur, im = FX3.wave.img, N = 12;
+      ctx.save(); ctx.translate(f.x, f.y); ctx.scale(1, YK); ctx.rotate(f.ang);
+      ctx.globalAlpha = k < 0.65 ? 0.95 : Math.max(0, (1 - k) / 0.35) * 0.95;
+      for (let i = 0; i < N; i++) {
+        const x0 = tail + (front - tail) * i / N, x1 = tail + (front - tail) * (i + 1) / N, w = 140 + 180 * (x1 / 900);
+        ctx.drawImage(im, im.naturalWidth * i / N, 0, im.naturalWidth / N, im.naturalHeight, x0, -w / 2, x1 - x0 + 1, w);
+      }
+      ctx.restore();
+    }
   }
 }
 function heroOver(t) {
@@ -252,19 +317,23 @@ function heroOver(t) {
     fx3('silence', e.x, e.y - top - 34 + Math.sin(t * 4 + e.x) * 3, 44, 44, 0.5, 0.5, Math.min(1, e.silT * 2));
   }
   if (HERO_ID !== 'archer' || P.dead > 0) return;
+  // Меткость работает — зелёное свечение на луке (гаснет, когда враг ближе 350)
+  if (markOn() && FX3.aura.ok) {
+    const s = 64 * HS() * (1 + 0.08 * Math.sin(t * 6));
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    fx3('aura', P.x + P.face.x * 34 * HS(), P.y - CH * 0.55 * HS() + P.face.y * YK * 18 * HS(), s, s, 0.5, 0.5, 0.6, t * 1.5);
+    ctx.restore();
+  }
   // купол щита
   if (P.shieldT > 0) {
     const s = 230 * HS() * (1 + 0.03 * Math.sin(t * 5));
     fx3('shield', P.x, P.y - CH * 0.42 * HS(), s, s, 0.5, 0.5, 0.65 * Math.min(1, P.shieldT * 2));
   }
 }
-// кнопка пассивки: вместо перезарядки — число зарядов фокуса
+// кнопка пассивки: значок горит, пока Меткость работает, и гаснет, когда враг подошёл
 function heroButton(b) {
   if (HERO_ID !== 'archer' || b.id !== 'r') return false;
-  if (!P.focus) { ctx.beginPath(); ctx.arc(b.x, b.y, b.r * 0.8, 0, 7); ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.fill(); }
-  ctx.font = 'bold ' + Math.round(b.r * 0.62) + 'px system-ui, sans-serif';
-  ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.8)'; ctx.fillStyle = P.focus >= FOCUS_MAX ? '#ffe27a' : '#fff';
-  ctx.strokeText(P.focus || 0, b.x, b.y); ctx.fillText(P.focus || 0, b.x, b.y);
+  if (!markOn()) { ctx.beginPath(); ctx.arc(b.x, b.y, b.r * 0.8, 0, 7); ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fill(); }
   return true;
 }
 

@@ -179,7 +179,7 @@ function keepOnField(e) {
 { const _u2 = updateEnemy; updateEnemy = function (e, dt) { _u2(e, dt); keepOnField(e); }; }
 const _hurtEnemy = hurtEnemy;
 hurtEnemy = function (e, dmg, col) {
-  if (e.arm > 0) dmg *= 0.35;
+  if (e.arm > 0 && !P.trueShot) dmg *= 0.35;   // пронзающая стрела Эйры броню не замечает
   if (e.k.rise && !e.risen && e.hp > 0 && e.hp - dmg * (P.dmgMul || 1) <= 0 && Math.random() < e.k.rise) {
     e.risen = true; e.hp = Math.round(e.max * 0.35); e.flash = 0.15; tag(e, 'Встаёт!', '#c9ff9a'); return;
   }

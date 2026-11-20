@@ -245,14 +245,15 @@ var NETC = { on: false };   // NETC.limboBack — вернуться из Меж
       } else if (t === E.CAST) {
         const [, owner, sk, a, b, c] = e, ov = viewOf(owner), mine = owner === S.myId;
         const [hero, slot] = SK_OF[sk] || [];
-        const an = hero === 'mage' ? MAGE_AN[slot] : 'cast', hd = HEROES[hero || 'mage'].def;
+        const an = hero === 'mage' ? MAGE_AN[slot] : ({ q: 'wave', e: 'volley', f: 'shield' })[slot] || 'atk', hd = HEROES[hero || 'mage'].def;
         if (mine && slot) { P.cd[slot] = CDMAX[slot] * skCd(slot); P.cast = 0.3; P.act = { anim: an, t: 0, dur: hd.mul ? mulDur(hd, an) : 0.6, row: null }; voSkill(slot); }
         else if (ov && ov.hero) { ov.act = { t: 0, dur: hd.mul ? mulDur(hd, an) : 0.6, cast: 1, an }; ov.anim = 'cast'; }
         if (sk === 1) { fx.push({ type: 'nova', x: a, y: b, t: 0, dur: 0.95, R: c }); snd('nova', 0.9); }
         else if (sk === 2) { const tv = viewOf(a); if (tv) fx.push({ type: 'chains', e: tv, x: tv.x, y: tv.y, t: 0, dur: b / 100 + 0.45, h: (tv.ch ? tv.ch.top * tv.ch.U * (tv.sc || 1) : 170) }); snd('chains', 0.85); }
         else if (sk === 3) { zones.push({ type: 'hail', x: a, y: b, R: c, t: 3.2, tick: 1e9 }); snd('hail', 0.8); }
         else if (sk === 4) { if (ov && ov !== P) ov.ult = 1; snd('storm', 0.85); }
-        else if (sk === 5) { fx.push({ type: 'wave3', x: a, y: b, t: 0, dur: 0.55, R: c }); snd('archer_gust', 0.9); }
+        else if (sk === 5) { fx.push({ type: 'gust3', x: a, y: b, ang: c * Math.PI / 180, t: 0, dur: 900 / 1400 + 0.3 }); snd('archer_gust', 0.9); }   // Порыв ветра: полоса вперёд
+        else if (sk === 8) { fx.push({ type: 'wave3', x: a, y: b, t: 0, dur: 0.55, R: c }); snd('archer_shield_break', 0.8); }   // взрыв щита листьев
         else if (sk === 6) snd('archer_shield_on', 0.85);
         else if (sk === 7) snd('archer_volley', 0.9);
       } else if (t === E.SHARD) {

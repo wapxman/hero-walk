@@ -264,13 +264,13 @@ const SK = (() => {
   hurtEnemy = function (e, dmg, col) {
     if (e.hp <= 0) return;
     if (e.untarget > 0) return;                                                   // Сияние Судьи
-    if (!isSpell(e, col)) {
+    if (!isSpell(e, col) && !P.trueShot) {
       if (e.atkImm > 0 || enemies.some(o => o.guard > 0 && o.dieT == null && dist(o, e) < 450)) { if (!e.immSaid || T() - e.immSaid > 0.7) { tag(e, 'не ранить', '#fff3c4'); e.immSaid = T(); } return; }
       if (enemies.some(o => o.rustAura && o.dieT == null && dist(o, e) < 350)) dmg *= 0.75;   // аура ржавчины голема
     }
-    if (e.reflect > 0) { e.reflect = 0; ground({ img: img(F('gembeetle', 'gb_flash')), x: e.x, y: e.y, R: 90, dur: 0.5, add: 1 }); hurtPlayer(30 * e.dm); stun(1); tag(e, 'отражено!', '#9fe8ff'); return; }
+    if (e.reflect > 0 && !P.trueShot) { e.reflect = 0; ground({ img: img(F('gembeetle', 'gb_flash')), x: e.x, y: e.y, R: 90, dur: 0.5, add: 1 }); hurtPlayer(30 * e.dm); stun(1); tag(e, 'отражено!', '#9fe8ff'); return; }
     if (e.clone) { e.hp = 0; e.dieT = 0; e.anim = 'die'; e.act = null; groundImg(F('b_mirrorlord', 'ml_clones'), e.x, e.y, 80, 0.5); return; }
-    if (e.dr > 0) dmg *= 0.6;                                                      // вызов на поединок: рыцарь в золотой броне
+    if (e.dr > 0 && !P.trueShot) dmg *= 0.6;                                                      // вызов на поединок: рыцарь в золотой броне
     if (S.weak > 0) dmg *= S.weakK;
     if (e.skChannel) { e.skChannel.taken = (e.skChannel.taken || 0) + dmg * (P.dmgMul || 1); e.skChannel.hits = (e.skChannel.hits || 0) + 1; }
     const was = e.hp, rb = e.k.reborn && !e.reborn, BIG = 1e12;

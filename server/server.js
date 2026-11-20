@@ -58,7 +58,18 @@ const HERO = {
 };
 const PVP_DMG = 0.5;   // в дуэли урон по герою вдвое меньше, чтобы бой не кончался за секунды
 const SHOT_KIND = { ice: 1, arrow: 2, fire: 3, bolt: 4 };
-const SKILL = { nova: 1, chains: 2, hail: 3, storm: 4, gust: 5, shield: 6, volley: 7 };
+const SKILL = { nova: 1, chains: 2, hail: 3, storm: 4, gust: 5, shield: 6, volley: 7, burst: 8 };
+// Эйра (v85): Меткость — пока ни один враг не ближе 350: урон, дальность и пронзающие стрелы. Флаг уходит клиенту в p.focus.
+const markK = p => p.focus > 0 ? 1.12 + 0.02 * (skLv(p, 'r') - 1) : 1;
+const markRange = p => p.focus > 0 ? 1.10 + 0.01 * (skLv(p, 'r') - 1) : 1;
+// щит листьев лопнул или кончился: взрыв R 320 — урон, равный поглощённому, но не меньше 80
+function shieldBurst(r, p) {
+  const took = Math.max(0, (p.shieldMax || 0) - Math.max(0, p.shield || 0)), dmg = Math.max(80, took);
+  p.shield = 0; p.shieldT = 0; p.shieldMax = 0;
+  if (!alive(p)) return;
+  ev(r, EV.CAST, p.id, SKILL.burst, p.x, p.y, 320);
+  for (const e of targetsOf(r, p)) if (gdist(p, e) < 320 + (e.rad || 22)) hurt(r, e, dmg / (p.dmgMul || 1), p, 2);
+}
 
 function runRow(ax, ay) { const deg = Math.atan2(ay, ax) * 180 / Math.PI; return ((Math.round((deg - 90) / 45) % 8) + 8) % 8; }
 
@@ -126,18 +137,18 @@ function addPlayer(r, c, hero, prog) {
 }
 
 // ---------- урон ----------
-function hurt(r, e, dmg, src, col) {
+function hurt(r, e, dmg, src, col, tru) {
   if (!alive(e)) return;
   if (src && src.player) { dmg *= src.dmgMul; if (src.crit && Math.random() < src.crit) { dmg *= 2; col = 3; } }
   if (e.player && src && src.player) dmg *= PVP_DMG;
   if (e.player) dmg *= e.armMul || 1;
-  if (!e.player && e.arm > 0) dmg *= 0.35;    // коп-зомби под бронёй
+  if (!e.player && e.arm > 0 && !tru) dmg *= 0.35;    // коп-зомби под бронёй
   // зомби иногда встаёт после смерти (один раз)
   if (!e.player && e.k.rise && !e.risen && e.hp - dmg <= 0 && Math.random() < e.k.rise) { e.risen = true; e.hp = Math.round(e.max * 0.35); say(r, e, 12); return; }
   const hp0 = e.hp;
-  if (e.shieldT > 0 && e.shield > 0) {
+  if (e.shieldT > 0 && e.shield > 0 && !tru) {
     const a = Math.min(e.shield, dmg); e.shield -= a; dmg -= a;
-    if (e.shield <= 0) { e.shieldT = 0; ev(r, EV.SAY, e.id, 1); }
+    if (e.shield <= 0) { e.shieldT = 0; ev(r, EV.SAY, e.id, 1); shieldBurst(r, e); }
     if (dmg <= 0) return;
   }
   e.hp -= dmg;
@@ -151,7 +162,7 @@ function hurt(r, e, dmg, src, col) {
     e.hp = 0;
     ev(r, EV.DIE, e.id, src ? src.id : 0);
     if (e.player) {
-      e.dead = 3; e.ult = 0; e.focus = 0; e.shield = 0; e.shieldT = 0;
+      e.dead = 3; e.ult = 0; e.focus = 0; e.shield = 0; e.shieldT = 0; e.shieldMax = 0; e.volley = null;
       if (src && src.player) { src.kills++; ev(r, EV.LVL, 80 + 10 * src.prog.lvl, src.id); }   // дуэль: опыт победителю
     } else {
       e.dieT = 0;
@@ -201,16 +212,17 @@ function stepShot(r, s) {
   const step = s.sp * DT;
   s.x += s.dx * step; s.y += s.dy * step * YK; s.left -= step;
   for (const e of r.ents.values()) {
-    if (e.team === s.team || !alive(e)) continue;
+    if (e.team === s.team || !alive(e) || e === s.hitE) continue;
     const tp = posAt(r, e, s.rew);
     if (Math.hypot(tp.x - s.x, (tp.y - s.y) / YK) < (e.rad || 22) + 16) {
-      s.left = 0;
+      const through = s.pierce && !s.hitE;   // пронзающая стрела Эйры бьёт ещё одного врага за целью
+      if (through) { s.hitE = e; s.tgt = null; } else s.left = 0;
       ev(r, EV.HIT, s.id, e.id, e.x, e.y);
-      hurt(r, e, s.dmg, s.owner, s.kind === 'arrow' ? 2 : 1);
+      hurt(r, e, s.dmg, s.owner, s.kind === 'arrow' ? 2 : 1, s.pierce);
+      if (s.slowE) slow(e, s.slowE, 1.5);
       if (s.kind === 'ice') slow(e, 0.8, 1);
       if (s.slowHit && e.player) { slow(e, s.slowHit, s.slowHit > 0.7 ? 1.2 : 1.8); if (s.slowHit < 0.7) ev(r, EV.SAY, e.id, 10 + 13); }
-      if (s.kind === 'arrow' && s.owner.player) { s.owner.focus = Math.min(10, s.owner.focus + 1); s.owner.focusT = 3; }
-      return;
+      if (!through) return;
     }
   }
 }
@@ -218,7 +230,7 @@ function stepShot(r, s) {
 // ---------- скиллы героев ----------
 function cast(r, p, id) {
   const h = HERO[p.kind];
-  if (!alive(p) || p.cd[id] > 0 || p.silT > 0 || (p.kind === 'archer' && id === 'r')) return;
+  if (!alive(p) || p.cd[id] > 0 || p.silT > 0 || (p.kind === 'archer' && id === 'r') || p.volley) return;
   if (p.mp < h.mana[id]) return;
   const aim = d => { const t = nearest(r, p, h.range); return t ? { x: t.x, y: t.y } : { x: p.x + p.face.x * d, y: p.y + p.face.y * d * YK }; };
   if (p.kind === 'mage') {
@@ -241,16 +253,21 @@ function cast(r, p, id) {
       ev(r, EV.CAST, p.id, SKILL.storm, p.ult * 100);
     }
   } else {
-    const fk = 1 + (0.05 + 0.006 * (skLv(p, 'r') - 1)) * p.focus;
+    const fk = markK(p);
     if (id === 'q') {
-      const R = 290;
-      ev(r, EV.CAST, p.id, SKILL.gust, p.x, p.y, R);
+      // Порыв ветра: полоса вперёд 900, ширина 140 → 320 — урон, немота, отброс от Эйры (чем ближе, тем дальше)
+      const t0 = nearest(r, p, 1100);
+      let gx = p.face.x, gy = p.face.y;
+      if (t0) { gx = t0.x - p.x; gy = (t0.y - p.y) / YK; const m = Math.hypot(gx, gy) || 1; gx /= m; gy /= m; p.row = runRow(t0.x - p.x, t0.y - p.y); }
+      ev(r, EV.CAST, p.id, SKILL.gust, p.x, p.y, Math.round(Math.atan2(gy, gx) * 180 / Math.PI));
       for (const e of targetsOf(r, p)) {
-        const d = gdist(p, e);
-        if (d > R + (e.rad || 22)) continue;
+        const ex = e.x - p.x, ey = (e.y - p.y) / YK, along = ex * gx + ey * gy, perp = Math.abs(ex * gy - ey * gx), er = e.rad || 22;
+        if (along < -er || along > 900 + er) continue;
+        const u = Math.max(0, Math.min(1, along / 900));
+        if (perp > (140 + 180 * u) / 2 + er) continue;
         hurt(r, e, 70 * fk * skDmg(p, 'q'), p, 2);
-        let dx = e.x - p.x, dy = (e.y - p.y) / YK; const m = Math.hypot(dx, dy) || 1;
-        const push = (e.boss ? 120 : 280) * (1 - 0.5 * d / (R + (e.rad || 22))), t = 0.28;
+        const dx = ex, dy = ey, m = Math.hypot(ex, ey) || 1;
+        const push = e.boss ? 120 : 350 - 230 * u, t = 0.28;
         e.kb = { vx: dx / m * push / t, vy: dy / m * push / t * YK, t }; e.silT = 3.5 + 0.15 * (skLv(p, 'q') - 1);
         e.act = null; e.leap = null; e.jump = 0;
       }
@@ -258,25 +275,30 @@ function cast(r, p, id) {
       const t = nearest(r, p, h.range * 1.1);
       let dx = p.face.x, dy = p.face.y;
       if (t) { dx = t.x - p.x; dy = (t.y - p.y) / YK; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m; }
-      const a0 = Math.atan2(dy, dx);
+      // Залп: канал 0,9 с — 3 волны по 5 стрел веером 60° (летят из тика игрока), Эйра идёт на половине скорости
+      if (t) p.row = runRow(t.x - p.x, t.y - p.y);
       ev(r, EV.CAST, p.id, SKILL.volley, p.x, p.y, 0);
-      for (let i = -2; i <= 2; i++) { const a = a0 + i * 0.2; shoot(r, p, 'arrow', Math.cos(a), Math.sin(a), null, rnd(52, 64) * fk * skDmg(p, 'e'), 1300, h.range * (1 + 0.03 * p.focus) + 120); }
+      p.volley = { t: 0, n: 0, k: fk * skDmg(p, 'e') };
     } else if (id === 'f') {
-      p.shield = Math.round((260 + 6 * (p.prog.lvl - 1)) * skDmg(p, 'f')); p.shieldT = 6;
+      // Щит листьев: снимает замедление, корни и немоту; держит 260 (+12 за уровень героя) 8 с; в конце — взрыв
+      p.slowT = 0; p.slowK = 1; p.root = 0; p.silT = 0;
+      p.shieldMax = p.shield = Math.round((260 + 12 * (p.prog.lvl - 1)) * skDmg(p, 'f')); p.shieldT = 8;
       ev(r, EV.CAST, p.id, SKILL.shield, 600);
     }
   }
   p.cd[id] = h.cd[id] * skCd(p, id) * (p.cdMul || 1); p.mp -= h.mana[id]; p.castT = 0.5;
 }
 function attack(r, p) {
-  const h = HERO[p.kind], range = p.kind === 'archer' ? h.range * (1 + 0.03 * p.focus) : h.range;
+  if (p.volley) return;
+  const h = HERO[p.kind], range = p.kind === 'archer' ? h.range * markRange(p) : h.range;
   const t = nearest(r, p, range);
   let dx = p.face.x, dy = p.face.y;
   if (t) { dx = t.x - p.x; dy = (t.y - p.y) / YK; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m; p.row = runRow(t.x - p.x, t.y - p.y); }
   if (p.kind === 'archer') {
-    const fk = 1 + (0.05 + 0.006 * (skLv(p, 'r') - 1)) * p.focus;
-    shoot(r, p, 'arrow', dx, dy, t, rnd(40, 52) * fk, 1300, range + 120);
-    p.atkCd = h.atkCd / (1 + 0.04 * p.focus) / p.atkSpd;
+    const pr = p.focus > 0 && Math.random() < 0.25 + 0.02 * (skLv(p, 'r') - 1);   // пронзающая: +60 % урона, сквозь щит и броню
+    const s = shoot(r, p, 'arrow', dx, dy, t, rnd(40, 52) * markK(p) * (pr ? 1.6 : 1), 1300, range + 120);
+    if (pr && s) s.pierce = true;
+    p.atkCd = h.atkCd / p.atkSpd;
   } else {
     shoot(r, p, 'ice', dx, dy, t, rnd(44, 56), 980, 700);
     p.atkCd = h.atkCd / p.atkSpd;
@@ -613,8 +635,24 @@ function step(r) {
     if (p.silT > 0) p.silT -= DT;
     if (p.root > 0) p.root -= DT;
     if (p.kb) { const q = Math.min(DT, p.kb.t); p.x += p.kb.vx * q; p.y += p.kb.vy * q; p.kb.t -= DT; NET.collide(p); p.x = NET.qpos(p.x); p.y = NET.qpos(p.y); if (p.kb.t <= 0) p.kb = null; }
-    if (p.shieldT > 0) { p.shieldT -= DT; if (p.shieldT <= 0) p.shield = 0; }
-    if (p.focus > 0) { p.focusT -= DT; if (p.focusT <= 0) { p.focus--; p.focusT = 0.5; } }
+    if (p.shieldT > 0) { p.shieldT -= DT; if (p.shieldT <= 0) { if (p.kind === 'archer') shieldBurst(r, p); else p.shield = 0; } }
+    if (p.kind === 'archer') {
+      p.focus = alive(p) && !targetsOf(r, p).some(e => gdist(p, e) < 350) ? 1 : 0;   // Меткость работает, пока враг не подошёл
+      const v = p.volley;
+      if (v && !alive(p)) p.volley = null;
+      else if (v) {
+        v.t += DT; slow(p, 0.5, 0.12); p.atkCd = Math.max(p.atkCd, 0.2);
+        while (v.n < 3 && v.t >= 0.15 + 0.3 * v.n) {
+          v.n++;
+          const hh = HERO.archer, t = nearest(r, p, hh.range * 1.1);
+          let dx = p.face.x, dy = p.face.y;
+          if (t) { dx = t.x - p.x; dy = (t.y - p.y) / YK; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m; p.row = runRow(t.x - p.x, t.y - p.y); }
+          const a0 = Math.atan2(dy, dx);
+          for (let i = -2; i <= 2; i++) { const a = a0 + i * Math.PI / 12; const s = shoot(r, p, 'arrow', Math.cos(a), Math.sin(a), null, rnd(34, 42) * v.k, 1300, hh.range * markRange(p) + 120); if (s) s.slowE = 0.85; }
+        }
+        if (v.t >= 0.9 || p.root > 0) p.volley = null;
+      }
+    }
     if (p.dead > 0) {
       p.dead -= DT;
       // кооператив: погибший уходит в своё Междумирье (сцена на клиенте) и возвращается, когда войдёт в портал ('back')

@@ -877,8 +877,12 @@ function combatUpdate(dt) {
     s.x += s.dx * step; s.y += s.dy * step * YK; s.left -= step;
     if (s.own === 'p') {
       for (const e of enemies) {
-        if (e.hp > 0 && gdist(s, e) < e.rad + 16 * (s.sc || 1)) {
-          hurtEnemy(e, s.dmg); if (!s.arrow) slow(e, 0.8, 1); s.left = 0;
+        if (e.hp > 0 && e !== s.hitE && gdist(s, e) < e.rad + 16 * (s.sc || 1)) {
+          // пронзающая стрела Эйры (Меткость): не смотрит на щиты и броню, летит насквозь и бьёт ещё одного врага
+          if (s.trueShot) P.trueShot = true;
+          try { hurtEnemy(e, s.dmg); } finally { P.trueShot = false; }
+          if (!s.arrow) slow(e, 0.8, 1);
+          if (s.pierce && !s.hitE) { s.hitE = e; s.tgt = null; } else s.left = 0;
           if (s.onHit) s.onHit(e);
           fx.push({ type: 'spark', hit: 1, hit3: s.arrow, x: e.x, y: e.y - e.ch.top * e.ch.U * e.sc * 0.5, t: 0, dur: 0.4, R: 34 * (s.sc || 1), sc: s.sc || 1 });
           snd(s.arrow ? 'archer_hit' : 'hit', 0.45, rnd(0.95, 1.1));
