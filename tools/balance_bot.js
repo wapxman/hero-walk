@@ -129,6 +129,8 @@
     const D0 = SK.DEF[type] || [], L = D0.filter(s => s.ph && (!s.passive || s.poly)).map(s => s.ph), err = [], poke = D0.some(s => s.poly === 'hurt');   // poly — пассив, который полигон тоже должен увидеть ('hurt' — срабатывает, когда злодея бьют)
     for (const e of enemies) e.hp = 0; enemies.length = 0; shots.length = 0; fx.length = 0; ROUND.queue.length = 0; ROUND.fin = null; ROUND.endW = wave;
     SHOP.phase = 'fight'; P.dead = 0; STATUS.clear(); P.maxHp = 1e9; P.hp = 1e9;
+    SK.polyMark = n => { B.casts[n] = (B.casts[n] || 0) + 1; };   // пассивы «каждый 4-й удар» сообщают о себе с первой метки
+    if (D0.some(s => s.poly)) secs *= 2;                          // пассивам — вдвое больше времени: им нужны удары по герою, а не откат
     if (mini) { ROUND.mini = type; spawnEnemy(type); } else { ROUND.mini = null; spawnEnemyBase(type); }
     const e = enemies[enemies.length - 1]; e.hp = e.max = 1e9; B.casts = {};
     const D = [320, 620, 160, 900, 420]; let t = 0, k = -1;

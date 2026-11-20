@@ -39,7 +39,7 @@ def watch(page, tag, bag):
 
 async def boot(ctx, q, bag):
     p = await ctx.new_page(); watch(p, q, bag)
-    await p.goto(URL + '?v=%d&%s' % (int(time.time()), q)); await p.wait_for_function('window.COMBAT_READY === true', timeout=60000); await asyncio.sleep(2.5)
+    await p.goto(URL + '?v=%d&%s' % (int(time.time()), q), timeout=120000); await p.wait_for_function('window.COMBAT_READY === true', timeout=120000)   # с запасом: под нагрузкой (--par 10) страница грузится дольше 30 с; await asyncio.sleep(2.5)
     return p
 
 async def world(br, w, res):
@@ -71,7 +71,7 @@ async def world(br, w, res):
             types = await p.evaluate("w => { const R = ROSTER[w]; return [...new Set([...R.mel, ...R.rng, ...R.elite])].map(t => [t, 0]).concat(R.mini.map(t => [t, 1]), [[R.boss, 0]]); }", w)
             await p.evaluate("w => { wave = (w - 1) * 10 + 8; if (WORLD !== w) applyWorld(w); }", w)
             for t, mini in types:
-                try: r['skills'].append(await asyncio.wait_for(p.evaluate('a => BOT.skills(a[0], a[1], 150)', [t, mini]), 240))
+                try: r['skills'].append(await asyncio.wait_for(p.evaluate('a => BOT.skills(a[0], a[1], 150)', [t, mini]), 480))
                 except Exception as ex: r['skills'].append({'type': t, 'want': [], 'miss': [], 'err': ['полигон: ' + str(ex)[:200]]})
         r['names'] = await p.evaluate("Object.fromEntries(Object.keys(KIND).map(k => [k, Array.isArray(KIND[k].nm) ? KIND[k].nm[0] : KIND[k].nm]))")
     except Exception as ex:

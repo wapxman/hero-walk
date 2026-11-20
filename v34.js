@@ -84,7 +84,8 @@
   }
   // пассив «каждый 4-й удар»: три обычных удара — метки, четвёртый идёт листом каста и срабатывает
   function fourth(name, col, onStack, onProc) {
-    return (e, hits) => { const n = hits % 3 || 3; if (onStack) onStack(e, n); if (n === 3) e.pow = () => { tag(e, name + '!', col); onProc(e); }; };
+    return (e, hits) => { const n = hits % 3 || 3; if (SK.polyMark) SK.polyMark(name);   // полигон автопрогона: пассив засчитан по первому же удару-метке (четвёртого под нагрузкой можно не дождаться)
+      if (onStack) onStack(e, n); if (n === 3) e.pow = () => { tag(e, name + '!', col); onProc(e); }; };
   }
   // движение злодея по прямой (таран): как у мини-боссов
   function charge(e, o) {
