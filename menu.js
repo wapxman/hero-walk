@@ -134,16 +134,21 @@
   const sp = mk('div', 'mn', document.body); sp.id = 'mSplash'; block(sp);
   mk('i', '', sp);
   sel.style.display = 'none';
+  { const bt = document.getElementById('boot'); if (bt) bt.remove(); }   // заставка (чёрная) уже стоит — слой запуска больше не нужен
   const auto = /[?&](mode|auto)=/.test(location.search);    // ссылки проверки онлайна идут сразу в игру
-  let done = false;
+  let done = false, bgOk = false, timeUp = false;
+  let back2menu = false; try { back2menu = sessionStorage.getItem('hw_tomenu') === '1'; sessionStorage.removeItem('hw_tomenu'); } catch (e) {}
+  // фон меню грузим заранее: заставка не уходит, пока его нет (иначе меню секунду стоит на тёмном фоне, потом фон «впрыгивает»)
+  const bg = new Image(); bg.onload = bg.onerror = () => { bgOk = true; if (timeUp) endSplash(); }; bg.src = 'ui/menu_bg.webp' + V;
+  setTimeout(() => { bgOk = true; if (timeUp) endSplash(); }, 10000);
   function endSplash() {
-    if (done) return; done = true;
+    timeUp = true; if (done || (!bgOk && !auto)) return; done = true;
     sp.style.opacity = '0'; setTimeout(() => sp.remove(), 750);
     if (auto) sel.style.display = 'flex'; else showMain();
   }
   const logo = new Image();
-  logo.onload = () => requestAnimationFrame(() => sp.classList.add('on'));
+  logo.onload = () => { if (!back2menu) requestAnimationFrame(() => sp.classList.add('on')); };
   logo.src = 'ui/logo.webp' + V;
   sp.addEventListener('pointerdown', endSplash);
-  setTimeout(endSplash, auto ? 50 : 2600);
+  setTimeout(endSplash, auto || back2menu ? 50 : 2600);   // после «В главное меню» — сразу меню, без логотипа
 })();

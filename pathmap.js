@@ -162,13 +162,13 @@ const PATHMAP = (() => {
     document.body.appendChild(BTN);
     for (const ev of ['touchstart', 'mousedown']) BTN.addEventListener(ev, x => x.stopPropagation(), { passive: true });
     BTN.addEventListener('pointerdown', e => { e.stopPropagation(); if (st && st.select) { st.picked = st.cur; st.skip = true; BTN.style.display = 'none'; } });
-    for (let i = 0; i < 5; i++) clouds.push({ x: Math.random(), y: 0.08 + Math.random() * 0.8, s: 0.18 + Math.random() * 0.22, v: 0.006 + Math.random() * 0.01, k: i % 3 });
+    // облака и туман над картой убраны (v97, по просьбе Создателя); дым горящей деревни — mapfx.js — остался
   }
   function resize() {
     DPR = Math.min(2, window.devicePixelRatio || 1);
     W = cv.width = Math.round(innerWidth * DPR); H = cv.height = Math.round(innerHeight * DPR);
   }
-  function preload() { ['map', 'laurel', 'check', 'lock', 'ribbon', 'token', 'cloud1', 'cloud2', 'cloud3', 'spark'].forEach(im); for (let i = 1; i <= 10; i++) im('m' + i); }
+  function preload() { ['map', 'laurel', 'check', 'lock', 'ribbon', 'token', 'spark'].forEach(im); for (let i = 1; i <= 10; i++) im('m' + i); }
 
   const ease = x => x < 0 ? 0 : x > 1 ? 1 : x * x * (3 - 2 * x);
   function burst(fx, fy, n, col, sp) {
@@ -195,10 +195,6 @@ const PATHMAP = (() => {
     glow(g.X(AMB.lava[0]), g.Y(AMB.lava[1]), 150 * u * cam.z, '255,90,20', lav);
     glow(g.X(AMB.abyss[0]), g.Y(AMB.abyss[1]), 130 * u * cam.z, '150,70,255', 0.2 + 0.1 * Math.sin(T * 2.2));
     cx.globalCompositeOperation = 'source-over';
-    // туман над болотом
-    const cl = im('cloud' + 1);
-    if (ok(cl)) { cx.globalAlpha = 0.18 + 0.06 * Math.sin(T * 0.7); const w = g.dw * 0.22; cx.drawImage(cl, g.X(AMB.fog[0]) - w / 2 + Math.sin(T * 0.3) * 20 * u, g.Y(AMB.fog[1]) - w * 0.2, w, w * cl.naturalHeight / cl.naturalWidth); cx.globalAlpha = 1; }
-
     // путь: тусклые точки по всему маршруту
     if (!PTS) buildPath();
     cx.fillStyle = 'rgba(255,236,190,0.55)';
@@ -236,11 +232,15 @@ const PATHMAP = (() => {
       cx.stroke();
     }
     cx.shadowBlur = 0;
-    // искры бегут по пройденному пути
+    // искры плывут по пройденному пути (v97: медленно и без мигания — раньше пробегали весь путь за 2 с и мерцали 9 раз в секунду)
     const sp = im('spark');
-    if (lit > 0.02) for (let k = 0; k < 7; k++) {
-      const tt = ((T * 0.55 + k / 7) % 1) * lit, p = at(tt), s = (10 + 6 * Math.sin(T * 9 + k)) * u;
-      if (ok(sp)) { cx.globalCompositeOperation = 'lighter'; cx.drawImage(sp, g.X(p.x) - s, g.Y(p.y) - s, s * 2, s * 2); cx.globalCompositeOperation = 'source-over'; }
+    if (lit > 0.02 && ok(sp)) {
+      const n = Math.max(2, Math.min(5, Math.round(lit * 0.7))); cx.globalCompositeOperation = 'lighter';
+      for (let k = 0; k < n; k++) {
+        const q = (T * 0.1 / Math.max(1, lit) + k / n) % 1, p = at(q * lit), s = (9 + 1.2 * Math.sin(T * 1.3 + k * 2)) * u;
+        cx.globalAlpha = 0.85 * Math.min(1, q * 10, (1 - q) * 10); cx.drawImage(sp, g.X(p.x) - s, g.Y(p.y) - s, s * 2, s * 2);
+      }
+      cx.globalAlpha = 1; cx.globalCompositeOperation = 'source-over';
     }
     // голова света — яркая вспышка там, куда дошёл свет
     if (st.run) { const h = at(lit); cx.globalCompositeOperation = 'lighter'; glow(g.X(h.x), g.Y(h.y), 46 * u, '255,220,120', 0.9); if (ok(sp)) { const s = 30 * u * (1 + 0.2 * Math.sin(T * 20)); cx.drawImage(sp, g.X(h.x) - s, g.Y(h.y) - s, s * 2, s * 2); } cx.globalCompositeOperation = 'source-over'; }
@@ -358,7 +358,8 @@ const PATHMAP = (() => {
     for (let i = parts.length - 1; i >= 0; i--) if (parts[i].t >= parts[i].life) parts.splice(i, 1);
     for (const c of clouds) if ((c.x + st.age * c.v) % 1.4 > 1.35) c.y = 0.08 + Math.random() * 0.8;
     // конец показа или пропуск
-    if ((st.age >= P.total || st.skip) && !(st.out > 0)) { st.out = 0.0001; if (st.onMid) { const f = st.onMid; st.onMid = null; f(); } }
+    if ((st.age >= P.total || st.skip) && !(st.out > 0)) { st.out = 0.0001; if (st.select && st.picked && typeof ARENA_COVER !== 'undefined') ARENA_COVER.on();   // карта гаснет в чёрное, а не в старую арену
+      if (st.onMid) { const f = st.onMid; st.onMid = null; f(); } }
     if (st.out > 0) { st.out += dt; if (st.out >= 0.4) return finish(); }
     draw(dt);
     raf = requestAnimationFrame(tick);
@@ -367,7 +368,7 @@ const PATHMAP = (() => {
     cancelAnimationFrame(raf); cv.style.display = 'none';
     if (BTN) BTN.style.display = 'none';
     if (typeof SHOP !== 'undefined') SHOP.paused = !!st.wasPaused;
-    const f = st.onDone, pk = st.onPick, c = st.picked, w = st.selW; st = null; PATHMAP.on = false; if (pk && c) pk(c, w); if (f) f();   // w — сколько волн считать пройденными; null — продолжить с места остановки
+    const f = st.onDone, pk = st.onPick, c = st.picked, w = st.selW; st = null; PATHMAP.on = false; if (pk && c) pk(c, w); if (f) f(); if (typeof ARENA_COVER !== 'undefined') ARENA_COVER.settle();   // w — сколько волн считать пройденными; null — продолжить с места остановки
   }
   return {
     on: false, NAMES, NODES, ARENA_NAMES, TMAX, at, ground: [], sky: [],

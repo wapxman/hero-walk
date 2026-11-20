@@ -10,6 +10,19 @@ const W1 = { walk: WALK.map(p => p.slice()), obj: OBJ.slice(), solid: SOLID.slic
 let WORLD = 1, curGround = GROUND;
 const worldOf = n => BAL.at(n).M;   // какой мир у волны n
 
+// затемнение на время загрузки арены (v97): чёрный слой над полем боя и интерфейсом боя, под меню. Пока он виден, бой стоит на паузе.
+// on(src) — закрыть (src — картинка, которую ждём), off(src) — она пришла, settle() — закрывали заранее, а грузить нечего.
+const ARENA_COVER = (() => {
+  const el = document.createElement('div'); let wait = null, held = false, timer = 0;
+  el.style.cssText = 'position:fixed;inset:0;background:#05080e;z-index:8;display:none;opacity:1;pointer-events:none;transition:opacity .35s';
+  document.body.appendChild(el);
+  const hold = () => { if (!held && !window.BOT && !(window.NETC && NETC.on) && typeof SHOP !== 'undefined' && !SHOP.paused) { SHOP.paused = true; held = true; } };   // бот автопрогона шагает игру сам — ему пауза не нужна
+  function on(src) { if (src) wait = src; clearTimeout(timer); el.style.transition = 'none'; el.style.display = 'block'; el.style.opacity = '1'; if (src) hold();
+    timer = setTimeout(() => off(wait), 8000); }   // картинка не пришла — не держим экран закрытым вечно
+  function off(src) { if (src && wait && src !== wait) return; wait = null; clearTimeout(timer); if (held) { held = false; SHOP.paused = false; }
+    void el.offsetWidth; el.style.transition = 'opacity .35s'; el.style.opacity = '0'; timer = setTimeout(() => { el.style.display = 'none'; }, 380); }
+  return { on, off, settle() { if (!wait && el.style.display !== 'none' && el.style.opacity === '1') off(); }, get busy() { return !!wait; } };
+})();
 // арена части мира: картинка земли меняется, раскладка остаётся (ARENAS в data.js)
 let ARENA_I = 0;
 function setArena(m, i, quiet) {
@@ -17,7 +30,9 @@ function setArena(m, i, quiet) {
   ARENA_I = src === w.ground ? 0 : i;
   if (src !== curGround) {
     curGround = src;
-    const g = new Image(); g.onload = () => { if (curGround === src) img.ground = g; }; g.src = src + V;
+    // пока новая картинка грузится, экран закрыт затемнением (ARENA_COVER) — старая арена не мелькает и не подменяется рывком
+    const g = new Image(); ARENA_COVER.on(src);
+    g.onload = () => { if (curGround === src) { img.ground = g; ARENA_COVER.off(src); } }; g.onerror = () => ARENA_COVER.off(src); g.src = src + V;
     if (!quiet) { P.x = HERO_SPAWN.x; P.y = HERO_SPAWN.y; collide(P); cam.ready = false; SHOP.drops.length = 0; }
   }
 }

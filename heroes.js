@@ -375,7 +375,7 @@ function heroButton(b) {
   // в меню паузы: сменить героя (бой начнётся заново)
   if (typeof SHOP !== 'undefined' && SHOP.el && SHOP.el.pause) {
     const b = document.createElement('div'); b.className = 'mb bg'; b.textContent = 'Сменить героя';
-    b.addEventListener('pointerdown', x => { x.stopPropagation(); location.reload(); });
+    b.addEventListener('pointerdown', x => { x.stopPropagation(); try { sessionStorage.setItem('hw_tomenu', '1'); } catch (e) {} location.reload(); });
     SHOP.el.pause.insertBefore(b, SHOP.el.pause.querySelector('.tip'));
   }
 })();
