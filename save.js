@@ -20,8 +20,9 @@ const SAVE = (() => {
     try { localStorage.setItem(key(), JSON.stringify(d)); } catch (e) {}
     if (typeof progSave === 'function') progSave();
   }
-  // открыть главу c: текущую — с места остановки, пройденную — с начала
-  function start(c) {
+  // открыть главу c: текущую — с места остановки, пройденную — с начала.
+  // w (v89) — начать с этого числа пройденных волн: медальон главы или пункт после волн 3, 6, 9 (бой с волны 4, 7, 10)
+  function start(c, w) {
     ready = true;
     const d = read() || {};
     best = Math.max(best, d.best || 0);
@@ -29,13 +30,13 @@ const SAVE = (() => {
     if (Array.isArray(d.bag)) SHOP.bag = d.bag.filter(id => ALL[id]).slice(0, BAG_MAX);
     if (d.flasks) for (const k in SHOP.flasks) if (typeof d.flasks[k] === 'number') SHOP.flasks[k] = Math.max(0, Math.min(k === 'heal' ? 10 : 99, d.flasks[k] | 0));
     const curC = BAL.at((d.wave || 0) + 1).M;
-    wave = c === curC ? (d.wave || 0) : (c - 1) * BAL.WAVES;
+    wave = w != null ? w : c === curC ? (d.wave || 0) : (c - 1) * BAL.WAVES;
     SHOP.phase = 'rest'; SHOP.restT = 0; SHOP.roundFrom = wave + 1;
     enemies.length = 0; ROUND.queue.length = 0; ROUND.endW = wave; ROUND.fin = null;
     if (typeof applyWorld === 'function') applyWorld(BAL.at(wave + 1).M);
     SHOP.recompute();
     // посреди мира — здоровье и мана из сохранения (лечение теперь за деньги); начало мира и переигрывание главы — полные
-    const mid = c === curC && (d.wave || 0) % BAL.WAVES !== 0 && d.hp > 0;
+    const mid = w == null && c === curC && (d.wave || 0) % BAL.WAVES !== 0 && d.hp > 0;
     P.hp = mid ? Math.min(P.maxHp, d.hp) : P.maxHp;
     P.mp = mid && d.mp != null ? Math.min(P.maxMp, d.mp) : P.maxMp;
     SHOP.refresh();
@@ -49,11 +50,13 @@ const SAVE = (() => {
     const curC = Math.min(10, BAL.at((d.wave || 0) + 1).M), open = best >= BAL.WAVES * BAL.WORLDS ? 10 : Math.min(10, BAL.at(best + 1).M), done = Math.floor(best / BAL.WAVES);
     const t = curC - 1;
     const w = d.wave || 0;
-    PATHMAP.show({ mode: 'select', t0: posOf(w), t1: posOf(w), from: lastT(posOf(w)), litT: posOf(best), best: done, open: allOpen() ? 10 : Math.max(open, curC), onPick: c => { start(c); fight(); } });
+    PATHMAP.show({ mode: 'select', wave: w, t0: posOf(w), t1: posOf(w), from: lastT(posOf(w)), litT: posOf(best), best: done, open: allOpen() ? 10 : Math.max(open, curC), openT: openT(best), onPick: (c, pw) => { start(c, pw); fight(); } });
     lastT(null, posOf(w));
   }
   // положение фишки на карте миров по числу пройденных волн: после волн 3, 6, 9 — промежуточные пункты, после босса — следующий медальон
-  function posOf(w) { if (w <= 0) return 0; const a = BAL.at(w); return Math.min(9, a.W >= 10 ? BAL.at(w + 1).M - 1 : a.M - 1 + Math.floor(a.W / 3) / 4); }   // после босса — медальон следующего мира (после 10-го — снова первый, круг 2)
+  function posOf(w) { if (w <= 0) return 0; const a = BAL.at(w); return Math.min(9.75, a.W >= 10 ? BAL.at(w + 1).M - 1 : a.M - 1 + Math.floor(a.W / 3) / 4); }   // после босса — медальон следующего мира (после 10-го — снова первый, круг 2)
+  // до какого места пути открыты промежуточные пункты: самая дальняя точка, до которой игрок доходил (второй круг и тестовая сборка — всё)
+  function openT(b) { return allOpen() || b >= BAL.WAVES * BAL.WORLDS ? 99 : posOf(b); }
   // где фишка стояла в прошлый показ — оттуда она плавно идёт к новой точке
   function lastT(def, set) { const k = 'hw_mapt_' + HERO_ID; try { if (set != null) { localStorage.setItem(k, String(set)); return set; } const v = localStorage.getItem(k); return v == null ? def : +v; } catch (e) { return def; } }
   function wipe() {
@@ -73,7 +76,7 @@ const SAVE = (() => {
       if (SHOP.open) SHOP.closeShop();
       const curC = Math.min(10, BAL.at(wave + 1).M), open = best >= BAL.WAVES * BAL.WORLDS ? 10 : Math.max(curC, Math.min(10, BAL.at(best + 1).M)), t = curC - 1;
       const tw = posOf(wave);
-      PATHMAP.show({ mode: 'select', t0: tw, t1: tw, from: lastT(tw), litT: posOf(Math.max(best, wave)), best: Math.floor(best / BAL.WAVES), open: allOpen() ? 10 : open, onPick: c => { if (c !== curC) start(c); fight(); } });
+      PATHMAP.show({ mode: 'select', wave, t0: tw, t1: tw, from: lastT(tw), litT: posOf(Math.max(best, wave)), best: Math.floor(best / BAL.WAVES), open: allOpen() ? 10 : open, openT: openT(Math.max(best, wave)), onPick: (c, pw) => { if (pw != null) start(c, pw); else if (c !== curC) start(c); fight(); } });
       lastT(null, tw);
     };
   }

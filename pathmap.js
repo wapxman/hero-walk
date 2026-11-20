@@ -16,20 +16,43 @@ const PATHMAP = (() => {
     [0.41, 0.26], [0.62, 0.22], [0.87, 0.21]];
   // промежуточные изгибы пути между главами (доли картинки): чтобы путь шёл по земле, а не напрямик
   const BENDS = { 1: [[0.27, 0.89]], 2: [[0.34, 0.73]], 3: [[0.42, 0.66]], 4: [[0.66, 0.71]], 5: [[0.87, 0.55]],
-    6: [[0.72, 0.43], [0.55, 0.42], [0.38, 0.41]], 7: [[0.32, 0.29]], 8: [[0.52, 0.25]], 9: [[0.75, 0.20]] };
+    6: [[0.72, 0.43], [0.55, 0.42], [0.38, 0.41]], 7: [[0.32, 0.29]], 8: [[0.52, 0.25]], 9: [[0.75, 0.20]], 10: [[0.93, 0.205], [0.955, 0.145]] };
+  // за медальоном Бездны путь уходит к воронке: там три пункта 10-го мира (после волн 3, 6 и 9)
+  const TAIL = [0.925, 0.075], TMAX = 9.75;
+  // промежуточные пункты (v89): после волн 3, 6 и 9 каждого мира — арены 2, 3 и арена босса. Их можно выбирать, как медальоны.
+  const STEPS = [0.25, 0.5, 0.75];
+  const ARENA_NAMES = [['Казарменный двор', 'Тронный зал', 'Турнирная площадка'], ['Рыночная площадь', 'Сгоревшая часовня', 'Двор усадьбы'],
+    ['Эльфийские арки', 'Корни великого древа', 'Змеиное логово'], ['Затонувшая деревня', 'Туманный погост', 'Трон Короля-Жаба'],
+    ['Кристальная пещера', 'Кузнечный зал', 'Сердце горна'], ['Замёрзшее озеро', 'Ледяная пещера', 'Двор ледяного дворца'],
+    ['Разбитый собор', 'Зеркальный сад', 'Круг зеркал'], ['Лавовые поля', 'Обсидиановый храм', 'Край кратера'],
+    ['Облачные сады', 'Золотая библиотека', 'Алтарь суда'], ['Парящий остров', 'Собор Бездны', 'Сердце Бездны']];
+  const WV = typeof BAL !== 'undefined' ? BAL.WAVES : 10;
+  // кто ждёт в части мира, которая начинается с пункта j (0..2): мини-босс волны 6 или 9, после третьего пункта — босс мира
+  function foeOf(c, j) {
+    if (typeof ROSTER === 'undefined' || !ROSTER[c]) return '';
+    const k = KIND[j < 2 ? miniOf(ROSTER[c], (j + 2) * 3) : ROSTER[c].boss];
+    return k ? (Array.isArray(k.nm) ? k.nm[0] : k.nm) : '';
+  }
   const NAMES = ['Королевский замок', 'Горящая деревня', 'Осенний лес', 'Проклятое болото', 'Гномьи шахты', 'Ледяные вершины',
     'Руины Зеркального города', 'Огненный вулкан', 'Небесный храм', 'Бездна'];
   // где на карте живёт фон: лава (8), снег (6), искры Бездны (10), туман болота (4), блики воды
   const AMB = { lava: [0.35, 0.14], snow: [0.82, 0.31], abyss: [0.89, 0.11], fog: [0.53, 0.58], water: [0.78, 0.82] };
 
   let cv, cx, st = null, raf = 0, last = 0, BTN = null;
-  function goBtn() { if (!BTN || !st) return; BTN.style.display = st.select ? 'flex' : 'none'; if (st.select) BTN.innerHTML = 'Продолжить<div style="font:2vh Georgia,serif;opacity:.9">Глава ' + st.cur + ': ' + NAMES[st.cur - 1] + '</div>'; }
+  function goBtn() {
+    if (!BTN || !st) return; BTN.style.display = st.select ? 'flex' : 'none'; if (!st.select) return;
+    // с какой волны мира начнётся бой: выбранный пункт — 4, 7 или 10; медальон — 1; место остановки — следующая после пройденных
+    const j = st.selJ, hw = st.select.wave;
+    const W = st.selW == null && hw != null && typeof BAL !== 'undefined' ? BAL.at(hw + 1).W : j == null ? 1 : (j + 1) * 3 + 1, ai = W >= 10 ? 2 : Math.floor((W - 1) / 3) - 1;
+    BTN.innerHTML = 'Продолжить<div style="font:2vh Georgia,serif;opacity:.9">Глава ' + st.cur + (W > 1 ? ' · волна ' + W : '') + ': ' + (ai >= 0 ? ARENA_NAMES[st.cur - 1][ai] : NAMES[st.cur - 1]) + '</div>';
+  }
   const parts = [], clouds = [];
   // ---- путь: сглаженная кривая через узлы и изгибы, разбита на точки с отметкой «t» ----
   let PTS = null;
   function buildPath() {
     const key = [];
     for (let c = 1; c <= 10; c++) { key.push({ p: NODES[c - 1], t: c - 1 }); for (const b of (BENDS[c] || [])) key.push({ p: b, t: null }); }
+    key.push({ p: TAIL, t: TMAX });
     // t изгибов — равномерно между соседними узлами
     for (let i = 0; i < key.length; i++) if (key[i].t == null) {
       let a = i; while (key[a].t == null) a--; let b = i; while (key[b].t == null) b++;
@@ -44,11 +67,11 @@ const PATHMAP = (() => {
         PTS.push({ x: f(p0[0], p1[0], p2[0], p3[0]), y: f(p0[1], p1[1], p2[1], p3[1]), t: key[i].t + (key[i + 1].t - key[i].t) * u });
       }
     }
-    PTS.push({ x: key[key.length - 1].p[0], y: key[key.length - 1].p[1], t: 9 });
+    PTS.push({ x: key[key.length - 1].p[0], y: key[key.length - 1].p[1], t: TMAX });
   }
   function at(t) {
     if (!PTS) buildPath();
-    t = Math.max(0, Math.min(9, t));
+    t = Math.max(0, Math.min(TMAX, t));
     for (let i = 1; i < PTS.length; i++) if (PTS[i].t >= t) {
       const a = PTS[i - 1], b = PTS[i], k = (t - a.t) / ((b.t - a.t) || 1);
       return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k, i };
@@ -104,13 +127,23 @@ const PATHMAP = (() => {
       ptr.delete(e.pointerId); if (ptr.size < 2) pinch = 0;
       if (moved > 14 * DPR || ptr.size) return;
       const g = geo(), p = pos(e), u = Math.min(W, H) / 720;
-      let pick = 0;
-      for (let c = 1; c <= 10; c++) { const [fx, fy] = NODES[c - 1]; if (Math.hypot(g.X(fx) - p.x, g.Y(fy) - p.y) < 52 * u * Math.sqrt(cam.z)) pick = c; }
+      // ближайшее под пальцем: медальон главы или промежуточный пункт (после волн 3, 6, 9)
+      let pick = null, bd = 1e9;
+      for (let c = 1; c <= 10; c++) {
+        const [fx, fy] = NODES[c - 1], d = Math.hypot(g.X(fx) - p.x, g.Y(fy) - p.y);
+        if (d < 52 * u * Math.sqrt(cam.z) && d < bd) { bd = d; pick = { c, j: null, t: c - 1, open: c <= st.select.open }; }
+        for (let j = 0; j < 3; j++) {
+          const t = c - 1 + STEPS[j], q = at(t), d2 = Math.hypot(g.X(q.x) - p.x, g.Y(q.y) - p.y);
+          if (d2 < 26 * u * Math.sqrt(cam.z) && d2 < bd) { bd = d2; pick = { c, j, t, open: t <= st.select.openT + 1e-3 }; }
+        }
+      }
       if (!pick) return;
-      if (pick > st.select.open) { st.lockedTap = 1; return; }
-      const to = pick === st.homeC ? st.t1 : pick - 1;   // своя глава — к месту остановки, другая — к её медальону
+      if (!pick.open) { st.lockedTap = 1; st.lockedPt = pick.j != null; return; }
+      // место, где игрок остановился, — продолжить оттуда (волна не сбрасывается); любое другое — с начала этой части мира
+      const home = Math.abs(pick.t - st.t1) < 1e-3, to = pick.t;
       st.anim = { from: st.tok, to, at: st.age, dur: Math.min(2.2, 0.5 + 0.35 * Math.abs(to - st.tok)) };
-      st.cur = pick; st.flash = 0.7; if (typeof snd === 'function') snd('coins', 0.3, 1.3); goBtn();
+      st.cur = pick.c; st.selJ = pick.j; st.selW = home ? null : (pick.c - 1) * WV + (pick.j == null ? 0 : (pick.j + 1) * 3);
+      st.flash = 0.7; if (typeof snd === 'function') snd('coins', 0.3, 1.3); goBtn();
     };
     cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
     // клавиатура на карте не доходит до игры; Enter/пробел — «Продолжить»
@@ -172,16 +205,24 @@ const PATHMAP = (() => {
     for (let i = 0; i < PTS.length; i += 3) { const p = PTS[i]; cx.beginPath(); cx.arc(g.X(p.x), g.Y(p.y), 2.6 * u, 0, 6.283); cx.fill(); }
     // промежуточные пункты главы: после волн 3, 6 и 9 (четверть, половина, три четверти пути к следующему медальону)
     const litNow = st.select ? Math.max(st.select.litT, st.t) : st.t, rr = 10 * u * Math.sqrt(cam.z);
-    for (let c = 0; c < 9; c++) for (const f of [0.25, 0.5, 0.75]) {
-      const tt = c + f, p = at(tt), X = g.X(p.x), Y = g.Y(p.y), on = tt <= litNow + 1e-3;
+    const lkI = im('lock');
+    for (let c = 0; c < 10; c++) for (let j = 0; j < 3; j++) {
+      const f = STEPS[j], tt = c + f, p = at(tt), X = g.X(p.x), Y = g.Y(p.y), on = tt <= litNow + 1e-3;
+      const shut = st.select && tt > st.select.openT + 1e-3, sel = st.select && st.cur === c + 1 && st.selJ === j;
+      if (sel) { cx.save(); cx.globalCompositeOperation = 'lighter'; glow(X, Y, rr * (5 + 0.6 * Math.sin(T * 4)), '255,210,110', 0.6 + 0.2 * Math.sin(T * 4)); cx.restore(); }
       cx.beginPath(); cx.arc(X, Y, rr * 1.35, 0, 6.283); cx.fillStyle = 'rgba(30,20,10,0.75)'; cx.fill();
       cx.beginPath(); cx.arc(X, Y, rr, 0, 6.283); cx.fillStyle = on ? '#ffcf5a' : '#7c776c'; cx.fill();
       if (on) { cx.save(); cx.globalCompositeOperation = 'lighter'; glow(X, Y, rr * 3, '255,200,90', 0.5); cx.restore(); }
       // имя мини-босса этой точки (волны 3, 6, 9) — на карте выбора, когда она приближена
-      if (st.select && cam.z >= 1.5 && typeof ROSTER !== 'undefined' && ROSTER[c + 1]) {
-        const k = KIND[miniOf(ROSTER[c + 1], Math.round(f * 4) * 3)], nm = k && (Array.isArray(k.nm) ? k.nm[0] : k.nm);
-        if (nm) { cx.save(); cx.font = 'bold ' + Math.round(9 * u * Math.sqrt(cam.z)) + 'px Georgia, serif'; cx.textAlign = 'center'; cx.lineWidth = 3 * u; cx.strokeStyle = 'rgba(20,12,4,0.9)'; cx.fillStyle = on ? '#ffe9a8' : '#cfc8b8';
-          cx.strokeText(nm, X, Y + rr * 3.1); cx.fillText(nm, X, Y + rr * 3.1); cx.restore(); }
+      if (shut && ok(lkI)) { const w = rr * 2.1; cx.drawImage(lkI, X - w / 2, Y - w * 0.55, w, w * lkI.naturalHeight / lkI.naturalWidth); }   // сюда ещё не доходил
+      // подпись пункта на карте выбора, когда она приближена: арена этой части мира и кто в ней ждёт (мини-босс или босс)
+      if (st.select && cam.z >= 1.5) {
+        const fs = Math.round(9 * u * Math.sqrt(cam.z)), foe = foeOf(c + 1, j);
+        cx.save(); cx.textAlign = 'center'; cx.lineWidth = 3 * u; cx.strokeStyle = 'rgba(20,12,4,0.9)';
+        cx.font = 'bold ' + fs + 'px Georgia, serif'; cx.fillStyle = shut ? '#b5ae9f' : '#ffe9a8';
+        cx.strokeText(ARENA_NAMES[c][j], X, Y + rr * 3.1); cx.fillText(ARENA_NAMES[c][j], X, Y + rr * 3.1);
+        if (foe) { cx.font = Math.round(fs * 0.88) + 'px Georgia, serif'; cx.fillStyle = shut ? '#9a9486' : '#f1d9b0'; cx.strokeText(foe, X, Y + rr * 3.1 + fs * 1.15); cx.fillText(foe, X, Y + rr * 3.1 + fs * 1.15); }
+        cx.restore();
       }
     }
     // пройденная часть — золотая и светится
@@ -268,7 +309,7 @@ const PATHMAP = (() => {
     cx.lineWidth = 6 * u; cx.strokeStyle = 'rgba(40,20,5,0.9)'; cx.fillStyle = '#ffd98a';
     if (!st.select) { cx.strokeText('ПУТЬ ГЕРОЕВ', W / 2, 34 * u); cx.fillText('ПУТЬ ГЕРОЕВ', W / 2, 34 * u); }
     cx.font = Math.round(15 * u) + 'px Georgia, serif'; cx.fillStyle = 'rgba(255,240,210,0.85)'; cx.lineWidth = 4 * u;
-    const sub = st.select ? (st.lockedTap > 0 ? 'эта глава ещё закрыта — пройди предыдущие' : 'тяни карту, приближай пальцами; коснись главы, чтобы выбрать — пройденные можно переиграть') : st.skipHint ? 'коснись, чтобы продолжить' : '';
+    const sub = st.select ? (st.lockedTap > 0 ? (st.lockedPt ? 'это место ещё закрыто — сначала дойди до него в бою' : 'эта глава ещё закрыта — пройди предыдущие') : 'тяни карту, приближай пальцами; коснись главы или точки на пути, чтобы начать оттуда') : st.skipHint ? 'коснись, чтобы продолжить' : '';
     if (sub) { cx.strokeText(sub, W / 2, H - 22 * u); cx.fillText(sub, W / 2, H - 22 * u); }
     cx.restore();
   }
@@ -326,10 +367,11 @@ const PATHMAP = (() => {
     cancelAnimationFrame(raf); cv.style.display = 'none';
     if (BTN) BTN.style.display = 'none';
     if (typeof SHOP !== 'undefined') SHOP.paused = !!st.wasPaused;
-    const f = st.onDone, pk = st.onPick, c = st.picked; st = null; PATHMAP.on = false; if (pk && c) pk(c); if (f) f();
+    const f = st.onDone, pk = st.onPick, c = st.picked, w = st.selW; st = null; PATHMAP.on = false; if (pk && c) pk(c, w); if (f) f();   // w — сколько волн считать пройденными; null — продолжить с места остановки
   }
   return {
-    on: false, NAMES, NODES, ground: [], sky: [],
+    on: false, NAMES, NODES, ARENA_NAMES, TMAX, at, ground: [], sky: [],
+    scr(t) { const g = geo(), p = at(t); return [g.X(p.x) / DPR, g.Y(p.y) / DPR]; },   // где точка пути на экране (для проверок)
     preload,
     show(o) {
       if (!cv) mk();
@@ -337,13 +379,15 @@ const PATHMAP = (() => {
       const prevPaused = st ? st.wasPaused : null; if (st) cancelAnimationFrame(raf);
       preload(); resize();
       const full = o.mode === 'full';
-      const t0 = Math.max(0, Math.min(9, o.t0)), t1 = Math.max(0, Math.min(9, o.t1));
+      const t0 = Math.max(0, Math.min(TMAX, o.t0)), t1 = Math.max(0, Math.min(TMAX, o.t1));
       st = { t0, t1, t: t0, tok: t0, age: 0, rib: 0, flash: 0, out: 0, cur: Math.floor(t0 + 1e-6) + 1, newCur: Math.floor(t1 + 1e-6) + 1,
-        select: o.mode === 'select' ? { best: o.best || 0, open: o.open || 1, litT: o.litT == null ? t1 : o.litT } : null,
+        select: o.mode === 'select' ? { wave: o.wave, best: o.best || 0, open: o.open || 1, litT: o.litT == null ? t1 : o.litT, openT: Math.max(t1, o.openT == null ? (o.litT == null ? t1 : o.litT) : o.openT) } : null,
+        selW: null, selJ: null,
         anim: { from: o.from == null ? t1 : o.from, to: t1, at: 0.4, dur: Math.min(2.4, 0.6 + 0.8 * Math.abs(t1 - (o.from == null ? t1 : o.from))) },
         onMid: o.onMid, onDone: o.onDone, onPick: o.onPick, plan: o.mode === 'select' ? { runAt: 0.3, runDur: 1.0, total: 1e9 } : full ? { full: true, runAt: 0.7, runDur: 1.8, total: 5.6 } : { runAt: 0.45, runDur: 1.1, total: o.mode === 'return' ? 2.2 : 2.6 } };
       if (!full) st.cur = st.newCur = Math.min(10, Math.floor(t1 + 1e-6) + 1);
       st.homeC = st.cur;
+      if (st.select) { const fr = t1 - Math.floor(t1 + 1e-6), j = STEPS.findIndex(x => Math.abs(x - fr) < 1e-3); st.selJ = j < 0 ? null : j; }   // фишка стоит на промежуточном пункте — он и выбран
       cam = { z: 1, fx: 0.5, fy: 0.5 }; parts.length = 0;
       if (o.mode === 'select') { const p = at(st.anim.from), q = at(t1); cam = { z: 2.2, fx: (p.x + q.x) / 2, fy: (p.y + q.y) / 2 }; }
       cv.style.display = 'block'; PATHMAP.on = true; last = performance.now(); goBtn();
@@ -352,7 +396,7 @@ const PATHMAP = (() => {
       raf = requestAnimationFrame(tick);
     },
     // положение на пути по сквозному номеру волны: глава мира и доля пройденных раундов
-    tOf(wv) { const a = BAL.at(Math.max(1, wv)); const done = a.W >= 10 ? 1 : Math.floor(a.W / 3) / 4; return Math.min(9, a.M - 1 + done * 0.999); },
+    tOf(wv) { const a = BAL.at(Math.max(1, wv)); const done = a.W >= 10 ? 1 : Math.floor(a.W / 3) / 4; return Math.min(TMAX, a.M - 1 + done * 0.999); },
   };
 })();
 // картинки карты — заранее, чтобы первый показ не появлялся по частям
