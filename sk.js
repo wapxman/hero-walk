@@ -226,7 +226,8 @@ const SK = (() => {
       const i = img(l.img); if (!ready(i)) continue;
       const run = Math.min(1, l.t / l.run), len = l.len * run, a = Math.min(1, (l.dur - l.t) / 0.4);
       ctx.save(); ctx.globalAlpha = Math.max(0, a); ctx.translate(l.x, l.y); ctx.scale(1, YK); ctx.rotate(Math.atan2(l.dy, l.dx));
-      ctx.drawImage(i, 0, 0, i.naturalWidth * run, i.naturalHeight, 0, -l.w * 0.9, len, l.w * 1.8); ctx.restore();
+      const vh = l.vis || l.w * 1.8;   // vis — высота картинки на земле, если полоса занимает в ней узкую середину (листы v34)
+      ctx.drawImage(i, 0, 0, i.naturalWidth * run, i.naturalHeight, 0, -vh / 2, len, vh); ctx.restore();
     }
     for (const r of RINGS) { if (r.t < (r.delay || 0)) continue; const i = img(r.img); if (!ready(i)) continue; const w = r.R * 2.4, a = Math.min(1, (r.t - (r.delay || 0)) / 0.25, (r.dur - r.t) / 0.4); ctx.save(); ctx.globalAlpha = a; ctx.translate(r.x, r.y); ctx.scale(1, YK); ctx.drawImage(i, -w / 2, -w / 2, w, w); ctx.restore(); }
     for (const w of WALLS) { const i = img(w.img); if (!ready(i)) continue; const a = Math.min(1, w.t / 0.25, (w.dur - w.t) / 0.4); ctx.save(); ctx.globalAlpha = a; ctx.translate(w.x, w.y); ctx.scale(1, YK); ctx.rotate(w.ang); const s = w.R * 2.4; ctx.drawImage(i, -s / 2, -s / 2, s, s); ctx.restore(); }

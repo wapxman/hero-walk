@@ -3368,5 +3368,1603 @@
     "how": "target"
    }
   ]
+ },
+ "v_abyssberserker": {
+  "size": 215,
+  "nm": "Бездный берсерк",
+  "mul": {
+   "run": {
+    "at": "vl_v_abyssberserker_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 262
+   },
+   "atk": {
+    "at": "vl_v_abyssberserker_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 326
+   },
+   "cast1": {
+    "at": "vl_v_abyssberserker_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   },
+   "die": {
+    "at": "vl_v_abyssberserker_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 326
+   },
+   "idle": {
+    "at": "vl_v_abyssberserker_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 262
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_abyssberserker_1.webp",
+    "how": "self"
+   }
+  ]
+ },
+ "v_abyssguard": {
+  "size": 215,
+  "nm": "Глубинный страж",
+  "mul": {
+   "run": {
+    "at": "vl_v_abyssguard_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "atk": {
+    "at": "vl_v_abyssguard_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 344
+   },
+   "cast1": {
+    "at": "vl_v_abyssguard_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 344
+   },
+   "die": {
+    "at": "vl_v_abyssguard_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 344
+   },
+   "idle": {
+    "at": "vl_v_abyssguard_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 294
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_abyssguard_1.webp",
+    "how": "self"
+   }
+  ]
+ },
+ "v_abyssscarab": {
+  "size": 180,
+  "nm": "Скарабей бездны",
+  "mul": {
+   "run": {
+    "at": "vl_v_abyssscarab_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "atk": {
+    "at": "vl_v_abyssscarab_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 344
+   },
+   "cast1": {
+    "at": "vl_v_abyssscarab_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 344
+   },
+   "die": {
+    "at": "vl_v_abyssscarab_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 344
+   },
+   "idle": {
+    "at": "vl_v_abyssscarab_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 294
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_abyssscarab_1.webp",
+    "how": "moving"
+   }
+  ]
+ },
+ "v_ashskeleton": {
+  "size": 180,
+  "nm": "Пепельный лучник",
+  "mul": {
+   "run": {
+    "at": "vl_v_ashskeleton_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_v_ashskeleton_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "cast1": {
+    "at": "vl_v_ashskeleton_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_v_ashskeleton_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_v_ashskeleton_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_ashskeleton_1.webp",
+    "how": "multi"
+   }
+  ]
+ },
+ "v_batrider": {
+  "size": 180,
+  "nm": "Поджигатель на нетопыре",
+  "mul": {
+   "run": {
+    "at": "vl_v_batrider_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   },
+   "atk": {
+    "at": "vl_v_batrider_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 376
+   },
+   "cast1": {
+    "at": "vl_v_batrider_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 376
+   },
+   "die": {
+    "at": "vl_v_batrider_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 376
+   },
+   "idle": {
+    "at": "vl_v_batrider_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 326
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_batrider_1.webp",
+    "how": "target"
+   }
+  ]
+ },
+ "v_bloodpriest": {
+  "size": 180,
+  "nm": "Жрец крови",
+  "mul": {
+   "run": {
+    "at": "vl_v_bloodpriest_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_v_bloodpriest_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "cast1": {
+    "at": "vl_v_bloodpriest_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_v_bloodpriest_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_v_bloodpriest_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_bloodpriest_1.webp",
+    "how": "target"
+   }
+  ]
+ },
+ "v_butcher": {
+  "size": 215,
+  "nm": "Тюремный мясник",
+  "mul": {
+   "run": {
+    "at": "vl_v_butcher_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 262
+   },
+   "atk": {
+    "at": "vl_v_butcher_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 326
+   },
+   "cast1": {
+    "at": "vl_v_butcher_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   },
+   "die": {
+    "at": "vl_v_butcher_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 326
+   },
+   "idle": {
+    "at": "vl_v_butcher_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 262
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_butcher_1.webp",
+    "how": "self"
+   }
+  ]
+ },
+ "v_chaplain": {
+  "size": 180,
+  "nm": "Чумной капеллан",
+  "mul": {
+   "run": {
+    "at": "vl_v_chaplain_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_v_chaplain_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "cast1": {
+    "at": "vl_v_chaplain_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_v_chaplain_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_v_chaplain_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_chaplain_1.webp",
+    "how": "self"
+   }
+  ]
+ },
+ "v_darkseer": {
+  "size": 190,
+  "nm": "Тёмный провидец руин",
+  "mul": {
+   "run": {
+    "at": "vl_v_darkseer_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_v_darkseer_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "cast1": {
+    "at": "vl_v_darkseer_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_v_darkseer_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_v_darkseer_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_darkseer_1.webp",
+    "how": "target"
+   }
+  ]
+ },
+ "v_eclipser": {
+  "size": 200,
+  "nm": "Затмевающий",
+  "mul": {
+   "run": {
+    "at": "vl_v_eclipser_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "atk": {
+    "at": "vl_v_eclipser_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 344
+   },
+   "cast1": {
+    "at": "vl_v_eclipser_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 344
+   },
+   "die": {
+    "at": "vl_v_eclipser_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 344
+   },
+   "idle": {
+    "at": "vl_v_eclipser_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 294
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_eclipser_1.webp",
+    "how": "self"
+   }
+  ]
+ },
+ "v_fallensunpriest": {
+  "size": 180,
+  "nm": "Падший жрец солнца",
+  "mul": {
+   "run": {
+    "at": "vl_v_fallensunpriest_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_v_fallensunpriest_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "cast1": {
+    "at": "vl_v_fallensunpriest_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_v_fallensunpriest_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_v_fallensunpriest_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_fallensunpriest_1.webp",
+    "how": "target"
+   }
+  ]
+ },
+ "v_featherserpent": {
+  "size": 160,
+  "nm": "Пернатый змей",
+  "mul": {
+   "run": {
+    "at": "vl_v_featherserpent_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 262
+   },
+   "atk": {
+    "at": "vl_v_featherserpent_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 326
+   },
+   "cast1": {
+    "at": "vl_v_featherserpent_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   },
+   "die": {
+    "at": "vl_v_featherserpent_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 326
+   },
+   "idle": {
+    "at": "vl_v_featherserpent_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 262
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_featherserpent_1.webp",
+    "how": "target"
+   }
+  ]
+ },
+ "v_firehorn": {
+  "size": 215,
+  "nm": "Огнерогий",
+  "mul": {
+   "run": {
+    "at": "vl_v_firehorn_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   },
+   "atk": {
+    "at": "vl_v_firehorn_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 376
+   },
+   "cast1": {
+    "at": "vl_v_firehorn_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 376
+   },
+   "die": {
+    "at": "vl_v_firehorn_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 376
+   },
+   "idle": {
+    "at": "vl_v_firehorn_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 326
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_firehorn_1.webp",
+    "how": "target"
+   }
+  ]
+ },
+ "v_gargoyle": {
+  "size": 170,
+  "nm": "Горгулья руин",
+  "mul": {
+   "run": {
+    "at": "vl_v_gargoyle_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "atk": {
+    "at": "vl_v_gargoyle_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 344
+   },
+   "cast1": {
+    "at": "vl_v_gargoyle_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 344
+   },
+   "die": {
+    "at": "vl_v_gargoyle_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 344
+   },
+   "idle": {
+    "at": "vl_v_gargoyle_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 294
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_gargoyle_1.webp",
+    "how": "target"
+   }
+  ]
+ },
+ "v_ghoulfarmer": {
+  "size": 215,
+  "nm": "Восставший селянин",
+  "mul": {
+   "run": {
+    "at": "vl_v_ghoulfarmer_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 262
+   },
+   "atk": {
+    "at": "vl_v_ghoulfarmer_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 326
+   },
+   "cast1": {
+    "at": "vl_v_ghoulfarmer_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   },
+   "die": {
+    "at": "vl_v_ghoulfarmer_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 326
+   },
+   "idle": {
+    "at": "vl_v_ghoulfarmer_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 262
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_ghoulfarmer_1.webp",
+    "how": "target"
+   }
+  ]
+ },
+ "v_glacierlich": {
+  "size": 180,
+  "nm": "Лич ледника",
+  "mul": {
+   "run": {
+    "at": "vl_v_glacierlich_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_v_glacierlich_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "cast1": {
+    "at": "vl_v_glacierlich_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_v_glacierlich_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_v_glacierlich_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_glacierlich_1.webp",
+    "how": "target"
+   }
+  ]
+ },
+ "v_icejelly": {
+  "size": 210,
+  "nm": "Ледяная медуза",
+  "mul": {
+   "run": {
+    "at": "vl_v_icejelly_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_v_icejelly_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "cast1": {
+    "at": "vl_v_icejelly_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_v_icejelly_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_v_icejelly_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_icejelly_1.webp",
+    "how": "target"
+   }
+  ]
+ },
+ "v_koboldtrapper": {
+  "size": 150,
+  "nm": "Кобольд-ловчий",
+  "mul": {
+   "run": {
+    "at": "vl_v_koboldtrapper_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_v_koboldtrapper_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "cast1": {
+    "at": "vl_v_koboldtrapper_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_v_koboldtrapper_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_v_koboldtrapper_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_koboldtrapper_1.webp",
+    "how": "target"
+   }
+  ]
+ },
+ "v_lavaskeletonking": {
+  "size": 215,
+  "nm": "Лавовый король-скелет",
+  "mul": {
+   "run": {
+    "at": "vl_v_lavaskeletonking_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 262
+   },
+   "atk": {
+    "at": "vl_v_lavaskeletonking_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 326
+   },
+   "cast1": {
+    "at": "vl_v_lavaskeletonking_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   },
+   "die": {
+    "at": "vl_v_lavaskeletonking_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 326
+   },
+   "idle": {
+    "at": "vl_v_lavaskeletonking_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 262
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_lavaskeletonking_1.webp",
+    "how": "self"
+   }
+  ]
+ },
+ "v_lavatick": {
+  "size": 130,
+  "nm": "Огненный клещ",
+  "mul": {
+   "run": {
+    "at": "vl_v_lavatick_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_v_lavatick_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "cast1": {
+    "at": "vl_v_lavatick_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_v_lavatick_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_v_lavatick_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_lavatick_1.webp",
+    "how": "self"
+   }
+  ]
+ },
+ "v_maskedassassin": {
+  "size": 180,
+  "nm": "Убийца в маске",
+  "mul": {
+   "run": {
+    "at": "vl_v_maskedassassin_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_v_maskedassassin_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "cast1": {
+    "at": "vl_v_maskedassassin_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_v_maskedassassin_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_v_maskedassassin_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_maskedassassin_1.webp",
+    "how": "moving"
+   }
+  ]
+ },
+ "v_mirrorweaver": {
+  "size": 160,
+  "nm": "Зеркальный скиталец",
+  "mul": {
+   "run": {
+    "at": "vl_v_mirrorweaver_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 262
+   },
+   "atk": {
+    "at": "vl_v_mirrorweaver_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 326
+   },
+   "cast1": {
+    "at": "vl_v_mirrorweaver_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   },
+   "die": {
+    "at": "vl_v_mirrorweaver_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 326
+   },
+   "idle": {
+    "at": "vl_v_mirrorweaver_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 262
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_mirrorweaver_1.webp",
+    "how": "moving"
+   }
+  ]
+ },
+ "v_netherkeeper": {
+  "size": 150,
+  "nm": "Скверный хранитель",
+  "mul": {
+   "run": {
+    "at": "vl_v_netherkeeper_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_v_netherkeeper_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "cast1": {
+    "at": "vl_v_netherkeeper_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_v_netherkeeper_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_v_netherkeeper_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_netherkeeper_1.webp",
+    "how": "self"
+   }
+  ]
+ },
+ "v_orespark": {
+  "size": 180,
+  "nm": "Рудный искровик",
+  "mul": {
+   "run": {
+    "at": "vl_v_orespark_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_v_orespark_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "cast1": {
+    "at": "vl_v_orespark_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_v_orespark_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_v_orespark_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_orespark_1.webp",
+    "how": "target"
+   }
+  ]
+ },
+ "v_permafrostknight": {
+  "size": 240,
+  "nm": "Рыцарь вечной мерзлоты",
+  "mul": {
+   "run": {
+    "at": "vl_v_permafrostknight_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 344
+   },
+   "atk": {
+    "at": "vl_v_permafrostknight_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 408
+   },
+   "cast1": {
+    "at": "vl_v_permafrostknight_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "die": {
+    "at": "vl_v_permafrostknight_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 408
+   },
+   "idle": {
+    "at": "vl_v_permafrostknight_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 344
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_permafrostknight_1.webp",
+    "how": "self"
+   }
+  ]
+ },
+ "v_shadowlord": {
+  "size": 190,
+  "nm": "Повелитель теней",
+  "mul": {
+   "run": {
+    "at": "vl_v_shadowlord_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_v_shadowlord_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "cast1": {
+    "at": "vl_v_shadowlord_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_v_shadowlord_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_v_shadowlord_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_shadowlord_1.webp",
+    "how": "moving"
+   }
+  ]
+ },
+ "v_slithereen": {
+  "size": 180,
+  "nm": "Трясинный рыбоглав",
+  "mul": {
+   "run": {
+    "at": "vl_v_slithereen_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_v_slithereen_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "cast1": {
+    "at": "vl_v_slithereen_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_v_slithereen_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_v_slithereen_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_slithereen_1.webp",
+    "how": "self"
+   }
+  ]
+ },
+ "v_snowpackalpha": {
+  "size": 165,
+  "nm": "Снежный вожак",
+  "mul": {
+   "run": {
+    "at": "vl_v_snowpackalpha_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "atk": {
+    "at": "vl_v_snowpackalpha_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 344
+   },
+   "cast1": {
+    "at": "vl_v_snowpackalpha_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 344
+   },
+   "die": {
+    "at": "vl_v_snowpackalpha_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 344
+   },
+   "idle": {
+    "at": "vl_v_snowpackalpha_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 294
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_snowpackalpha_1.webp",
+    "how": "self"
+   }
+  ]
+ },
+ "v_souldemon": {
+  "size": 180,
+  "nm": "Демон душ",
+  "mul": {
+   "run": {
+    "at": "vl_v_souldemon_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 262
+   },
+   "atk": {
+    "at": "vl_v_souldemon_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 326
+   },
+   "cast1": {
+    "at": "vl_v_souldemon_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   },
+   "die": {
+    "at": "vl_v_souldemon_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 326
+   },
+   "idle": {
+    "at": "vl_v_souldemon_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 262
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_souldemon_1.webp",
+    "how": "multi"
+   }
+  ]
+ },
+ "v_spectralblade": {
+  "size": 180,
+  "nm": "Призрачный клинок",
+  "mul": {
+   "run": {
+    "at": "vl_v_spectralblade_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_v_spectralblade_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "cast1": {
+    "at": "vl_v_spectralblade_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_v_spectralblade_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_v_spectralblade_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_spectralblade_1.webp",
+    "how": "moving"
+   }
+  ]
+ },
+ "v_teslaguard": {
+  "size": 215,
+  "nm": "Гномий тесла-страж",
+  "mul": {
+   "run": {
+    "at": "vl_v_teslaguard_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 262
+   },
+   "atk": {
+    "at": "vl_v_teslaguard_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 326
+   },
+   "cast1": {
+    "at": "vl_v_teslaguard_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   },
+   "die": {
+    "at": "vl_v_teslaguard_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 326
+   },
+   "idle": {
+    "at": "vl_v_teslaguard_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 262
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_teslaguard_1.webp",
+    "how": "self"
+   }
+  ]
+ },
+ "v_tunnelmammoth": {
+  "size": 215,
+  "nm": "Мамонт-проходчик",
+  "mul": {
+   "run": {
+    "at": "vl_v_tunnelmammoth_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 344
+   },
+   "atk": {
+    "at": "vl_v_tunnelmammoth_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 408
+   },
+   "cast1": {
+    "at": "vl_v_tunnelmammoth_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "die": {
+    "at": "vl_v_tunnelmammoth_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 408
+   },
+   "idle": {
+    "at": "vl_v_tunnelmammoth_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 344
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_tunnelmammoth_1.webp",
+    "how": "moving"
+   }
+  ]
+ },
+ "v_voidwyvern": {
+  "size": 170,
+  "nm": "Виверна бездны",
+  "mul": {
+   "run": {
+    "at": "vl_v_voidwyvern_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "atk": {
+    "at": "vl_v_voidwyvern_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 344
+   },
+   "cast1": {
+    "at": "vl_v_voidwyvern_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 344
+   },
+   "die": {
+    "at": "vl_v_voidwyvern_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 344
+   },
+   "idle": {
+    "at": "vl_v_voidwyvern_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 294
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_voidwyvern_1.webp",
+    "how": "target"
+   }
+  ]
+ },
+ "v_warlock": {
+  "size": 180,
+  "nm": "Королевский чернокнижник",
+  "mul": {
+   "run": {
+    "at": "vl_v_warlock_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 230
+   },
+   "atk": {
+    "at": "vl_v_warlock_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 294
+   },
+   "cast1": {
+    "at": "vl_v_warlock_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "die": {
+    "at": "vl_v_warlock_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 294
+   },
+   "idle": {
+    "at": "vl_v_warlock_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 230
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_v_warlock_1.webp",
+    "how": "target"
+   }
+  ]
  }
 }

@@ -67,59 +67,24 @@ const KIND = {
       { nm: 'Разлом', ph: 24, how: 'multi', R: 120, warn: 1.0, dmg: 60, cd: 10, an: 'cast2' }] },
 };
 // кто выходит в каком мире: рядовые ближнего и дальнего боя, элита и босс мира
-// ---- ночь 19.11: 10 миров. Пустые миры пока получают перекрашенных злодеев ChatGPT: тот же лист, своё имя и цвет
-// (tint — CSS-фильтр, лист перекрашивается один раз при загрузке, см. loadMul). Клауди дорисует своих злодеев под эти миры.
+// ---- перекрашенные злодеи (tint — CSS-фильтр, лист перекрашивается один раз при загрузке, см. loadMul).
+// v96: перекраски рядовых и элиты убраны — у каждого мира свои злодеи (34 новых, ниже); остались только временные боссы tb_*.
 // Боссы миров без готового арта — временно перекрашенные существующие боссы (с их магией), до прихода настоящих.
 const VARIANT = {
   // 1 Королевский замок
-  cs_guard: ['drownedknight', 'Чёрный страж', 'grayscale(0.7) brightness(0.75) contrast(1.25)'],
-  cs_hound: ['shadowwolf', 'Замковый пёс', 'sepia(0.8) brightness(1.5) saturate(1.2)'],
-  cs_brute: ['boarbrute', 'Тюремщик', 'grayscale(0.5) brightness(0.8) contrast(1.2)'],
-  cs_archer: ['hollowarcher', 'Призрачный арбалетчик', 'grayscale(0.6) brightness(1.15)'],
-  el_castellan: ['el_drowned', 'Кастелян', 'grayscale(0.8) brightness(0.7) contrast(1.3)'],
   tb_blackknight: ['b_reaper', ['Чёрный Рыцарь', 'страж Королевского замка'], 'grayscale(0.9) brightness(0.6) contrast(1.4)'],
   // 2 Горящая деревня
-  bv_scare: ['scarecrow', 'Горящее пугало', 'hue-rotate(-25deg) saturate(1.6) brightness(0.9)'],
   tb_plaguelord: ['b_ashlord', ['Чумной Мародёр', 'поджигатель деревни'], 'hue-rotate(60deg) saturate(0.7) brightness(0.9)'],
   // 3 Осенний лес
   tb_serpentqueen: ['b_thornqueen', ['Королева Змей', 'хозяйка Осеннего леса'], 'hue-rotate(40deg) saturate(1.4)'],
   // 5 Гномьи шахты
-  mn_worm: ['leechworm', 'Пещерный червь', 'hue-rotate(45deg) brightness(0.8) saturate(0.8)'],
-  mn_boar: ['boarbrute', 'Рудокоп-громила', 'grayscale(0.4) sepia(0.6) brightness(0.9)'],
-  mn_imp: ['fireimp', 'Горновой бес', 'hue-rotate(15deg) brightness(1.1)'],
-  mn_thrower: ['ashcultist', 'Гномий огнеметатель', 'hue-rotate(25deg) saturate(1.2)'],
-  el_forgeman: ['el_salamander', 'Кузнечный страж', 'sepia(0.5) hue-rotate(-10deg) brightness(0.9)'],
   tb_forgegolem: ['b_ashlord', ['Горн-Голем', 'сердце Гномьих шахт'], 'sepia(0.8) hue-rotate(-15deg) brightness(1.05)'],
   // 6 Ледяные вершины
-  ic_wolf: ['shadowwolf', 'Ледяной волк', 'invert(0.8) hue-rotate(170deg) saturate(0.6) brightness(1.2)'],
-  ic_bear: ['autumnbear', 'Снежный медведь', 'grayscale(0.75) brightness(1.45)'],
-  ic_fox: ['werefox', 'Снежный лис', 'grayscale(0.6) brightness(1.3) hue-rotate(180deg)'],
-  ic_wisp: ['wisplantern', 'Морозный фонарщик', 'saturate(0.4) brightness(1.4) hue-rotate(-30deg)'],
-  ic_harpy: ['crowharpy', 'Снежная гарпия', 'grayscale(1) brightness(1.7)'],
-  el_icebear: ['el_bear', 'Ледяной исполин', 'grayscale(0.6) brightness(1.4) hue-rotate(180deg)'],
   tb_frostqueen: ['b_thornqueen', ['Королева Вьюги', 'владычица Ледяных вершин'], 'hue-rotate(160deg) saturate(0.8) brightness(1.3)'],
   // 7 Руины Зеркального города
-  rn_knight: ['drownedknight', 'Зеркальный рыцарь', 'grayscale(0.85) brightness(1.35)'],
-  rn_scare: ['scarecrow', 'Пустое пугало', 'grayscale(0.75) brightness(1.1)'],
-  rn_ghoul: ['bogghoul', 'Руинный упырь', 'grayscale(0.5) hue-rotate(200deg)'],
-  rn_archer: ['hollowarcher', 'Лучник руин', 'grayscale(0.7) brightness(1.25)'],
-  rn_wraith: ['cinderwraith', 'Зеркальный призрак', 'hue-rotate(200deg) saturate(0.6) brightness(1.25)'],
-  el_mirror: ['el_drowned', 'Страж зеркал', 'grayscale(0.9) brightness(1.5)'],
   tb_mirrorlord: ['b_voidmage', ['Зеркальный Лорд', 'хозяин Руин'], 'grayscale(0.85) brightness(1.4)'],
   // 9 Небесный храм
-  sk_fox: ['werefox', 'Небесный лис-страж', 'sepia(0.45) brightness(1.3) saturate(1.3)'],
-  sk_warrior: ['salamander', 'Небесный воитель', 'hue-rotate(40deg) brightness(1.2)'],
-  sk_harpy: ['crowharpy', 'Белая гарпия', 'grayscale(1) brightness(1.75)'],
-  sk_wisp: ['wisplantern', 'Светоносец', 'hue-rotate(-120deg) brightness(1.2)'],
-  el_seraph: ['el_salamander', 'Серафим-страж', 'hue-rotate(45deg) brightness(1.35) saturate(0.8)'],
   tb_skyjudge: ['b_voidmage', ['Небесный Судья', 'страж Небесного храма'], 'sepia(0.9) hue-rotate(-10deg) brightness(1.35) saturate(1.4)'],
-  // 10 Бездна
-  ab_wolf: ['shadowwolf', 'Волк Бездны', 'hue-rotate(40deg) saturate(1.8) brightness(1.3)'],
-  ab_ghoul: ['bogghoul', 'Пустотный упырь', 'hue-rotate(200deg) saturate(1.4) brightness(0.9)'],
-  ab_knight: ['drownedknight', 'Рыцарь Бездны', 'hue-rotate(160deg) saturate(1.3)'],
-  ab_wraith: ['cinderwraith', 'Призрак Бездны', 'hue-rotate(230deg) saturate(1.4)'],
-  ab_wisp: ['wisplantern', 'Огонёк Бездны', 'hue-rotate(150deg) saturate(1.3)'],
-  el_voidcultist: ['el_cultist', 'Жрец Бездны', 'hue-rotate(230deg) saturate(1.3)'],
 };
 for (const id in VARIANT) {
   const [base, nm, tint] = VARIANT[id], b = KIND[base];
@@ -165,6 +130,70 @@ KIND.frostlynx = { nm: 'Хрустальный барс', ch: 'frostlynx', mel: 
 KIND.prismkeeper = { nm: 'Хранитель призмы', ch: 'prismkeeper', rng: 1, hp: 140, rad: 22, speed: 100, dmg: [20, 26], cd: 2.0, want: 560, shot: 900, pcol: '200,235,255', bolt: 1, xp: 15, gold: 11, col: '#c0d0e0' };
 KIND.marblegriffin = { nm: 'Мраморный грифон', ch: 'marblegriffin', mel: 1, hp: 300, rad: 30, speed: 140, dmg: [22, 28], cd: 1.1, reach: 84, xp: 18, gold: 14, col: '#d0d0c0' };
 KIND.skyharpist = { nm: 'Небесная арфистка', ch: 'skyharpist', rng: 1, hp: 135, rad: 22, speed: 110, dmg: [14, 18], cd: 1.6, want: 500, shot: 620, pcol: '255,225,120', fan: 3, xp: 14, gold: 11, col: '#e0d0a0' };
+// ---- 34 новых рядовых злодея (v96, пакет Клауди 20–21.11, VILLAINS34_FOR_KLOD.md): у каждого мира свои, по одному умению (v34.js).
+// Роли от среднего рядового (ближний 180 HP, скорость 145, 16 урона/с; дальний 125 HP, скорость 115, 10 урона/с):
+// танк — HP ×1,6, скорость ×0,8, урон ×1,1; дамагер — HP ×0,8, скорость ×1,2, урон ×1,3, бьёт чаще; маг — дальний, HP ×0,8, урон обычный.
+// wide — зверь шире обычного: круг столкновения шире (rad ×√wide), ближнему — рука длиннее.
+// 1 Королевский замок
+KIND.v_butcher = { nm: 'Тюремный мясник', ch: 'v_butcher', mel: 1, hp: 290, rad: 30, speed: 116, dmg: [22, 27], cd: 1.4, reach: 92, xp: 19, gold: 14 };
+KIND.v_maskedassassin = { nm: 'Убийца в маске', ch: 'v_maskedassassin', mel: 1, hp: 145, rad: 22, speed: 175, dmg: [13, 16], cd: 0.7, reach: 70, xp: 12, gold: 9 };
+KIND.v_chaplain = { nm: 'Чумной капеллан', ch: 'v_chaplain', rng: 1, hp: 100, rad: 21, speed: 110, dmg: [15, 19], cd: 1.7, want: 500, shot: 580, pcol: '140,235,90', xp: 14, gold: 11 };
+KIND.v_warlock = { nm: 'Королевский чернокнижник', ch: 'v_warlock', rng: 1, hp: 100, rad: 21, speed: 110, dmg: [15, 19], cd: 1.7, want: 500, shot: 580, pcol: '255,60,50', xp: 14, gold: 11 };
+// 2 Горящая деревня
+KIND.v_batrider = { nm: 'Поджигатель на нетопыре', ch: 'v_batrider', rng: 1, hp: 100, rad: 27, speed: 110, dmg: [15, 19], cd: 1.7, want: 500, shot: 580, pcol: '255,140,40', xp: 14, gold: 11, wide: 1.7 };
+KIND.v_ghoulfarmer = { nm: 'Восставший селянин', ch: 'v_ghoulfarmer', mel: 1, hp: 290, rad: 30, speed: 116, dmg: [22, 27], cd: 1.4, reach: 92, xp: 19, gold: 14 };
+// 4 Проклятое болото
+KIND.v_slithereen = { nm: 'Трясинный рыбоглав', ch: 'v_slithereen', mel: 1, hp: 145, rad: 22, speed: 175, dmg: [13, 16], cd: 0.7, reach: 70, xp: 12, gold: 9 };
+// 5 Гномьи шахты
+KIND.v_tunnelmammoth = { nm: 'Мамонт-проходчик', ch: 'v_tunnelmammoth', mel: 1, hp: 290, rad: 38, speed: 116, dmg: [22, 27], cd: 1.4, reach: 98, xp: 19, gold: 14, wide: 1.6 };
+KIND.v_orespark = { nm: 'Рудный искровик', ch: 'v_orespark', rng: 1, hp: 100, rad: 21, speed: 110, dmg: [15, 19], cd: 1.7, want: 500, shot: 580, pcol: '110,200,255', xp: 14, gold: 11 };
+KIND.v_koboldtrapper = { nm: 'Кобольд-ловчий', ch: 'v_koboldtrapper', mel: 1, hp: 145, rad: 22, speed: 175, dmg: [13, 16], cd: 0.7, reach: 70, xp: 12, gold: 9 };
+KIND.v_teslaguard = { nm: 'Гномий тесла-страж', ch: 'v_teslaguard', rng: 1, hp: 100, rad: 21, speed: 110, dmg: [15, 19], cd: 1.7, want: 500, shot: 580, pcol: '185,225,255', xp: 14, gold: 11 };
+// 6 Ледяные вершины
+KIND.v_glacierlich = { nm: 'Лич ледника', ch: 'v_glacierlich', rng: 1, hp: 100, rad: 21, speed: 110, dmg: [15, 19], cd: 1.7, want: 500, shot: 580, pcol: '170,225,255', xp: 14, gold: 11 };
+KIND.v_icejelly = { nm: 'Ледяная медуза', ch: 'v_icejelly', rng: 1, hp: 100, rad: 21, speed: 110, dmg: [15, 19], cd: 1.7, want: 500, shot: 580, pcol: '150,210,255', xp: 14, gold: 11 };
+KIND.v_snowpackalpha = { nm: 'Снежный вожак', ch: 'v_snowpackalpha', mel: 1, hp: 145, rad: 29, speed: 175, dmg: [13, 16], cd: 0.7, reach: 76, xp: 12, gold: 9, wide: 1.75 };
+KIND.v_permafrostknight = { nm: 'Рыцарь вечной мерзлоты', ch: 'v_permafrostknight', mel: 1, hp: 290, rad: 37, speed: 116, dmg: [22, 27], cd: 1.4, reach: 98, xp: 19, gold: 14, wide: 1.5 };
+// 7 Руины Зеркального города
+KIND.v_spectralblade = { nm: 'Призрачный клинок', ch: 'v_spectralblade', mel: 1, hp: 145, rad: 22, speed: 175, dmg: [13, 16], cd: 0.7, reach: 70, xp: 12, gold: 9 };
+KIND.v_mirrorweaver = { nm: 'Зеркальный скиталец', ch: 'v_mirrorweaver', mel: 1, hp: 145, rad: 28, speed: 175, dmg: [13, 16], cd: 0.7, reach: 75, xp: 12, gold: 9, wide: 1.6 };
+KIND.v_darkseer = { nm: 'Тёмный провидец руин', ch: 'v_darkseer', rng: 1, hp: 100, rad: 21, speed: 110, dmg: [15, 19], cd: 1.7, want: 500, shot: 580, pcol: '120,100,235', xp: 14, gold: 11 };
+KIND.v_gargoyle = { nm: 'Горгулья руин', ch: 'v_gargoyle', mel: 1, hp: 290, rad: 38, speed: 116, dmg: [22, 27], cd: 1.4, reach: 98, xp: 19, gold: 14, wide: 1.6 };
+// 8 Огненный вулкан
+KIND.v_souldemon = { nm: 'Демон душ', ch: 'v_souldemon', rng: 1, hp: 100, rad: 25, speed: 110, dmg: [15, 19], cd: 1.7, want: 500, shot: 580, pcol: '255,90,50', xp: 14, gold: 11, wide: 1.4 };
+KIND.v_lavatick = { nm: 'Огненный клещ', ch: 'v_lavatick', mel: 1, hp: 145, rad: 28, speed: 175, dmg: [13, 16], cd: 0.7, reach: 75, xp: 12, gold: 9, wide: 1.6 };
+KIND.v_firehorn = { nm: 'Огнерогий', ch: 'v_firehorn', rng: 1, hp: 100, rad: 26, speed: 110, dmg: [15, 19], cd: 1.7, want: 500, shot: 580, pcol: '255,120,30', xp: 14, gold: 11, wide: 1.5 };
+KIND.v_lavaskeletonking = { nm: 'Лавовый король-скелет', ch: 'v_lavaskeletonking', mel: 1, hp: 290, rad: 30, speed: 116, dmg: [22, 27], cd: 1.4, reach: 92, xp: 19, gold: 14 };
+KIND.v_ashskeleton = { nm: 'Пепельный лучник', ch: 'v_ashskeleton', rng: 1, hp: 100, rad: 21, speed: 138, dmg: [15, 20], cd: 1.3, want: 520, shot: 780, pcol: '255,150,50', xp: 13, gold: 10, bolt: 1 };
+// 9 Небесный храм
+KIND.v_fallensunpriest = { nm: 'Падший жрец солнца', ch: 'v_fallensunpriest', rng: 1, hp: 100, rad: 21, speed: 110, dmg: [15, 19], cd: 1.7, want: 500, shot: 580, pcol: '255,215,90', xp: 14, gold: 11 };
+KIND.v_featherserpent = { nm: 'Пернатый змей', ch: 'v_featherserpent', rng: 1, hp: 100, rad: 27, speed: 110, dmg: [15, 19], cd: 1.7, want: 500, shot: 580, pcol: '160,90,220', xp: 14, gold: 11, wide: 1.6 };
+KIND.v_bloodpriest = { nm: 'Жрец крови', ch: 'v_bloodpriest', mel: 1, hp: 145, rad: 22, speed: 175, dmg: [13, 16], cd: 0.7, reach: 70, xp: 12, gold: 9 };
+KIND.v_eclipser = { nm: 'Затмевающий', ch: 'v_eclipser', mel: 1, hp: 290, rad: 37, speed: 116, dmg: [22, 27], cd: 1.4, reach: 98, xp: 19, gold: 14, wide: 1.5 };
+// 10 Бездна
+KIND.v_abyssguard = { nm: 'Глубинный страж', ch: 'v_abyssguard', mel: 1, hp: 290, rad: 34, speed: 116, dmg: [22, 27], cd: 1.4, reach: 95, xp: 19, gold: 14, wide: 1.3 };
+KIND.v_abyssberserker = { nm: 'Бездный берсерк', ch: 'v_abyssberserker', mel: 1, hp: 290, rad: 30, speed: 116, dmg: [22, 27], cd: 1.4, reach: 92, xp: 19, gold: 14 };
+KIND.v_abyssscarab = { nm: 'Скарабей бездны', ch: 'v_abyssscarab', mel: 1, hp: 145, rad: 28, speed: 175, dmg: [13, 16], cd: 0.7, reach: 75, xp: 12, gold: 9, wide: 1.6 };
+KIND.v_voidwyvern = { nm: 'Виверна бездны', ch: 'v_voidwyvern', rng: 1, hp: 100, rad: 27, speed: 138, dmg: [15, 20], cd: 1.3, want: 520, shot: 780, pcol: '150,235,80', xp: 13, gold: 10, wide: 1.7 };
+KIND.v_netherkeeper = { nm: 'Скверный хранитель', ch: 'v_netherkeeper', rng: 1, hp: 100, rad: 21, speed: 110, dmg: [15, 19], cd: 1.7, want: 500, shot: 580, pcol: '110,240,120', xp: 14, gold: 11 };
+KIND.v_shadowlord = { nm: 'Повелитель теней', ch: 'v_shadowlord', rng: 1, hp: 100, rad: 21, speed: 110, dmg: [15, 19], cd: 1.7, want: 500, shot: 580, pcol: '120,70,190', xp: 14, gold: 11 };
+// элита из своих злодеев мира (14): тот же лист, своё имя; здоровье и урон ниже базовых — их поднимает BAL.ELITE (×3 и ×1,5)
+KIND.el_butcher = Object.assign({}, KIND.v_butcher, { nm: 'Главный мясник', base: 'v_butcher', elite: 1, hp: 220, speed: 104, dmg: [16, 21], cd: 1.4, xp: 24, gold: 18 });
+KIND.el_ghoulfarmer = Object.assign({}, KIND.v_ghoulfarmer, { nm: 'Восставший староста', base: 'v_ghoulfarmer', elite: 1, hp: 220, speed: 104, dmg: [16, 21], cd: 1.4, xp: 24, gold: 18 });
+KIND.el_slithereen = Object.assign({}, KIND.v_slithereen, { nm: 'Рыбоглав-вожак', base: 'v_slithereen', elite: 1, hp: 150, speed: 160, dmg: [11, 14], cd: 0.75, xp: 22, gold: 16 });
+KIND.el_tunnelmammoth = Object.assign({}, KIND.v_tunnelmammoth, { nm: 'Матёрый мамонт', base: 'v_tunnelmammoth', elite: 1, hp: 220, speed: 104, dmg: [16, 21], cd: 1.4, xp: 24, gold: 18 });
+KIND.el_permafrostknight = Object.assign({}, KIND.v_permafrostknight, { nm: 'Командор вечной мерзлоты', base: 'v_permafrostknight', elite: 1, hp: 220, speed: 104, dmg: [16, 21], cd: 1.4, xp: 24, gold: 18 });
+KIND.el_snowpackalpha = Object.assign({}, KIND.v_snowpackalpha, { nm: 'Седой вожак', base: 'v_snowpackalpha', elite: 1, hp: 150, speed: 160, dmg: [11, 14], cd: 0.75, xp: 22, gold: 16 });
+KIND.el_gargoyle = Object.assign({}, KIND.v_gargoyle, { nm: 'Древняя горгулья', base: 'v_gargoyle', elite: 1, hp: 220, speed: 104, dmg: [16, 21], cd: 1.4, xp: 24, gold: 18 });
+KIND.el_spectralblade = Object.assign({}, KIND.v_spectralblade, { nm: 'Призрачный палач', base: 'v_spectralblade', elite: 1, hp: 150, speed: 160, dmg: [11, 14], cd: 0.75, xp: 22, gold: 16 });
+KIND.el_lavaskeletonking = Object.assign({}, KIND.v_lavaskeletonking, { nm: 'Лавовый король-тиран', base: 'v_lavaskeletonking', elite: 1, hp: 220, speed: 104, dmg: [16, 21], cd: 1.4, xp: 24, gold: 18 });
+KIND.el_lavatick = Object.assign({}, KIND.v_lavatick, { nm: 'Клещ-матка', base: 'v_lavatick', elite: 1, hp: 150, speed: 160, dmg: [11, 14], cd: 0.75, xp: 22, gold: 16 });
+KIND.el_eclipser = Object.assign({}, KIND.v_eclipser, { nm: 'Матёрый затмевающий', base: 'v_eclipser', elite: 1, hp: 220, speed: 104, dmg: [16, 21], cd: 1.4, xp: 24, gold: 18 });
+KIND.el_bloodpriest = Object.assign({}, KIND.v_bloodpriest, { nm: 'Верховный жрец крови', base: 'v_bloodpriest', elite: 1, hp: 150, speed: 160, dmg: [11, 14], cd: 0.75, xp: 22, gold: 16 });
+KIND.el_abyssguard = Object.assign({}, KIND.v_abyssguard, { nm: 'Старший глубинный страж', base: 'v_abyssguard', elite: 1, hp: 220, speed: 104, dmg: [16, 21], cd: 1.4, xp: 24, gold: 18 });
+KIND.el_abyssberserker = Object.assign({}, KIND.v_abyssberserker, { nm: 'Берсерк-вожак', base: 'v_abyssberserker', elite: 1, hp: 220, speed: 104, dmg: [16, 21], cd: 1.4, xp: 24, gold: 18 });
+// существа умений: снежный волк «Стаи» (лист вожака, мельче; живёт 15 с)
+KIND.sk_snowwolf = { nm: 'Снежный волк', ch: 'v_snowpackalpha', mel: 1, hp: 50, rad: 16, speed: 200, dmg: [6, 6], cd: 0.9, reach: 60, xp: 2, gold: 1, sz: 0.6 };
 // мини-боссы середины мира (5-я волна): Жнец Урожая в Горящей деревне, Королева Колючек в Осеннем лесу — как элита
 KIND.mb_thornqueen = Object.assign({}, KIND.b_thornqueen, { nm: 'Королева Колючек', boss: 0, elite: 1, hp: 520, sz: 1, xp: 40, gold: 30, base: 'b_thornqueen' });
 KIND.mb_reaper = Object.assign({}, KIND.b_reaper, { nm: 'Жнец Урожая', boss: 0, elite: 1, hp: 540, sz: 1, xp: 40, gold: 30, base: 'b_reaper' });
@@ -205,17 +234,17 @@ KIND.sk_spiderling = { nm: 'Паучок', ch: 'mb_weaver', mel: 1, hp: 60, rad:
 const MINI_ART = { mb_reaper: 1, mb_thornqueen: 1,   // листы 28 новых пришли 20.11 (v87)
   mb_arbalest: 1, mb_executioner: 1, mb_bannerlord: 1, mb_plaguedoc: 1, mb_firebull: 1, mb_weaver: 1, mb_moonhuntress: 1, mb_drownedbride: 1, mb_crocodile: 1, mb_hydra: 1, mb_steamdwarf: 1, mb_trollminer: 1, mb_gemscorpion: 1, mb_snowfairy: 1, mb_walrus: 1, mb_wyvern: 1, mb_templar: 1, mb_mercury: 1, mb_timekeeper: 1, mb_lavaturtle: 1, mb_embermonk: 1, mb_phoenix: 1, mb_windarcher: 1, mb_dawnsmith: 1, mb_sphinx: 1, mb_dreameater: 1, mb_obsidian: 1, mb_gatekeeper: 1 };
 const ROSTER = {
-  1: { mel: ['porcelainmaid', 'cs_guard', 'cs_hound', 'porcelainmaid', 'cs_brute'], rng: ['jester', 'cs_archer'], elite: ['el_castellan'], mini: ['mb_arbalest', 'mb_executioner', 'mb_bannerlord'], boss: 'b_blackknight' },
-  2: { mel: ['fireimp', 'magmahound', 'bv_scare', 'fireimp'], rng: ['ashcultist', 'cinderwraith'], elite: ['el_cultist'], mini: ['mb_plaguedoc', 'mb_reaper', 'mb_firebull'], boss: 'b_plaguelord' },
+  1: { mel: ['porcelainmaid', 'v_maskedassassin', 'porcelainmaid', 'v_butcher', 'porcelainmaid'], rng: ['jester', 'v_chaplain', 'v_warlock'], elite: ['el_butcher'], mini: ['mb_arbalest', 'mb_executioner', 'mb_bannerlord'], boss: 'b_blackknight' },
+  2: { mel: ['fireimp', 'magmahound', 'v_ghoulfarmer', 'fireimp'], rng: ['ashcultist', 'cinderwraith', 'v_batrider'], elite: ['el_cultist', 'el_ghoulfarmer'], mini: ['mb_plaguedoc', 'mb_reaper', 'mb_firebull'], boss: 'b_plaguelord' },
   3: { mel: ['shadowwolf', 'werefox', 'rotdryad', 'autumnbear', 'boarbrute', 'scarecrow'], rng: ['sporeshaman', 'thornimp', 'crowharpy', 'hollowarcher'],
     elite: ['thornroot', 'el_bear'], mini: ['mb_weaver', 'mb_thornqueen', 'mb_moonhuntress'], boss: 'b_serpentqueen' },
-  4: { mel: ['bogghoul', 'leechworm', 'bogghoul', 'drownedknight'], rng: ['toadwitch', 'wisplantern'], elite: ['el_drowned', 'el_witch'], mini: ['mb_drownedbride', 'mb_crocodile', 'mb_hydra'], boss: 'b_toadking' },
-  5: { mel: ['gembeetle', 'mn_imp', 'gembeetle', 'mn_worm', 'mn_boar'], rng: ['dwarfbomber', 'mn_thrower'], elite: ['el_forgeman'], mini: ['mb_steamdwarf', 'mb_trollminer', 'mb_gemscorpion'], boss: 'b_forgegolem' },
-  6: { mel: ['frostlynx', 'ic_fox', 'ic_bear', 'frostlynx', 'ic_wolf'], rng: ['yeti', 'ic_wisp', 'ic_harpy'], elite: ['el_icebear'], mini: ['mb_snowfairy', 'mb_walrus', 'mb_wyvern'], boss: 'b_frostqueen' },
-  7: { mel: ['glassdancer', 'rn_ghoul', 'rn_knight', 'glassdancer', 'rn_scare'], rng: ['prismkeeper', 'rn_archer', 'rn_wraith'], elite: ['el_mirror'], mini: ['mb_templar', 'mb_mercury', 'mb_timekeeper'], boss: 'b_mirrorlord' },
-  8: { mel: ['magmahound', 'fireimp', 'salamander', 'fireimp'], rng: ['ashcultist', 'cinderwraith'], elite: ['el_salamander', 'el_cultist'], mini: ['mb_lavaturtle', 'mb_embermonk', 'mb_phoenix'], boss: 'b_ashlord' },
-  9: { mel: ['marblegriffin', 'sk_fox', 'sk_warrior', 'marblegriffin'], rng: ['skyharpist', 'sk_harpy', 'sk_wisp'], elite: ['el_seraph'], mini: ['mb_windarcher', 'mb_dawnsmith', 'mb_sphinx'], boss: 'b_skyjudge' },
-  10: { mel: ['ab_wolf', 'ab_ghoul', 'ab_knight', 'ab_ghoul'], rng: ['ab_wraith', 'ab_wisp'], elite: ['el_voidcultist'], mini: ['mb_dreameater', 'mb_obsidian', 'mb_gatekeeper'], boss: 'b_voidmage' },
+  4: { mel: ['bogghoul', 'leechworm', 'v_slithereen', 'bogghoul', 'drownedknight'], rng: ['toadwitch', 'wisplantern'], elite: ['el_drowned', 'el_witch', 'el_slithereen'], mini: ['mb_drownedbride', 'mb_crocodile', 'mb_hydra'], boss: 'b_toadking' },
+  5: { mel: ['gembeetle', 'v_koboldtrapper', 'v_koboldtrapper', 'v_tunnelmammoth', 'v_koboldtrapper'], rng: ['dwarfbomber', 'v_orespark', 'v_teslaguard'], elite: ['el_tunnelmammoth'], mini: ['mb_steamdwarf', 'mb_trollminer', 'mb_gemscorpion'], boss: 'b_forgegolem' },
+  6: { mel: ['frostlynx', 'v_snowpackalpha', 'v_permafrostknight', 'frostlynx', 'v_snowpackalpha'], rng: ['yeti', 'v_glacierlich', 'v_icejelly'], elite: ['el_permafrostknight', 'el_snowpackalpha'], mini: ['mb_snowfairy', 'mb_walrus', 'mb_wyvern'], boss: 'b_frostqueen' },
+  7: { mel: ['glassdancer', 'v_spectralblade', 'v_gargoyle', 'v_mirrorweaver', 'v_spectralblade'], rng: ['prismkeeper', 'v_darkseer'], elite: ['el_gargoyle', 'el_spectralblade'], mini: ['mb_templar', 'mb_mercury', 'mb_timekeeper'], boss: 'b_mirrorlord' },
+  8: { mel: ['v_lavatick', 'salamander', 'v_lavatick', 'v_lavaskeletonking', 'v_lavatick'], rng: ['v_ashskeleton', 'v_souldemon', 'v_firehorn'], elite: ['el_salamander', 'el_lavaskeletonking', 'el_lavatick'], mini: ['mb_lavaturtle', 'mb_embermonk', 'mb_phoenix'], boss: 'b_ashlord' },
+  9: { mel: ['marblegriffin', 'v_bloodpriest', 'v_eclipser', 'v_bloodpriest'], rng: ['skyharpist', 'v_fallensunpriest', 'v_featherserpent'], elite: ['el_eclipser', 'el_bloodpriest'], mini: ['mb_windarcher', 'mb_dawnsmith', 'mb_sphinx'], boss: 'b_skyjudge' },
+  10: { mel: ['v_abyssscarab', 'v_abyssguard', 'v_abyssscarab', 'v_abyssberserker', 'v_abyssscarab'], rng: ['v_voidwyvern', 'v_netherkeeper', 'v_shadowlord'], elite: ['el_abyssguard', 'el_abyssberserker'], mini: ['mb_dreameater', 'mb_obsidian', 'mb_gatekeeper'], boss: 'b_voidmage' },
 };
 // мини-босс части мира (волны 3, 6, 9): у каждого места свой (ROSTER.mini); пока у него нет листов — элита мира, как раньше
 const miniReady = id => !!(id && KIND[id] && (MINI_ART[id] || (typeof VILLAINS !== 'undefined' && VILLAINS[KIND[id].ch])));

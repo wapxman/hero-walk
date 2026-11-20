@@ -14,10 +14,10 @@ OUT = os.path.join(ROOT, "chars")
 SHEETS = {"hero_a": 400, "hero_b": 400, "hero_d": 400}   # старая Эйра из Mixamo (archer_*) убрана в v85
 # Листы из ChatGPT (новый Ganfaul и Шипокорень): PNG в chars/src, атлас — WebP без потерь, разрешение не меняется.
 # Каждая анимация — свой лист: 8 рядов направлений (как runRow), кадры по столбцам.
-LOSSLESS = {"gf_idle": 384, "gf_run": 384, "gf_attack": 384, "gf_nova": 384, "gf_chains": 384, "gf_hail": 384, "gf_storm": 384, "gf_death": 384,
+LOSSLESS = {"gf_idle": 384, "gf_run": 384, "gf_attack": 384, "gf_nova": 384, "gf_chains": 384, "gf_hail": 384, "gf_storm": 384, "gf_death": 384, "gf_dash": 384,
             "th_walk": 256, "th_attack": 320, "th_death": 320, "th_idle": 256,
             # Эйра из ChatGPT (v85): как Ganfaul — клетка 384, 8 рядов, смерть 1 ряд
-            "eira_idle": 384, "eira_run": 384, "eira_attack": 384, "eira_wave": 384, "eira_volley": 384, "eira_shield": 384, "eira_death": 384}
+            "eira_idle": 384, "eira_run": 384, "eira_attack": 384, "eira_wave": 384, "eira_volley": 384, "eira_shield": 384, "eira_death": 384, "eira_dash": 384}   # *_dash — лист рывка (v96)
 # злодеи из ChatGPT (tools/villains_prep.py дописывает их сюда же)
 _lj = os.path.join(SRC, "lossless.json")
 if os.path.exists(_lj): LOSSLESS.update(json.load(open(_lj, encoding="utf-8")))

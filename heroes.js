@@ -51,7 +51,8 @@ snd = function (name, vol, rate) {
   if (HERO_ID === 'archer' && ARCHER_SND[name]) name = ARCHER_SND[name];
   return _sndBase(name, vol, rate);
 };
-// Реплики Ganfaul (Higgsfield, голос по фразе Бахтиёра «Холод не прощает!!!»; правила — sfx_higgs_ganfaul/game/MAP.txt)
+// Реплики Ganfaul (Higgsfield, голос по фразе Бахтиёра «Холод не прощает!!!»). v96: набор от 21.11 — тексты и правила в
+// sfx_higgs_ganfaul/game_2111/MAP.txt (Создатель трижды переозвучивал: ударения, произношение, скорость); имена файлов и число вариантов прежние.
 Object.assign(SFX_SETS, {
   vo_attack: 6, vo_move: 3, vo_move_rare: 1, vo_nova: 1, vo_chains: 1, vo_hail: 1, vo_storm: 1, vo_kill: 3, vo_hurt: 2,
   vo_death: 2, vo_respawn: 1, vo_levelup: 1, vo_cooldown: 1, vo_nomana: 1,

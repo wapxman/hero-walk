@@ -8,7 +8,7 @@
   'use strict';
   const TICK = 30, DT = 1 / TICK;          // сервер считает мир 30 раз в секунду
   // версия протокола: клиент и сервер обязаны совпадать (APK может отстать от сайта) — увеличивать при любом изменении формата
-  const PROTO = 14;                        // 3: злодеи, миры, раунды, магазин (v47); 4: Шипокорень (v49); 5: злодеи ChatGPT мира 1 (v50); 6: мир 2 (v51); 7: Фонарщик, Пугало (v52); 8: миры 3–4 (v53); 9: мир 4 целиком, Архимаг Бездны (v54); 10: без злодеев Mixamo, элита ChatGPT (v55); 11: 10 миров (v56); 12: Междумирье в онлайне (v57)
+  const PROTO = 15;                        // 3: злодеи, миры, раунды, магазин (v47); 4: Шипокорень (v49); 5: злодеи ChatGPT мира 1 (v50); 6: мир 2 (v51); 7: Фонарщик, Пугало (v52); 8: миры 3–4 (v53); 9: мир 4 целиком, Архимаг Бездны (v54); 10: без злодеев Mixamo, элита ChatGPT (v55); 11: 10 миров (v56); 12: Междумирье в онлайне (v57)
   const YK = 0.72;                         // сжатие по вертикали (наклон камеры), как в combat.js
   const RUN_AT = 0.6, WALK_SPEED = 105, RUN_SPEED = 260;
   const PR = [16, 11];                     // «толщина» героя у земли
@@ -97,7 +97,9 @@
     'rn_ghoul', 'rn_archer', 'rn_wraith', 'el_mirror', 'tb_mirrorlord', 'sk_fox', 'sk_warrior', 'sk_harpy',
     'sk_wisp', 'el_seraph', 'tb_skyjudge', 'ab_wolf', 'ab_ghoul', 'ab_knight', 'ab_wraith', 'ab_wisp',
     'el_voidcultist', 'mb_thornqueen', 'mb_reaper', 'b_blackknight', 'mirrorcopy', 'b_serpentqueen', 'b_frostqueen', 'b_plaguelord', 'b_forgegolem', 'b_mirrorlord', 'b_skyjudge', 'porcelainmaid', 'jester', 'gembeetle', 'dwarfbomber', 'yeti', 'glassdancer', 'frostlynx', 'prismkeeper', 'marblegriffin', 'skyharpist',
-    'mb_arbalest', 'mb_executioner', 'mb_bannerlord', 'mb_plaguedoc', 'mb_firebull', 'mb_weaver', 'mb_moonhuntress', 'mb_drownedbride', 'mb_crocodile', 'mb_hydra', 'mb_steamdwarf', 'mb_trollminer', 'mb_gemscorpion', 'mb_snowfairy', 'mb_walrus', 'mb_wyvern', 'mb_templar', 'mb_mercury', 'mb_timekeeper', 'mb_lavaturtle', 'mb_embermonk', 'mb_phoenix', 'mb_windarcher', 'mb_dawnsmith', 'mb_sphinx', 'mb_dreameater', 'mb_obsidian', 'mb_gatekeeper', 'sk_spiderling'];
+    'mb_arbalest', 'mb_executioner', 'mb_bannerlord', 'mb_plaguedoc', 'mb_firebull', 'mb_weaver', 'mb_moonhuntress', 'mb_drownedbride', 'mb_crocodile', 'mb_hydra', 'mb_steamdwarf', 'mb_trollminer', 'mb_gemscorpion', 'mb_snowfairy', 'mb_walrus', 'mb_wyvern', 'mb_templar', 'mb_mercury', 'mb_timekeeper', 'mb_lavaturtle', 'mb_embermonk', 'mb_phoenix', 'mb_windarcher', 'mb_dawnsmith', 'mb_sphinx', 'mb_dreameater', 'mb_obsidian', 'mb_gatekeeper', 'sk_spiderling',
+    // v96: 34 новых рядовых, их элита и снежный волк (в конец — номера прежних видов не меняются)
+    'v_butcher', 'v_maskedassassin', 'v_chaplain', 'v_warlock', 'v_batrider', 'v_ghoulfarmer', 'v_slithereen', 'v_tunnelmammoth', 'v_orespark', 'v_koboldtrapper', 'v_teslaguard', 'v_glacierlich', 'v_icejelly', 'v_snowpackalpha', 'v_permafrostknight', 'v_spectralblade', 'v_mirrorweaver', 'v_darkseer', 'v_gargoyle', 'v_souldemon', 'v_lavatick', 'v_firehorn', 'v_lavaskeletonking', 'v_ashskeleton', 'v_fallensunpriest', 'v_featherserpent', 'v_bloodpriest', 'v_eclipser', 'v_abyssguard', 'v_abyssberserker', 'v_abyssscarab', 'v_voidwyvern', 'v_netherkeeper', 'v_shadowlord', 'el_butcher', 'el_ghoulfarmer', 'el_slithereen', 'el_tunnelmammoth', 'el_permafrostknight', 'el_snowpackalpha', 'el_gargoyle', 'el_spectralblade', 'el_lavaskeletonking', 'el_lavatick', 'el_eclipser', 'el_bloodpriest', 'el_abyssguard', 'el_abyssberserker', 'sk_snowwolf'];
   // реплики врагов над головой (событие SAY с кодом 10 + номер): [текст, цвет]
   const PHRASES = [['Броня!', '#bcd4ff'], ['Прыжок!', '#ffb36a'], ['Таран!', '#ffb36a'], ['Восстаньте!', '#c9a8ff'], ['РЁВ!', '#ff7a5a'],
     ['Яд!', '#9be37a'], ['Сотрясение!', '#ffb347'], ['Жатва!', '#ffb347'], ['За спиной!', '#ff5a3a'], ['Огненный дождь!', '#ff8a4a'],
