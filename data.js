@@ -109,6 +109,8 @@ function normCfg(c) {
     });
   }
   if (typeof c.cam === 'number' && c.cam >= 0.5 && c.cam <= 3) d.cam = c.cam;
+  // множители баланса из editor/balance.html: враги (здоровье, урон), опыт, золото, цены и общий ползунок
+  if (c.bal && typeof c.bal === 'object') { d.bal = {}; for (const k of ['hp', 'dmg', 'xp', 'gold', 'price', 'all']) if (typeof c.bal[k] === 'number' && c.bal[k] >= 0.2 && c.bal[k] <= 5) d.bal[k] = c.bal[k]; }
   return d;
 }
 // Режим разработки: на локальном сервере (порт 8765) настройки ещё и лежат в файле dev_cfg.json,
@@ -173,8 +175,12 @@ const WORLDS = [
 // Враги растут умеренной экспонентой: по волнам медленно, скачком — при переходе в новый мир и на новом круге.
 const BAL = {
   WAVES: 10, WORLDS: 10,
-  ELITE: { hp: 3.5, dmg: 1.7, size: 1.35, xp: 3, gold: 4 },   // элита против рядового того же вида
+  ELITE: { hp: 3, dmg: 1.5, size: 1.35, xp: 3, gold: 4 },   // элита против рядового того же вида
   BOSS: { size: 2.5 },
+  // умения рядовых врагов: gap — пауза между любыми двумя, same — между двумя одинаковыми (секунды); элита и боссы — без ограничений
+  RANK_SK: { gap: 1.2, same: 5 },
+  // мини-босс (волны 3, 6, 9): своё здоровье и урон, без множителей элиты; здоровье растёт с миром (miniHp), как у боссов
+  MINI: { hp: 4.5, dmg: 1 },
   at(n) {
     n = Math.max(1, n | 0); const per = BAL.WAVES * BAL.WORLDS, m = (n - 1) % per;
     return { C: 1 + Math.floor((n - 1) / per), M: 1 + Math.floor(m / BAL.WAVES), W: 1 + m % BAL.WAVES };
@@ -183,19 +189,34 @@ const BAL = {
   mw(n) { const a = BAL.at(n); return a.M + BAL.WORLDS * (a.C - 1); },
   // рост по мирам: первые 4 мира — быстро (k1), дальше мягче (k2): герой к этому времени уже собран, растёт уровнем
   wk(n, k1, k2) { const m = BAL.mw(n); return Math.pow(k1, Math.min(m, 4) - 1) * Math.pow(k2, Math.max(0, m - 4)); },
-  hp(n) { return Math.pow(1.07, BAL.at(n).W - 1) * BAL.wk(n, 1.35, 1.12); },
-  dmg(n) { return Math.pow(1.055, BAL.at(n).W - 1) * BAL.wk(n, 1.28, 1.1); },
-  xp(n) { return Math.pow(1.05, BAL.at(n).W - 1) * Math.pow(1.2, BAL.mw(n) - 1); },
-  gold(n) { return Math.pow(1.04, BAL.at(n).W - 1) * BAL.wk(n, 1.25, 1.1); },
-  // боссы миров растут быстрее рядовых: герой с предметами усиливается в разы (расчёт — tools/balance_run.py)
-  bossHp(n) { return 1.45 * BAL.wk(n, 1.68, 1.1); },
+  // уровни героя (v91): около 100-го к боссу мира 10, предел 200 — для второго круга и повторов. need — опыт до следующего уровня
+  LVL_MAX: 200,
+  need(l) { return Math.round(40 + 20 * l + 0.001 * Math.pow(l, 3.1)); },   // 1 → 60, 50 → 1 225, 100 → 3 625, 199 → 17 400
+  // множители редактора баланса (editor/balance.html): враги — здоровье и урон, опыт, золото, цены; 1 — расчётный баланс
+  K: { hp: 1, dmg: 1, xp: 1, gold: 1, price: 1 },
+  hp(n) { return BAL.K.hp * Math.pow(1.05, BAL.at(n).W - 1) * BAL.wk(n, 1.35, 1.14); },
+  dmg(n) { return BAL.K.dmg * 0.7 * Math.pow(1.04, BAL.at(n).W - 1) * BAL.wk(n, 1.42, 1.14); },
+  xp(n) { return BAL.K.xp * Math.pow(1.05, BAL.at(n).W - 1) * Math.pow(1.2, BAL.mw(n) - 1); },
+  gold(n) { return BAL.K.gold * Math.pow(1.04, BAL.at(n).W - 1) * BAL.wk(n, 1.25, 1.1); },
+  // боссы миров растут быстрее рядовых: герой с предметами усиливается в разы (расчёт — tools/balance_sim.py)
+  bossHp(n) { return 2.6 * BAL.wk(n, 1.5, 1.1); },
   bossDmg(n) { return BAL.wk(n, 1.17, 1.05); },
+  miniHp(n) { return BAL.MINI.hp * BAL.wk(n, 1.3, 1.12); },
   speed(n) { return 1 + Math.min(0.25, 0.02 * (BAL.at(n).W - 1)); },
-  count(n) { const a = BAL.at(n); return 12 + 3 * (a.W - 1) + 2 * (a.M - 1); },      // врагов в обычной волне
+  count(n) { const a = BAL.at(n); return 10 + 2 * (a.W - 1) + (a.M - 1); },      // врагов в обычной волне
   elites(n) { const W = BAL.at(n).W; return W < 4 ? 0 : W < 7 ? 1 : 2; },
-  waveGold(n) { const a = BAL.at(n); return 20 + 6 * a.W + 8 * (a.M - 1); },        // награда за отбитую волну
-  bossGold(n) { return 100 * BAL.wk(n, 1.5, 1.1); },
-  KILL_GOLD: 0.4,   // доля прежнего золота за убийство: иначе сумка заполнялась к концу первого мира
+  waveGold(n) { const a = BAL.at(n); return Math.round(BAL.K.gold * (20 + 6 * a.W + 8 * (a.M - 1))); },        // награда за отбитую волну
+  bossGold(n) { return BAL.K.gold * 100 * BAL.wk(n, 1.5, 1.1); },
+  // цена с множителем редактора (части, свитки, предметы-ответы, фласки, кузница); при множителе 1 — как записано
+  price(p) { return BAL.K.price === 1 ? p : Math.max(1, Math.round(p * BAL.K.price / 5) * 5); },
+  // b — настройки редактора { hp, dmg, xp, gold, price, all }; all — общий ползунок «всё сразу»: враги ×all,
+  // опыт и золото ÷√all, цены ×√all (больше 1 — труднее, меньше 1 — легче)
+  tune(b) {
+    const c = v => (typeof v === 'number' && v >= 0.2 && v <= 5 ? v : 1), a = c(b && b.all), r = Math.sqrt(a);
+    BAL.K = { hp: c(b && b.hp) * a, dmg: c(b && b.dmg) * a, xp: c(b && b.xp) / r, gold: c(b && b.gold) / r, price: c(b && b.price) * r };
+    return BAL.K;
+  },
+  KILL_GOLD: 0.5,   // доля прежнего золота за убийство: иначе сумка заполнялась к концу первого мира
 };
 
 function devText() {

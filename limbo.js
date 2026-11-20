@@ -33,7 +33,7 @@ const LIMBO = (() => {
   // ---------- кузница: прокачка способностей за золото (навсегда, сохраняется с прогрессом) ----------
   const FORGE_MAX = 5;
   const forgeLv = id => (P.forge && P.forge[id]) || 0;
-  const forgeCost = id => Math.round(380 * Math.pow(1.85, forgeLv(id)) * (id === 'r' ? 1.4 : 1));
+  const forgeCost = id => BAL.price(Math.round(380 * Math.pow(1.85, forgeLv(id)) * (id === 'r' ? 1.4 : 1)));
   function forgeBuy(id) {
     const c = forgeCost(id);
     if (forgeLv(id) >= FORGE_MAX || SHOP.gold < c) { snd('hero_shot', 0.2, 0.6); return; }

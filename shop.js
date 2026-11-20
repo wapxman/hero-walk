@@ -28,7 +28,7 @@ const BASE_HP = 600;
 const HEAL = { max: 10, cd: 1 };
 
 const SHOP = {
-  gold: 0, flasks: { heal: 1, frost: 0, swift: 0, power: 0, mana: 0 }, items: {}, buffs: { swift: 0, power: 0 },
+  gold: 0, flasks: { heal: 3, frost: 0, swift: 0, power: 0, mana: 0 }, items: {}, buffs: { swift: 0, power: 0 },
   drops: [], phase: 'rest', restT: 0, open: false, el: {},
 
   // ----- модификаторы героя от предметов и фласок -----
@@ -174,7 +174,7 @@ const SHOP = {
   },
 };
 SHOP.healAmt = () => Math.round(150 + 0.2 * P.maxHp);
-SHOP.flaskPrice = f => f.id === 'heal' ? 40 + 10 * (BAL.mw(wave + 1) - 1) : f.price;
+SHOP.flaskPrice = f => BAL.price(f.id === 'heal' ? 40 + 10 * (BAL.mw(wave + 1) - 1) : f.price);
 
 // ---------- интерфейс (DOM поверх игры; все фоны — картинки) ----------
 (function buildUI() {

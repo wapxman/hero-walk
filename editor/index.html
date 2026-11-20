@@ -48,6 +48,7 @@
   <div id="tabs">
     <div class="btn blue" data-tab="pMap">Карта</div>
     <div class="btn blue off" data-tab="pUnits">Персонажи</div>
+    <a class="btn blue off" href="balance.html">Баланс</a>
   </div>
 
   <div class="pane on" id="pMap">
@@ -130,8 +131,8 @@ let saveT = 0;
 function touch() { dirty = true; need = true; clearTimeout(saveT); saveT = setTimeout(() => { save(true); say('Сохранено автоматически.'); }, 700); }
 
 // ---------- вкладки ----------
-for (const t of document.querySelectorAll('#tabs .btn')) t.onclick = () => {
-  for (const x of document.querySelectorAll('#tabs .btn')) x.classList.toggle('off', x !== t);
+for (const t of document.querySelectorAll('#tabs .btn[data-tab]')) t.onclick = () => {
+  for (const x of document.querySelectorAll('#tabs .btn[data-tab]')) x.classList.toggle('off', x !== t);
   for (const p of document.querySelectorAll('.pane')) p.classList.toggle('on', p.id === t.dataset.tab);
 };
 

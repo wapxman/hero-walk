@@ -64,7 +64,7 @@ const RELICS = {
     ds: 'раз в 5 с: 2 с иммунитета к притяжению и телепорту, +30 % к бегу',
     fire: () => { P.ss.imm.pull = 2; P.ss.spd = Math.max(P.ss.spd, 2); } },
 };
-for (const id in RELICS) { const r = RELICS[id]; r.img = 'ui/relics/' + id + '.webp'; r.relic = true; ALL[id] = r; (new Image()).src = r.img + V; }   // иконки — заранее
+for (const id in RELICS) { const r = RELICS[id]; r.img = 'ui/relics/' + id + '.webp'; r.relic = true; r.pr = BAL.price(r.pr); ALL[id] = r; (new Image()).src = r.img + V; }   // иконки — заранее
 const hasRelic = id => SHOP.bag.includes(id);
 const relicRes = k => { let m = 1; for (const id of SHOP.bag) { const r = RELICS[id]; if (r && r.res && r.res[k]) m *= 1 - r.res[k]; } return m; };
 const RCD = {};   // перезарядка предметов, сек.

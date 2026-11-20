@@ -1,6 +1,7 @@
 // Живые элементы арен от Клауди (19.11): ui/locfx/<id>.webp + описание в ui/locfx/locfx.js (LOCFX.defs — клетка,
 // кадры, fps, blend; LOCFX.place[мир][id] — места: x, y — доли картинки арены, w — доля ширины, a — 'b' низ / 'c' центр,
 // al — прозрачность, move=[dx, dy, период] — ходит туда-обратно лицом по ходу, ph — сдвиг фазы).
+// Птицы (FLYBY) не стоят на месте: пролетают через арену 1–2 раза и уходят за край, новый пролёт — через 20–40 с.
 // blend: lighter — свечение (складывается), mask — дым/туман (альфа = яркость, цвет задаём здесь), normal — спрайт.
 // Где у мира есть свои элементы, прежние места из arenafx.js (огонь, фонтаны) не рисуются — остаются частицы и птицы.
 'use strict';
@@ -46,11 +47,33 @@ if (LFX) {
   for (const w in LOCFX.place) if (ARENA_FX[w]) ARENA_FX[w].fx = ARENA_FX[w].fx.filter(f => f[0] === 'aurora' || f[0] === 'light');
   const on = () => !(typeof LIMBO !== 'undefined' && LIMBO.on) && ARENA_I === 0 && LOCFX.place[WORLD];   // элементы стоят на первых аренах
   const seen = (x, y, w) => x > cam.x - w - 200 && x < cam.x + cam.vw + w + 200 && y > cam.y - w * 2 - 200 && y < cam.y + cam.vh + w + 200;
+  // птицы и летучие мыши (v91): не летают туда-сюда без конца, а пролетают через арену 1–2 раза и уходят за край;
+  // следующий пролёт — через 20–40 с. Высота пролёта — там, где сейчас смотрит камера, чтобы игрок их видел.
+  const FLYBY = { w2_crow: 1, w6_eagle: 1, w5_bat: 1, w9_dove: 1, w8_phoenix: 1 };
+  function flyby(t, p, w) {
+    const f = p._fly || (p._fly = { next: t + 2 + Math.random() * 12, left: 0 });
+    if (f.t0 == null) {
+      if (t < f.next) return null;
+      if (!f.left) f.left = Math.random() < 0.5 ? 1 : 2;
+      f.t0 = t; f.dir = f.dir ? -f.dir : (Math.random() < 0.5 ? 1 : -1);
+      f.y = Math.max(w, Math.min(WORLD_H - w, cam.y + cam.vh * (0.12 + Math.random() * 0.45)));
+      f.sp = WORLD_W * (0.075 + Math.random() * 0.03); f.ph = Math.random() * 6;
+    }
+    const run = (t - f.t0) * f.sp, len = WORLD_W + w * 3;
+    if (run > len) { f.t0 = null; f.left--; f.next = f.left > 0 ? t + 1 + Math.random() * 2 : t + 20 + Math.random() * 20; if (!f.left) f.dir = 0; return null; }
+    return { x: f.dir > 0 ? -w * 1.5 + run : WORLD_W + w * 1.5 - run, y: f.y + Math.sin(run / 260 + f.ph) * w * 0.5, flip: f.dir < 0 };
+  }
   function each(t, top) {
     const M = on(); if (!M) return;
     for (const id in M) {
       const d = LOCFX.defs[id]; if (!d) continue;
       for (const p of M[id]) {
+        if (FLYBY[id]) {
+          if (!top) continue;
+          const w = p.w * WORLD_W, q = flyby(t, p, w);
+          if (q && seen(q.x, q.y, w)) LFX.draw(ctx, id, t, q.x, q.y, w, { a: 'c', al: p.al, ph: p.ph, flip: q.flip });
+          continue;
+        }
         const flying = p.move && p.a === 'c';
         if (!!top !== (flying || d.blend === 'lighter')) continue;   // свечение и летуны — поверх героев
         let fx = p.x, fy = p.y, flip = false;

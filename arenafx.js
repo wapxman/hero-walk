@@ -26,7 +26,7 @@ const ARENA_FX = {
   const AMB = [], FLY = [];
   const COL = { snow: '255,255,255', embers: '255,140,50', fireflies: '190,255,120', dust: '255,230,180', motes: '255,230,140', glint: '230,240,255', void: '190,120,255' };
   const N = { snow: 70, leaves: 18, embers: 40, fireflies: 30, dust: 25, motes: 30, glint: 22, void: 35 };
-  let lt = 0, lit = null;
+  let lt = 0, lit = null, flyNext = null, flyLeft = 0, flyDir = 1;
   const cfg = () => (typeof LIMBO !== 'undefined' && LIMBO.on) ? null : ARENA_FX[WORLD];
   const seen = (x, y) => x > cam.x - 500 && x < cam.x + cam.vw + 500 && y > cam.y - 500 && y < cam.y + cam.vh + 500;
   const AP = [];
@@ -79,11 +79,14 @@ const ARENA_FX = {
       ctx.fillStyle = 'rgb(' + COL[C.amb] + ')'; ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.283); ctx.fill();
     }
     ctx.restore();
-    // стайка летунов пересекает экран
+    // стайка летунов пересекает экран 1–2 раза и улетает; следующая — через 20–40 с (v91)
     if (C.fly != null && MFX.ok('sp_flyers')) {
-      if (!FLY.length || FLY.every(f => f.q > 1)) {
-        FLY.length = 0; const y0 = vy + vh * (0.15 + Math.random() * 0.4), dir = Math.random() < 0.5 ? 1 : -1;
-        for (let j = 0; j < 4; j++) FLY.push({ q: -0.4 - j * 0.04 - Math.random() * 0.6, y: y0 + j * 26, dir, sp: 0.07 + Math.random() * 0.02 });
+      if (flyNext == null) flyNext = t + 3 + Math.random() * 8;
+      if (FLY.length && FLY.every(f => f.q > 1)) { FLY.length = 0; flyNext = --flyLeft > 0 ? t + 1 + Math.random() * 2 : t + 20 + Math.random() * 20; }
+      if (!FLY.length && t >= flyNext) {
+        if (flyLeft <= 0) { flyLeft = Math.random() < 0.5 ? 1 : 2; flyDir = Math.random() < 0.5 ? 1 : -1; } else flyDir = -flyDir;
+        const y0 = vy + vh * (0.15 + Math.random() * 0.4), dir = flyDir;
+        for (let j = 0; j < 4; j++) FLY.push({ q: -0.04 - j * 0.04 - Math.random() * 0.05, y: y0 + j * 26, dir, sp: 0.07 + Math.random() * 0.02 });
       }
       for (const f of FLY) {
         f.q += f.sp * dt;

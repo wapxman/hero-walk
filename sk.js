@@ -95,6 +95,7 @@ const SK = (() => {
   // ---------- планировщик умений ----------
   // DEF[тип] = [{ cd, first?, can(e, d) → можно ли сейчас, cast(e, d) → true если начал, an — лист каста, dur, at }]
   const DEF = {};
+  let rankAt = -99; const rankOf = new Map();
   function schedule(e, dt, d) {
     const L = DEF[e.type]; if (!L) return false;
     if (!e.sk) {
@@ -111,6 +112,13 @@ const SK = (() => {
       const s = L[i], st = e.sk[i];
       if (st.cd > 0 || s.passive) continue;
       if (s.can && !s.can(e, d)) continue;
+      // рядовые не колдуют все разом (v91): между умениями рядовых — пауза, одно и то же умение — не чаще раза в несколько секунд
+      // (BAL.RANK_SK). Иначе толпа из десятка одинаковых врагов держала героя в оглушении и жгла без шансов увернуться.
+      if (!e.boss && !e.mini && !e.elite) {
+        const now = P.heroT || 0, G = BAL.RANK_SK;
+        if (now - rankAt < G.gap || now - (rankOf.get(L) || -99) < G.same) continue;
+        rankAt = now; rankOf.set(L, now);
+      }
       st.cd = s.cd * (e.phase >= 3 ? 0.75 : 1);
       if (s.ph) tag(e, s.ph + '!', s.col || '#ffd28a');
       if (s.an) startAct(e, s.an, s.dur || 0.9, s.at || 0.5, () => s.cast(e, d));
@@ -279,7 +287,10 @@ const SK = (() => {
     if (rb) { e.hp -= BIG; if (e.hp <= 0) { e.reborn = true; e.hp = 1; e.dieT = null; e.anim = 'idle'; rebirth(e); } }
   };
 
-  return { F, A, img, ready, dirTo2, dist, attach, cre, drawCre, proj, beam, line, mark, ring, ground, groundImg, zone, WALLS, MOV, PR, ZONES, MARKS, LINES, BEAMS, RINGS, GROUND,
+  // отложенное действие по игровому времени (v91; раньше умения ставили setTimeout — удар прилетал и на паузе): на паузе ждёт,
+  // после гибели героя и в Междумирье не срабатывает (MOV очищается)
+  const later = (fn, ms) => { MOV.push({ t: 0, dur: ms / 1000, update(m) { if (!m.done && m.t >= m.dur) { m.done = 1; fn(); } } }); };
+  return { later, F, A, img, ready, dirTo2, dist, attach, cre, drawCre, proj, beam, line, mark, ring, ground, groundImg, zone, WALLS, MOV, PR, ZONES, MARKS, LINES, BEAMS, RINGS, GROUND,
     S, bind, pin, stun, hex, poisonStack, DEF, ON_HIT, schedule, tick, drawGround, drawOver, tag, HEAD, say2, near, isSpell };
   function rebirth(e) { SK._reb && SK._reb(e); }
 })();

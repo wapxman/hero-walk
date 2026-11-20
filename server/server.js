@@ -18,9 +18,8 @@ vm.createContext(box);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'data.js'), 'utf8') +
   '\n;this.D = { WALK, DEFAULT_OBJ, HERO_SPAWN, ENEMY_SPAWN, SPAWNS, WORLDS, AK, BAL };', box);
 const D = box.D, BAL = D.BAL;
-// виды врагов и кто выходит в каком мире — та же таблица, что в одиночной игре (combat.js), без копии
-const CS = fs.readFileSync(path.join(__dirname, '..', 'combat.js'), 'utf8');
-vm.runInContext(CS.slice(CS.indexOf('const KIND = {'), CS.indexOf('const rosterOf')) + '\n;this.K = { KIND, ROSTER, miniOf };', box);
+// виды врагов и кто выходит в каком мире — та же таблица, что в одиночной игре (roster.js), без копии
+vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'roster.js'), 'utf8') + '\n;this.K = { KIND, ROSTER, miniOf };', box);
 const KIND = box.K.KIND, ROSTER = box.K.ROSTER, miniOf = box.K.miniOf;
 const XP0 = { min: 8, war: 18, mag: 14, rog: 14, boss: 150 };
 const { TICK, DT, YK, EV } = NET;
@@ -112,7 +111,7 @@ function cleanProg(m) {
   const n = (v, lo, hi, d) => (typeof v === 'number' && v >= lo && v <= hi ? Math.floor(v) : d);
   const st = m.st || {}, sk = m.sk || {};
   const it = m.it || {}, f = (v, hi) => (typeof v === 'number' && v >= 0 ? Math.min(v, hi) : 0);
-  return { lvl: n(m.lvl, 1, 100, 1), st: { str: n(st.str, 0, 300, 0), agi: n(st.agi, 0, 300, 0), int: n(st.int, 0, 300, 0) },
+  return { lvl: n(m.lvl, 1, 200, 1), st: { str: n(st.str, 0, 600, 0), agi: n(st.agi, 0, 600, 0), int: n(st.int, 0, 600, 0) },
     sk: { q: n(sk.q, 1, 10, 1), e: n(sk.e, 1, 10, 1), f: n(sk.f, 1, 10, 1), r: n(sk.r, 1, 10, 1) },
     // предметы: значения ограничены сверху (6 ячеек сумки), чтобы чужой клиент не прислал бессмертие
     it: { dmg: f(it.dmg, 3), hp: f(it.hp, 4000), mp: f(it.mp, 1500), as: f(it.as, 1), spd: f(it.spd, 0.6), hpr: f(it.hpr, 40), mpr: f(it.mpr, 30),
@@ -311,7 +310,7 @@ function shard(r, owner, x, y, R, dmg, sk, st) { r.shards.push({ owner, x, y, R,
 // Как в одиночной игре: рост по BAL, элита и боссы миров, раунды по 3 волны, 10-я — босс мира, затем следующий мир.
 const nPlayers = r => Math.max(1, [...r.clients].length);
 function spawnEnemy(r, type, x, y) {
-  if (r.mini === type && !r.queue.length) { r.mini = null; const e = spawnEnemyBase(r, type, x, y); e.hp = e.max = Math.round(e.hp * 2); e.dm *= 1.15; e.mini = true; return e; }
+  if (r.mini === type && !r.queue.length) { r.mini = null; const e = spawnEnemyBase(r, type, x, y); e.hp = e.max = Math.round(e.hp / BAL.ELITE.hp * BAL.miniHp(r.wave)); e.dm = e.dm / BAL.ELITE.dmg * BAL.MINI.dmg; e.mini = true; return e; }   // как в combat.js: без множителей элиты
   return spawnEnemyBase(r, type, x, y);
 }
 function spawnEnemyBase(r, type, x, y) {

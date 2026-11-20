@@ -89,6 +89,9 @@ const RECIPES = {
   octarine: { nm: 'Октариновое ядро', ic: 78, from: ['mystic', 'vitality', 'crystal'], st: { sk: 0.2, cd: 0.18, hp: 250, mp: 250 }, rc: 7280, ds: 'Вампиризм умений 10 %', pas: { spl: 0.1 } },
   satanic: { nm: 'Сатаник', ic: 79, from: ['vdagger', 'reaver', 'claymore'], st: { dmg: 0.28, hp: 450, ls: 0.15 }, rc: 10050, ds: 'Нечестивая ярость: +50 % вампиризма на 5 с, перезарядка 35 с', act: { cd: 35, kind: 'unholy', t: 5, ls: 0.5, cap: 0.75 } },
 };
+// множитель цен из редактора баланса (BAL.price; при 1 цены — как записаны выше)
+for (const id in PARTS) PARTS[id].pr = BAL.price(PARTS[id].pr);
+for (const id in RECIPES) if (RECIPES[id].rc) RECIPES[id].rc = BAL.price(RECIPES[id].rc);
 // свитки рецептов (как в Доте): свиток — тоже «часть», без него предмет не соберётся; в сундуке и во вкладке «Части» их нет
 for (const id in RECIPES) {
   const r = RECIPES[id]; if (!r.rc) continue;

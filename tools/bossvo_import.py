@@ -5,7 +5,7 @@ import json, os, shutil, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = "C:/Users/User/Desktop/boss_voice"
 out = {}; code = ""
-for f in ["combat.js", "bossmech.js", "enemies.js", "sk_defs.js", "mini.js"]: code += open(os.path.join(ROOT, f), encoding="utf-8").read()
+for f in ["roster.js", "combat.js", "bossmech.js", "enemies.js", "sk_defs.js", "mini.js"]: code += open(os.path.join(ROOT, f), encoding="utf-8").read()
 miss = []
 def skills(vid, sfx, ent):
     for i, (name, s) in enumerate(sfx.items(), 1):

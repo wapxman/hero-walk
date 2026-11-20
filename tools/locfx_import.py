@@ -8,7 +8,8 @@ SRC = r'C:\Users\User\Desktop\night_19_11\locfx'
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'ui', 'locfx'); os.makedirs(OUT, exist_ok=True)
 # мирное посреди боя Создатель убрал (19.11): эти листы не берём
-SKIP = {'w1_pigeons', 'w1_cart', 'w3_fox', 'w5_smith'}
+SKIP = {'w1_pigeons', 'w1_cart', 'w3_fox', 'w5_smith',
+        'w2_cart', 'w5_cart', 'w6_yeti'}   # тележки и йети в углу убраны 20.11 (v91)
 done = {k for k, v in json.load(open(os.path.join(SRC, '_done.json'), encoding='utf-8')).items() if v == 'ok'} - SKIP
 spec = importlib.util.spec_from_file_location('pl', r'C:\Users\User\browser-tools\locfx_place.py'); pl = importlib.util.module_from_spec(spec); spec.loader.exec_module(pl)
 defs = {}

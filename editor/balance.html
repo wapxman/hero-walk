@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Duel Arena · баланс</title>
+<style>
+  /* Редактор баланса: множители к расчётному балансу. Кнопки — картинки интерфейса игры (папка ui). */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #0f1b33; color: #e9f0ff; font: 15px system-ui, sans-serif; }
+  #wrap { max-width: 1100px; margin: 0 auto; padding: 12px 14px 40px; }
+  h1 { font-size: 20px; margin: 6px 0 2px; color: #ffe27a; }
+  h2 { font-size: 16px; margin: 22px 0 8px; color: #ffe27a; }
+  .hint { opacity: .8; font-size: 13.5px; line-height: 1.4; margin: 4px 0 10px; }
+  .btn { background-size: 100% 100%; background-repeat: no-repeat; color: #fff; font: bold 14px system-ui; text-shadow: 0 1px 3px #000;
+    display: inline-flex; align-items: center; justify-content: center; min-height: 42px; padding: 0 18px; cursor: pointer; user-select: none; border: 0; text-decoration: none; }
+  .blue { background-image: url(../ui/btn_blue.webp); }
+  .green { background-image: url(../ui/btn_green.webp); }
+  .btn.on { filter: drop-shadow(0 0 6px #ffe27a); }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+  .row { display: grid; grid-template-columns: 190px 1fr 62px; align-items: center; gap: 10px; padding: 7px 10px; background: #14264a; border: 1px solid #2d4470; border-radius: 8px; margin: 6px 0; }
+  .row.all { border-color: #ffe27a; }
+  .row b { display: block; } .row small { opacity: .75; font-size: 12px; }
+  .row input[type=range] { width: 100%; height: 30px; }
+  .row output { text-align: right; font: bold 16px system-ui; font-variant-numeric: tabular-nums; }
+  #eff { font-size: 13.5px; background: #0b1528; border-radius: 8px; padding: 8px 10px; line-height: 1.5; }
+  #eff b { color: #9df0a6; }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+  th, td { border: 1px solid #2d4470; padding: 5px 7px; text-align: right; white-space: nowrap; }
+  th { background: #14264a; color: #ffe27a; font-weight: 600; white-space: normal; }
+  td:nth-child(1), td:nth-child(2), th:nth-child(1), th:nth-child(2) { text-align: left; }
+  td.warn { color: #ffb36a; } td.bad { color: #ff7a6a; font-weight: bold; }
+  textarea { width: 100%; height: 74px; background: #0b1528; color: #e9f0ff; border: 1px solid #3a5690; border-radius: 6px; padding: 6px; font: 13px ui-monospace, monospace; }
+  #msg { min-height: 20px; color: #9df0a6; font-size: 13.5px; margin: 6px 0; }
+  @media (max-width: 620px) { .row { grid-template-columns: 1fr 56px; } .row label { grid-column: 1 / 3; } }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div class="bar"><a class="btn blue" href="./">← Редактор карты</a><a class="btn green" href="../">В игру</a></div>
+  <h1>Баланс</h1>
+  <div class="hint">Множители к расчётному балансу (1,00 — как рассчитано, таблица — BALANCE.md). Сохраняются сразу, на этом устройстве; игра берёт их при запуске.
+    Действуют в одиночной игре; в онлайне враги считаются на сервере по расчётному балансу.</div>
+
+  <div class="bar" id="presets">
+    <div class="btn blue" data-p="easy">Легко</div>
+    <div class="btn blue" data-p="normal">Нормально</div>
+    <div class="btn blue" data-p="hard">Сложно</div>
+    <div class="btn green" id="reset">Сброс к расчётному</div>
+  </div>
+
+  <div id="rows"></div>
+  <div id="eff"></div>
+  <div id="msg"></div>
+
+  <h2>Что получится — модель забега</h2>
+  <div class="hint">Та же модель, что считает BALANCE.md: герой убивает всех, очки характеристик делит поровну, после каждого раунда покупает самое полезное,
+    две фласки лечения на раунд. Оранжевым отмечено то, что выходит за удобные границы, красным — явно тяжело или слишком легко.</div>
+  <div class="scroll"><table id="tab"></table></div>
+  <div class="hint" id="note"></div>
+
+  <h2>Выгрузка и загрузка</h2>
+  <div class="bar">
+    <div class="btn blue" id="exp">Выгрузить JSON в файл</div>
+    <label class="btn blue">Загрузить JSON из файла<input type="file" id="file" accept=".json,application/json" style="display:none"></label>
+    <div class="btn blue" id="apply">Применить текст из поля</div>
+  </div>
+  <textarea id="json" spellcheck="false"></textarea>
+</div>
+<script src="../data.js"></script>
+<script src="../balance_data.js"></script>
+<script src="../balance_model.js"></script>
+<script>
+'use strict';
+const KEYS = [
+  ['all', 'Всё сразу (сложность)', 'враги ×, опыт и золото ÷√, цены ×√ — один ползунок на всё'],
+  ['hp', 'Здоровье врагов', 'рядовые, элита, мини-боссы и боссы'],
+  ['dmg', 'Урон врагов', 'удары и умения'],
+  ['xp', 'Опыт', 'за убийства — скорость роста уровня'],
+  ['gold', 'Золото', 'за убийства, волны и боссов'],
+  ['price', 'Цены', 'части, свитки, предметы против боссов, фласки, кузница'],
+];
+const PRESETS = {
+  easy: { all: 1, hp: 0.8, dmg: 0.75, xp: 1.15, gold: 1.2, price: 0.9 },
+  normal: { all: 1, hp: 1, dmg: 1, xp: 1, gold: 1, price: 1 },
+  hard: { all: 1, hp: 1.25, dmg: 1.25, xp: 0.9, gold: 0.85, price: 1.1 },
+};
+let cfg = loadCfg();
+let bal = Object.assign({}, PRESETS.normal, cfg.bal || {});
+const $ = id => document.getElementById(id);
+const fmt = v => v.toFixed(2).replace('.', ',');
+const num = v => Math.round(v).toLocaleString('ru-RU');
+const rows = $('rows'), inp = {};
+for (const [k, name, sub] of KEYS) {
+  const r = document.createElement('div'); r.className = 'row' + (k === 'all' ? ' all' : '');
+  r.innerHTML = '<label><b>' + name + '</b><small>' + sub + '</small></label><input type="range" min="0.5" max="2" step="0.05"><output></output>';
+  rows.appendChild(r); inp[k] = r;
+  r.querySelector('input').addEventListener('input', e => { bal[k] = +e.target.value; changed(); });
+}
+function same(a, b) { return KEYS.every(([k]) => Math.abs((a[k] || 1) - (b[k] || 1)) < 0.001); }
+function show() {
+  for (const [k] of KEYS) { inp[k].querySelector('input').value = bal[k]; inp[k].querySelector('output').textContent = '×' + fmt(bal[k]); }
+  for (const b of document.querySelectorAll('#presets [data-p]')) b.classList.toggle('on', same(bal, PRESETS[b.dataset.p]));
+  const K = BAL.tune(bal);
+  $('eff').innerHTML = 'Итог с учётом общего ползунка: здоровье врагов <b>×' + fmt(K.hp) + '</b>, урон врагов <b>×' + fmt(K.dmg) + '</b>, опыт <b>×' + fmt(K.xp) +
+    '</b>, золото <b>×' + fmt(K.gold) + '</b>, цены <b>×' + fmt(K.price) + '</b>';
+  $('json').value = JSON.stringify({ duelArenaBalance: 1, bal }, null, 1);
+  table();
+}
+function changed(note) {
+  cfg = loadCfg(); cfg.bal = Object.assign({}, bal);
+  const ok = saveCfg(cfg);
+  $('msg').textContent = ok ? (note || 'Сохранено') + ' — в игре подействует после перезапуска' : 'Не удалось сохранить (хранилище браузера недоступно)';
+  show();
+}
+// удобные границы: [жёлтый низ, верх], [красный низ, верх]
+const cls = (v, a, b, c, d) => v < c || v > d ? 'bad' : v < a || v > b ? 'warn' : '';
+function table() {
+  const r = BALMODEL.run({ BAL, D: BAL_DATA, need: BAL.need, waves: 200, lvlMax: BAL.LVL_MAX });
+  let h = '<tr><th>Мир</th><th>Босс</th><th>Уровень героя</th><th>Доход за мир</th><th>Выстрелов на рядового</th><th>Удар рядового / HP героя</th><th>3-й мини-босс падает за</th><th>Босс падает за</th><th>Босс убьёт стоящего героя за</th><th>Фласка лечения</th></tr>';
+  for (const w of r.worlds) {
+    const mini = r.rows.find(x => x.n === w.n - 1), hit = 100 * w.regHit / w.hp;
+    h += '<tr><td>' + (w.C > 1 ? 'круг ' + w.C + ' · ' : '') + w.M + '</td><td>' + w.boss + '</td><td class="' + (w.C === 1 && w.M === 10 ? cls(w.lvl, 95, 106, 88, 115) : '') + '">' + w.lvl + '</td><td>' + num(w.inc) +
+      '</td><td class="' + cls(w.shots, 1.5, 4.5, 1, 6) + '">' + w.shots.toFixed(1) + '</td><td class="' + cls(hit, 0.8, 4, 0.4, 6) + '">' + hit.toFixed(1) + ' %</td><td class="' + cls(mini.miniT, 8, 30, 5, 45) + '">' + Math.round(mini.miniT) +
+      ' с</td><td class="' + cls(w.bossT, 25, 80, 15, 110) + '">' + Math.round(w.bossT) + ' с</td><td class="' + cls(w.dieT, 30, 200, 20, 400) + '">' + Math.round(w.dieT) + ' с</td><td>' + w.flask + '</td></tr>';
+  }
+  $('tab').innerHTML = h;
+  const w10 = r.worlds[9], w20 = r.worlds[19];
+  $('note').textContent = 'К боссу мира 10 — уровень ' + w10.lvl + ', к концу второго круга — ' + w20.lvl + ' (предел ' + BAL.LVL_MAX + '). Сумка к финалу: ' + w10.bag.join(', ') + '.';
+}
+for (const b of document.querySelectorAll('#presets [data-p]')) b.addEventListener('click', () => { bal = Object.assign({}, PRESETS[b.dataset.p]); changed('Пресет «' + b.textContent + '»'); });
+$('reset').addEventListener('click', () => { bal = Object.assign({}, PRESETS.normal); changed('Сброшено к расчётному'); });
+function take(text) {
+  try {
+    const j = JSON.parse(text), src = j && (j.bal || j), nb = Object.assign({}, PRESETS.normal);
+    let n = 0; for (const [k] of KEYS) if (typeof src[k] === 'number' && src[k] >= 0.2 && src[k] <= 5) { nb[k] = src[k]; n++; }
+    if (!n) throw 0;
+    bal = nb; changed('Загружено');
+  } catch (e) { $('msg').textContent = 'Не похоже на файл баланса: нужен JSON с числами hp, dmg, xp, gold, price, all'; }
+}
+$('apply').addEventListener('click', () => take($('json').value));
+$('file').addEventListener('change', e => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => take(rd.result); rd.readAsText(f); e.target.value = ''; });
+$('exp').addEventListener('click', () => {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([$('json').value], { type: 'application/json' })); a.download = 'duelarena_balance.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  $('msg').textContent = 'Файл duelarena_balance.json выгружен (если файл не появился — скопируйте текст из поля ниже)';
+});
+show();
+</script>
+</body>
+</html>

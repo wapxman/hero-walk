@@ -25,7 +25,7 @@ function blackknight(e, dt, d) {
     e.mt = 7 * bossCd(e); tag(e, 'Таран!', '#ffb36a');
     leapTo(e, P.x, P.y, 0.75, 120, 38 * e.dm, 'cast2');
     const img = vfxOf(e, 1), x = P.x, y = P.y;
-    setTimeout(() => { if (img) spellFx({ img, x, y, R: 120, dur: 0.8 }); if (gdist(P, { x, y }) < 140) { STATUS.add('stun', 0.6); const [dx, dy] = dirTo(e, P.x, P.y); P.x += dx * 90; P.y += dy * 90 * YK; collide(P); } }, 760);
+    SK.later(() => { if (img) spellFx({ img, x, y, R: 120, dur: 0.8 }); if (gdist(P, { x, y }) < 140) { STATUS.add('stun', 0.6); const [dx, dy] = dirTo(e, P.x, P.y); P.x += dx * 90; P.y += dy * 90 * YK; collide(P); } }, 760);
     return true;
   }
 }
@@ -60,7 +60,7 @@ function plaguelord(e, dt, d) {
   if (e.tor <= 0 && d < 900) {
     e.tor = 6.5 * bossCd(e); tag(e, 'Поджог!', '#ff8a3a');
     startAct(e, 'cast2', 0.9, 0.55, () => warn(P.x, P.y, 120, 0.9, 20 * e.dm, { vfx: { img: vfxOf(e, 1), R: 120, dur: 0.3 }, onHitP: () => {} }));
-    const x = P.x, y = P.y; setTimeout(() => gzone({ img: vfxOf(e, 1), x, y, R: 125, dur: 4, burn: 1 }), 1500);
+    const x = P.x, y = P.y; SK.later(() => gzone({ img: vfxOf(e, 1), x, y, R: 125, dur: 4, burn: 1 }), 1500);
     return true;
   }
 }
@@ -144,7 +144,7 @@ function toadking(e, dt, d) {
   if (e.act) return;
   if (e.ac <= 0 && d < 900) {
     e.ac = 7 * bossCd(e); tag(e, 'Кислотный плевок!', '#d4e04a');
-    startAct(e, 'cast1', 1.0, 0.45, () => { const x = P.x, y = P.y; warn(x, y, 125, 1.0, 40 * e.dm, { vfx: { img: vfxOf(e, 0), R: 125, dur: 0.3 }, onHitP: () => STATUS.add('poison', 2) }); setTimeout(() => gzone({ img: vfxOf(e, 0), x, y, R: 125, dur: 5, poison: 1 }), 1000); });
+    startAct(e, 'cast1', 1.0, 0.45, () => { const x = P.x, y = P.y; warn(x, y, 125, 1.0, 40 * e.dm, { vfx: { img: vfxOf(e, 0), R: 125, dur: 0.3 }, onHitP: () => STATUS.add('poison', 2) }); SK.later(() => gzone({ img: vfxOf(e, 0), x, y, R: 125, dur: 5, poison: 1 }), 1000); });
     return true;
   }
   if (e.mr <= 0 && d < 400) {
@@ -158,7 +158,7 @@ function ashlord(e, dt, d) {
   if (e.act) return;
   if (e.mt1 <= 0 && d < 950) {
     e.mt1 = 8 * bossCd(e); tag(e, 'Метеоритный дождь!', '#ff6a2a');
-    startAct(e, 'cast1', 1.0, 0.45, () => { for (let j = 0; j < 3; j++) { const a = rnd(0, 6.283), r = j ? rnd(90, 220) : 0, x = P.x + Math.cos(a) * r, y = P.y + Math.sin(a) * r * YK; warn(x, y, 125, 1.1 + j * 0.3, 45 * e.dm, { vfx: { img: vfxOf(e, 0), R: 125, dur: 0.9 }, onHitP: () => STATUS.add('burn', 1) }); setTimeout(() => gzone({ img: vfxOf(e, 0), x, y, R: 95, dur: 4, burn: 1, a: 0.6 }), (1.2 + j * 0.3) * 1000); } });
+    startAct(e, 'cast1', 1.0, 0.45, () => { for (let j = 0; j < 3; j++) { const a = rnd(0, 6.283), r = j ? rnd(90, 220) : 0, x = P.x + Math.cos(a) * r, y = P.y + Math.sin(a) * r * YK; warn(x, y, 125, 1.1 + j * 0.3, 45 * e.dm, { vfx: { img: vfxOf(e, 0), R: 125, dur: 0.9 }, onHitP: () => STATUS.add('burn', 1) }); SK.later(() => gzone({ img: vfxOf(e, 0), x, y, R: 95, dur: 4, burn: 1, a: 0.6 }), (1.2 + j * 0.3) * 1000); } });
     return true;
   }
   if (e.rg <= 0 && d < 380) {

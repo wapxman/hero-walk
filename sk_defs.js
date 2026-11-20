@@ -131,7 +131,7 @@
   // Фарфоровая фрейлина: Золотые разряды — 4 удара золотой молнии по герою
   DEF.porcelainmaid = [
     { ph: 'Золотые разряды', col: '#ffe27a', cd: 10, an: 'pm_cast', dur: 0.8, at: 0.5, can: (e, d) => d < 600,
-      cast(e) { for (let i = 0; i < 4; i++) setTimeout(() => { if (P.dead > 0 || e.dieT != null) return; mark({ img: F('porcelainmaid', 'pm_bolt'), dur: 0.35, at: SK.HEAD() * 0.9, size: 200, add: 1 }); hurtPlayer(16 * e.dm); slowHero(Math.max(0.4, 0.85 - 0.15 * i), 2); }, 400 * i); } },
+      cast(e) { for (let i = 0; i < 4; i++) SK.later(() => { if (P.dead > 0 || e.dieT != null) return; mark({ img: F('porcelainmaid', 'pm_bolt'), dur: 0.35, at: SK.HEAD() * 0.9, size: 200, add: 1 }); hurtPlayer(10 * e.dm); slowHero(Math.max(0.4, 0.85 - 0.15 * i), 2); }, 400 * i); } },   // v91: 10 вместо 16 — от разрядов нельзя увернуться, а фрейлин в мире 1 больше всех
   ];
   // Безумный шут: Клетка шута — кольцо огней вокруг героя, 3 с не выйти
   DEF.jester = [
@@ -161,7 +161,7 @@
   MECH.sk_golem = MECH.sk_golem_void = function (e, dt) { e.life = (e.life == null ? e.k.life : e.life) - dt; if (e.life <= 0) { e.hp = 0; e.dieT = 0; e.anim = 'die'; e.act = null; return true; } };
   function golemDrop(e, kind, fall, dmg, st) {
     const x = e.x + (P.x - e.x) * 0.6, y = e.y + (P.y - e.y) * 0.6;
-    setTimeout(() => {
+    SK.later(() => {
       if (e.dieT != null) return;
       groundImg(fall, x, y, 150, 1.0);
       if (Math.hypot(P.x - x, (P.y - y) / YK) < 170) { hurtPlayer(dmg * e.dm); stun(st); }
@@ -187,7 +187,7 @@
         else mark({ img: F('b_plaguelord', 'pl_word'), dur: 5, size: 90, every: 1, tick: () => hurtPlayer(14 * e.dm) });
       } },
     { ph: 'Крысиное проклятие', col: '#9be37a', cd: 15, first: 9.5, an: 'pl_hex_cast', dur: 0.8, at: 0.55, can: (e, d) => d < 800,
-      cast(e) { const puff = () => mark({ img: F('b_plaguelord', 'pl_hex_puff'), dur: 0.6, at: SK.HEAD() * 0.5, size: 170 }); puff(); hex(3, RAT, 0.9); SK.say2('ты — крыса!', '#9be37a'); setTimeout(puff, 3000); } },
+      cast(e) { const puff = () => mark({ img: F('b_plaguelord', 'pl_hex_puff'), dur: 0.6, at: SK.HEAD() * 0.5, size: 170 }); puff(); hex(3, RAT, 0.9); SK.say2('ты — крыса!', '#9be37a'); SK.later(puff, 3000); } },
   ];
   // Жнец Урожая (мини-босс): + Соломенные колья — полоса к герою, подбрасывает и оглушает
   DEF.mb_reaper = [
@@ -253,7 +253,7 @@
   const BEARLEAP = { ph: 'Прыжок-удар', col: '#ffb347', cd: 9, first: 2, an: 'ab_shock_cast', dur: 0.6, at: 0.1, can: (e, d) => d < 400 && d > 120,
     cast(e) {
       const x = P.x, y = P.y; leapTo(e, x, y, 0.5, 0, 0, 'ab_shock_cast');
-      setTimeout(() => { if (e.dieT != null) return; groundImg(F('autumnbear', 'ab_shock'), e.x, e.y, 220, 0.9); if (dist(P, e) < 220) { hurtPlayer(40 * e.dm); slowHero(0.6, 2); } }, 520);
+      SK.later(() => { if (e.dieT != null) return; groundImg(F('autumnbear', 'ab_shock'), e.x, e.y, 220, 0.9); if (dist(P, e) < 220) { hurtPlayer(40 * e.dm); slowHero(0.6, 2); } }, 520);
     } };
   DEF.autumnbear = [BEARLEAP];
   // Матёрый медведь: Прыжок-удар + Ярость (3 удара вдвое быстрее, красное свечение)
@@ -263,13 +263,13 @@
   // Теневой волк: Прыжок из тени — прикован 2 с
   DEF.shadowwolf = [{ ph: 'Прыжок из тени', col: '#9a8aff', cd: 10, first: 0.8, an: 'sw_cast', dur: 0.5, at: 0.1, can: (e, d) => d < 420,
     cast(e) { leapTo(e, P.x, P.y, 0.5, 0, 0, 'sw_cast');
-      setTimeout(() => { if (e.dieT != null || dist(P, e) > 110) return; hurtPlayer(30 * e.dm); pin(2); groundImg(F('shadowwolf', 'sw_pin'), P.x, P.y, 90, 2); }, 520); } }];
+      SK.later(() => { if (e.dieT != null || dist(P, e) > 110) return; hurtPlayer(30 * e.dm); pin(2); groundImg(F('shadowwolf', 'sw_pin'), P.x, P.y, 90, 2); }, 520); } }];
   // Лис-оборотень: Удар в спину — исчезает в дыму и появляется за спиной героя
   DEF.werefox = [{ ph: 'Удар в спину', col: '#ffa04a', cd: 9, first: 2, can: (e, d) => d < 650,
     cast(e) {
       const puff = (x, y) => mark({ img: F('werefox', 'wf_puff'), on: { x, y }, at: 60, dur: 0.6, size: 150 });
       puff(e.x, e.y); e.skBusy = 0.35; const old = e.sc; e.hide = 1;
-      setTimeout(() => {
+      SK.later(() => {
         if (e.dieT != null) return;
         const fx = P.face ? P.face.x : 1, fy = P.face ? P.face.y : 0; e.x = P.x - fx * 70; e.y = P.y - fy * 70 * YK; collide(e); puff(e.x, e.y); e.hide = 0;
         e.row = runRow(P.x - e.x, P.y - e.y);
@@ -345,7 +345,7 @@
   // Утопленник: Водяной столб — пузыри под героем, через 0,8 с столб воды
   const TORRENT = { ph: 'Водяной столб', col: '#7ad0ff', cd: 10, first: 2, an: 'dk_torrent_cast', dur: 0.8, at: 0.5, can: (e, d) => d < 700,
     cast(e) { const x = P.x, y = P.y; warn(x, y, 140, 0.8, 0);
-      setTimeout(() => { if (e.dieT != null) return; groundImg(F('drownedknight', 'dk_torrent'), x, y, 140, 1.1); if (Math.hypot(P.x - x, (P.y - y) / YK) < 150) { hurtPlayer(45 * e.dm); stun(1); setTimeout(() => slowHero(0.65, 2), 1000); } }, 800); } };
+      SK.later(() => { if (e.dieT != null) return; groundImg(F('drownedknight', 'dk_torrent'), x, y, 140, 1.1); if (Math.hypot(P.x - x, (P.y - y) / YK) < 150) { hurtPlayer(45 * e.dm); stun(1); SK.later(() => slowHero(0.65, 2), 1000); } }, 800); } };
   DEF.drownedknight = [TORRENT];
   DEF.el_drowned = [TORRENT];
   // Утопленник-капитан: каждый 3-й удар — дуга волны (урон ×1,5)
@@ -353,7 +353,7 @@
   // Жабья ведьма: Жабье проклятие — герой 2,5 с лягушка
   const FROG = cre('toadwitch', 'tw_frog', VK * 0.9);
   const TOADHEX = { ph: 'Жабье проклятие', col: '#b9e37a', cd: 16, first: 2.5, an: 'tw_hex_cast', dur: 0.8, at: 0.55, can: (e, d) => d < 750,
-    cast(e) { const puff = () => mark({ img: F('toadwitch', 'tw_puff'), dur: 0.6, at: SK.HEAD() * 0.5, size: 170 }); puff(); hex(2.5, FROG, 0.8); SK.say2('ты — лягушка!', '#b9e37a'); setTimeout(puff, 2500); } };
+    cast(e) { const puff = () => mark({ img: F('toadwitch', 'tw_puff'), dur: 0.6, at: SK.HEAD() * 0.5, size: 170 }); puff(); hex(2.5, FROG, 0.8); SK.say2('ты — лягушка!', '#b9e37a'); SK.later(puff, 2500); } };
   DEF.toadwitch = [TOADHEX];
   // Жабья матрона: Ядовитый пузырь и Прыгучая горлянка
   DEF.el_witch = [
@@ -442,7 +442,7 @@
     { ph: 'Обмен отражений', col: '#e6e6ff', cd: 40, first: 9, an: 'ml_sunder_cast', dur: 0.9, at: 0.6, can: e => P.hp / P.maxHp > 0.4 && P.hp / P.maxHp > e.hp / e.max,
       cast(e) { if (P.hp / P.maxHp <= e.hp / e.max) return;
         SK.beam(e, { img: F('b_mirrorlord', 'ml_sunder'), dur: 0.6, w: 70, from: e.ch.top * e.ch.U * e.sc * 0.6 });
-        const ph = Math.max(0.25, e.hp / e.max), pe = Math.max(0.25, P.hp / P.maxHp); P.hp = Math.max(1, P.maxHp * ph); e.hp = e.max * pe; SK.say2('здоровье поменялось!', '#e6e6ff'); } },
+        const ph = Math.max(0.25, e.hp / e.max), pe = Math.max(0.25, P.hp / P.maxHp); P.hp = Math.max(1, P.maxHp * ph); e.hp = Math.min(e.max * pe, e.hp + e.max * 0.3); SK.say2('здоровье поменялось!', '#e6e6ff'); } },   // v91: Лорд за один обмен возвращает не больше 30 % здоровья — иначе здорового героя он не выпускал из боя никогда
   ];
   KIND.ml_clone = Object.assign({}, KIND.b_mirrorlord, { nm: 'Двойник', boss: 0, spells: [], xp: 0, gold: 0 }); MECH.ml_clone = () => false;
   // двойники: живут 8 с, полупрозрачные; бьются с одного удара (sk.js: e.clone)

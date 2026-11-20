@@ -1,44 +1,67 @@
-"""Таблица баланса (BALANCE.md): враги по мирам и волнам, ожидаемый уровень и сила героя.
-Формулы те же, что в data.js (BAL). Запуск: python tools/balance_sim.py > BALANCE_table.txt"""
-import sys
+"""Баланс Duel Arena: таблица забега по 10 мирам (и второй круг) на настоящих данных игры.
+1) собирает balance_data.js — враги миров (roster.js: KIND, ROSTER) и предметы (items.js, relics.js);
+2) запускает модель balance_model.js в node с формулами BAL (data.js) и кривой опыта BAL.need (data.js);
+3) печатает таблицы в Markdown (их копия — в BALANCE.md).
+Запуск из корня проекта: python tools/balance_sim.py [--k hp=1,dmg=1,xp=1,gold=1,price=1,all=1] [--build 1,1,1] [--flasks 2]"""
+import sys, os, json, subprocess, argparse
 sys.stdout.reconfigure(encoding='utf-8')
-XP_KILL = {'min': 8, 'war': 18, 'mag': 14, 'rog': 14}
-MIX = {'min': .6, 'war': .2, 'mag': .1, 'rog': .1}
-GOLD = {'min': 6, 'war': 13, 'mag': 11, 'rog': 11}
-def need(l): return round(30 + 20 * l + 0.5 * l * l)
-def hpm(W, M, C=1): return 1.07 ** (W - 1) * 1.35 ** (M - 1) * 1.8 ** (C - 1)
-def dmm(W, M, C=1): return 1.055 ** (W - 1) * 1.28 ** (M - 1) * 1.5 ** (C - 1)
-def xpm(W, M, C=1): return 1.05 ** (W - 1) * 1.20 ** (M - 1) * 1.3 ** (C - 1)
-def gom(W, M): return 1.04 ** (W - 1) * 1.25 ** (M - 1)
-def count(W, M): return 12 + 3 * (W - 1) + 4 * (M - 1)
-def elites(W): return 0 if W < 4 else 1 if W < 7 else 2
-st = {'lvl': 1, 'xp': 0, 'gold': 0}
-def add(n):
-    st['xp'] += n
-    while st['lvl'] < 100 and st['xp'] >= need(st['lvl']): st['xp'] -= need(st['lvl']); st['lvl'] += 1
-def hero(L, gold):
-    stat = 3 * (L - 1); s = stat * 0.3
-    shop = min(1 + gold / 9000, 2.2)           # примерно: магазин — до ×2,2 к урону к концу 4-го мира
-    hp = 600 + 10 * (L - 1) + 8 * s + min(gold / 25, 700)
-    dmg = 50 * (1 + 0.015 * (L - 1)) * (1 + 0.006 * s) * shop
-    return round(hp), round(dmg)
-print('| Мир / волна | Рядовой (зомби) HP / удар | Элита HP / удар | Босс HP / удар | Уровень героя | HP героя | Выстрел героя |')
-print('|---|---|---|---|---|---|---|')
-for C in (1, 2):
-    for M in range(1, 5):
-        for W in range(1, 11):
-            if W < 10:
-                base = sum(XP_KILL[k] * MIX[k] for k in MIX)
-                add(base * count(W, M) * xpm(W, M, C) + elites(W) * 3 * 8 * xpm(W, M, C))
-                st['gold'] += sum(GOLD[k] * MIX[k] for k in MIX) * count(W, M) * gom(W, M) + elites(W) * 4 * 6 * gom(W, M) + 20 + 6 * W + 10 * (M - 1)
-            else:
-                add(150 * 1.2 ** (M - 1) * 1.3 ** (C - 1)); st['gold'] += 100 * 1.5 ** (M - 1)
-            show = (C == 1 and ((M == 1 and W in (1, 5, 9)) or W == 10)) or (C == 2 and M in (1, 4) and W == 10)
-            if not show: continue
-            Wr = min(W, 9)
-            z = f"{round(120 * hpm(Wr, M, C))} / {round(11 * dmm(Wr, M, C))}"
-            el = f"{round(120 * 3.5 * hpm(Wr, M, C))} / {round(11 * 1.7 * dmm(Wr, M, C))}" if Wr >= 4 else '—'
-            b = f"{round(1500 * hpm(10, M, C))} / {round(45 * dmm(10, M, C))}" if W == 10 else '—'
-            h = hero(st['lvl'], st['gold'] if C == 1 else 21000)
-            name = (f"Круг 2 · " if C == 2 else '') + f"М{M} / В{W}"
-            print(f"| {name} | {z} | {el} | {b} | {st['lvl']} | {h[0]} | {h[1]} |")
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ap = argparse.ArgumentParser(); ap.add_argument('--k', default=''); ap.add_argument('--build', default='1,1,1'); ap.add_argument('--flasks', type=float, default=2); ap.add_argument('--json', action='store_true')
+A = ap.parse_args()
+K = {k: float(v) for k, v in (x.split('=') for x in A.k.split(',') if x)}
+JS = r"""
+const fs = require('fs'), path = require('path'), ROOT = process.argv[1], OPT = JSON.parse(process.argv[2]);
+const rd = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
+const cut = (s, a, b) => { s = s.slice(s.indexOf(a)); return s.slice(0, s.indexOf(b) + b.length); };
+const VILLAINS = undefined;
+let combat = rd('roster.js').replace("'use strict';", '');
+const SHOP = {}, window = {};
+let items = rd('items.js'); items = items.slice(items.indexOf('const PARTS = {'), items.indexOf('const ALL = '));
+let rel = rd('relics.js'); rel = cut(rel, 'const RELICS = {', '\n};');
+const P = { ss: { imm: {} } };
+eval(cut(rd('data.js'), 'const BAL = {', '\n};') + '\n' + combat + '\n' + items + '\n' + rel + '\n' + rd('progress.js').match(/const xpNeedP = .*/)[0] +
+  ';Object.assign(globalThis, { BAL, KIND, ROSTER, miniOf, PARTS, RECIPES, RELICS, xpNeedP });');
+// ---- balance_data.js ----
+const avg = a => (a[0] + a[1]) / 2;
+function kind(id) {
+  const k = KIND[id], nm = Array.isArray(k.nm) ? k.nm[0] : k.nm;
+  const o = { id, nm, hp: k.hp, xp: k.xp || 8, gold: k.gold || 8, hit: avg(k.dmg), dps: +(avg(k.dmg) * (k.fan || 1) / k.cd).toFixed(1) };
+  if (k.elite) o.elite = 1; if (k.rng) o.rng = 1;
+  if (k.boss) {   // урон босса в секунду: удары (60 % времени) + умения (половина попаданий; зона — 2 с из своего времени)
+    let d = avg(k.dmg) / k.cd * 0.6;
+    for (const s of k.spells || []) d += 0.5 * ((s.hit || 0) + (s.tick ? (s.pdmg || s.dmg) * 2 / s.tick : s.dmg) * (s.how === 'multi' ? 3 : 1)) / s.cd;
+    o.dps = +d.toFixed(1);
+  }
+  return o;
+}
+const worlds = []; for (let m = 1; m <= 10; m++) { const R = ROSTER[m]; worlds.push({ mel: R.mel.map(kind), rng: R.rng.map(kind), elite: R.elite.map(kind), mini: [3, 6, 9].map(W => kind(miniOf(R, W))), boss: kind(R.boss) }); }
+const its = {};
+for (const id in PARTS) { const p = PARTS[id]; its[id] = { nm: p.nm, pr: p.pr, st: p.st }; if (p.rcp) its[id].rcp = 1; else if (p.pr <= 700 && id !== 'fang') its[id].chest = 1; if (p.act || p.pas) its[id].fx = 1; }
+for (const id in RECIPES) { const r = RECIPES[id]; its[id] = { nm: r.nm, from: r.from, st: r.st }; if (r.act || r.pas) its[id].fx = 1; }
+for (const id in RELICS) { const r = RELICS[id]; its[id] = { nm: r.nm, pr: r.pr, st: r.st || {}, relic: 1, boss: r.boss }; }
+const D = { worlds, items: its };
+fs.writeFileSync(path.join(ROOT, 'balance_data.js'), '// Создано tools/balance_sim.py из roster.js, items.js и relics.js: враги миров и предметы для модели баланса.\nconst BAL_DATA = ' + JSON.stringify(D) + ';\n');
+// ---- модель ----
+const M = require(path.join(ROOT, 'balance_model.js'));
+if (BAL.tune) BAL.tune(OPT.k);
+const r = M.run({ BAL, D, need: xpNeedP, waves: 200, build: OPT.build, flasks: OPT.flasks, lvlMax: 200 });
+const prices = {}; for (const id in its) if (!its[id].rcp) prices[its[id].nm] = M.full(id, D, BAL.price || (p => p));
+console.log(JSON.stringify({ r, prices, K: BAL.K || null, need: [1, 10, 25, 50, 75, 100, 150, 199].map(l => [l, xpNeedP(l)]) }));
+"""
+opt = {'k': K, 'build': [float(x) for x in A.build.split(',')], 'flasks': A.flasks}
+p = subprocess.run(['node', '-e', JS, ROOT, json.dumps(opt)], capture_output=True, text=True, encoding='utf-8', cwd=ROOT)
+if p.returncode: print(p.stderr); sys.exit(1)
+R = json.loads(p.stdout)
+if A.json: print(json.dumps(R, ensure_ascii=False)); sys.exit(0)
+f0 = lambda v: f"{v:,.0f}".replace(',', ' ')
+print(f"Множители: {R['K']}; очки характеристик (сила : ловкость : интеллект) = {A.build}; фласок лечения за раунд: {A.flasks}\n")
+print('Опыт до следующего уровня: ' + ', '.join(f"{l} → {f0(x)}" for l, x in R['need']) + '\n')
+print('| Мир | Босс | Уровень | Доход за мир | Выстрел | Урон/с | HP героя | Выстрелов на рядового | Удар рядового | Мини-босс (3-й) падает за | Босс падает за | Босс убьёт стоящего героя за | Фласка |')
+print('|---|---|---|---|---|---|---|---|---|---|---|---|---|')
+rows = R['r']['rows']
+for w in R['r']['worlds']:
+    mini = next(x for x in rows if x['n'] == w['n'] - 1)
+    print(f"| {'К2 · ' if w['C'] == 2 else ''}{w['M']} | {w['boss']} | {w['lvl']} | {f0(w['inc'])} | {w['shot']:.0f} | {f0(w['dps'])} | {f0(w['hp'])} | {w['shots']:.1f} | {w['regHit']:.0f} | {mini['miniT']:.0f} с | {w['bossT']:.0f} с | {w['dieT']:.0f} с | {w['flask']} |")
+print('\nСумка к боссу каждого мира (круг 1):')
+for w in R['r']['worlds'][:10]: print(f"- мир {w['M']}: {', '.join(w['bag'])} · в запасе {f0(w['gold'])}")
+print('\nЦены предметов: ' + ', '.join(f"{k} {v}" for k, v in sorted(R['prices'].items(), key=lambda x: x[1])))
