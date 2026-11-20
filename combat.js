@@ -601,22 +601,57 @@ KIND.skyharpist = { nm: 'Небесная арфистка', ch: 'skyharpist', r
 KIND.mb_thornqueen = Object.assign({}, KIND.b_thornqueen, { nm: 'Королева Колючек', boss: 0, elite: 1, hp: 520, sz: 1, xp: 40, gold: 30, base: 'b_thornqueen' });
 KIND.mb_reaper = Object.assign({}, KIND.b_reaper, { nm: 'Жнец Урожая', boss: 0, elite: 1, hp: 540, sz: 1, xp: 40, gold: 30, base: 'b_reaper' });
 // кто выходит в каком мире: рядовые ближнего и дальнего боя, элита, мини-босс 5-й волны и босс мира (10-я волна)
+// ---- 28 новых мини-боссов (пакет Клауди 20.11, MINIBOSS_FOR_KLOD.md): у каждого места (волны 3, 6, 9 мира) свой.
+// Статы — отправная точка из пакета; умения — mini.js. Листы придут отдельным пакетом (tools/villains_prep.py).
+KIND.mb_arbalest = { nm: 'Королевская арбалетчица', ch: 'mb_arbalest', rng: 1, hp: 420, rad: 26, speed: 120, dmg: [18, 24], cd: 1.8, want: 540, shot: 760, xp: 40, gold: 30, elite: 1 };
+KIND.mb_executioner = { nm: 'Королевский палач', ch: 'mb_executioner', mel: 1, hp: 520, rad: 32, speed: 105, dmg: [22, 28], cd: 1.3, reach: 96, xp: 50, gold: 38, elite: 1 };
+KIND.mb_bannerlord = { nm: 'Знаменосец короля', ch: 'mb_bannerlord', mel: 1, hp: 620, rad: 32, speed: 110, dmg: [26, 34], cd: 1.3, reach: 96, xp: 60, gold: 45, elite: 1 };
+KIND.mb_plaguedoc = { nm: 'Чумной лекарь', ch: 'mb_plaguedoc', rng: 1, hp: 420, rad: 26, speed: 115, dmg: [18, 24], cd: 1.8, want: 540, shot: 760, xp: 40, gold: 30, elite: 1 };
+KIND.mb_firebull = { nm: 'Огненный бык', ch: 'mb_firebull', mel: 1, hp: 620, rad: 40, speed: 125, dmg: [26, 34], cd: 1.3, reach: 96, xp: 60, gold: 45, elite: 1 };
+KIND.mb_weaver = { nm: 'Осенняя ткачиха', ch: 'mb_weaver', mel: 1, hp: 420, rad: 32, speed: 135, dmg: [18, 24], cd: 1.3, reach: 96, xp: 40, gold: 30, elite: 1 };
+KIND.mb_moonhuntress = { nm: 'Лунная охотница', ch: 'mb_moonhuntress', rng: 1, hp: 620, rad: 32, speed: 150, dmg: [26, 34], cd: 1.8, want: 540, shot: 760, xp: 60, gold: 45, elite: 1 };
+KIND.mb_drownedbride = { nm: 'Невеста-утопленница', ch: 'mb_drownedbride', rng: 1, hp: 420, rad: 26, speed: 120, dmg: [18, 24], cd: 1.8, want: 540, shot: 760, xp: 40, gold: 30, elite: 1 };
+KIND.mb_crocodile = { nm: 'Крокодил-костолом', ch: 'mb_crocodile', mel: 1, hp: 520, rad: 40, speed: 115, dmg: [22, 28], cd: 1.3, reach: 96, xp: 50, gold: 38, elite: 1 };
+KIND.mb_hydra = { nm: 'Болотная гидра', ch: 'mb_hydra', rng: 1, hp: 620, rad: 40, speed: 95, dmg: [26, 34], cd: 1.8, want: 540, shot: 760, xp: 60, gold: 45, elite: 1 };
+KIND.mb_steamdwarf = { nm: 'Гном в паровом доспехе', ch: 'mb_steamdwarf', mel: 1, hp: 420, rad: 32, speed: 110, dmg: [18, 24], cd: 1.3, reach: 96, xp: 40, gold: 30, elite: 1 };
+KIND.mb_trollminer = { nm: 'Тролль-рудокоп', ch: 'mb_trollminer', mel: 1, hp: 520, rad: 32, speed: 130, dmg: [22, 28], cd: 1.3, reach: 96, xp: 50, gold: 38, elite: 1 };
+KIND.mb_gemscorpion = { nm: 'Самоцветный скорпион', ch: 'mb_gemscorpion', mel: 1, hp: 620, rad: 40, speed: 120, dmg: [26, 34], cd: 1.3, reach: 96, xp: 60, gold: 45, elite: 1 };
+KIND.mb_snowfairy = { nm: 'Снежная фея', ch: 'mb_snowfairy', rng: 1, hp: 420, rad: 26, speed: 170, dmg: [18, 24], cd: 1.8, want: 540, shot: 760, xp: 40, gold: 30, elite: 1 };
+KIND.mb_walrus = { nm: 'Морж-берсерк', ch: 'mb_walrus', mel: 1, hp: 520, rad: 40, speed: 115, dmg: [22, 28], cd: 1.3, reach: 96, xp: 50, gold: 38, elite: 1 };
+KIND.mb_wyvern = { nm: 'Зимняя виверна', ch: 'mb_wyvern', rng: 1, hp: 620, rad: 40, speed: 135, dmg: [26, 34], cd: 1.8, want: 540, shot: 760, xp: 60, gold: 45, elite: 1 };
+KIND.mb_templar = { nm: 'Храмовая убийца', ch: 'mb_templar', mel: 1, hp: 420, rad: 26, speed: 160, dmg: [18, 24], cd: 1.3, reach: 96, xp: 40, gold: 30, elite: 1 };
+KIND.mb_mercury = { nm: 'Ртутный двойник', ch: 'mb_mercury', mel: 1, hp: 520, rad: 32, speed: 145, dmg: [22, 28], cd: 1.3, reach: 96, xp: 50, gold: 38, elite: 1 };
+KIND.mb_timekeeper = { nm: 'Хранитель времени', ch: 'mb_timekeeper', mel: 1, hp: 620, rad: 40, speed: 110, dmg: [26, 34], cd: 1.3, reach: 96, xp: 60, gold: 45, elite: 1 };
+KIND.mb_lavaturtle = { nm: 'Лавовый панцирник', ch: 'mb_lavaturtle', rng: 1, hp: 420, rad: 40, speed: 85, dmg: [18, 24], cd: 1.8, want: 540, shot: 760, xp: 40, gold: 30, elite: 1 };
+KIND.mb_embermonk = { nm: 'Монах огненных цепей', ch: 'mb_embermonk', mel: 1, hp: 520, rad: 26, speed: 165, dmg: [22, 28], cd: 1.3, reach: 96, xp: 50, gold: 38, elite: 1 };
+KIND.mb_phoenix = { nm: 'Пепельный феникс', ch: 'mb_phoenix', rng: 1, hp: 620, rad: 40, speed: 140, dmg: [26, 34], cd: 1.8, want: 540, shot: 760, xp: 60, gold: 45, elite: 1 };
+KIND.mb_windarcher = { nm: 'Ветряная лучница', ch: 'mb_windarcher', rng: 1, hp: 420, rad: 26, speed: 160, dmg: [18, 24], cd: 1.8, want: 540, shot: 760, xp: 40, gold: 30, elite: 1 };
+KIND.mb_dawnsmith = { nm: 'Небесная молотобойца', ch: 'mb_dawnsmith', mel: 1, hp: 520, rad: 32, speed: 135, dmg: [22, 28], cd: 1.3, reach: 96, xp: 50, gold: 38, elite: 1 };
+KIND.mb_sphinx = { nm: 'Сфинкс-страж', ch: 'mb_sphinx', mel: 1, hp: 620, rad: 40, speed: 125, dmg: [26, 34], cd: 1.3, reach: 96, xp: 60, gold: 45, elite: 1 };
+KIND.mb_dreameater = { nm: 'Пожиратель снов', ch: 'mb_dreameater', rng: 1, hp: 420, rad: 32, speed: 130, dmg: [18, 24], cd: 1.8, want: 540, shot: 760, xp: 40, gold: 30, elite: 1 };
+KIND.mb_obsidian = { nm: 'Обсидиановый страж', ch: 'mb_obsidian', rng: 1, hp: 520, rad: 32, speed: 120, dmg: [22, 28], cd: 1.8, want: 540, shot: 760, xp: 50, gold: 38, elite: 1 };
+KIND.mb_gatekeeper = { nm: 'Привратник Бездны', ch: 'mb_gatekeeper', mel: 1, hp: 620, rad: 40, speed: 105, dmg: [26, 34], cd: 1.3, reach: 96, xp: 60, gold: 45, elite: 1 };
+// паучок Осенней ткачихи («Выводок»): её же лист ходьбы в масштабе 0,3
+KIND.sk_spiderling = { nm: 'Паучок', ch: 'mb_weaver', mel: 1, hp: 60, rad: 12, speed: 215, dmg: [6, 6], cd: 0.8, reach: 52, xp: 2, gold: 1, sz: 0.3, col: '#c9781a' };
+// у каких мини-боссов уже есть листы (сервер листов не видит — список общий). Пока листов нет, на месте мини-босса выходит элита мира.
+const MINI_ART = { mb_reaper: 1, mb_thornqueen: 1 };
 const ROSTER = {
-  1: { mel: ['porcelainmaid', 'cs_guard', 'cs_hound', 'porcelainmaid', 'cs_brute'], rng: ['jester', 'cs_archer'], elite: ['el_castellan'], boss: 'b_blackknight' },
-  2: { mel: ['fireimp', 'magmahound', 'bv_scare', 'fireimp'], rng: ['ashcultist', 'cinderwraith'], elite: ['el_cultist'], mini: 'mb_reaper', boss: 'b_plaguelord' },
+  1: { mel: ['porcelainmaid', 'cs_guard', 'cs_hound', 'porcelainmaid', 'cs_brute'], rng: ['jester', 'cs_archer'], elite: ['el_castellan'], mini: ['mb_arbalest', 'mb_executioner', 'mb_bannerlord'], boss: 'b_blackknight' },
+  2: { mel: ['fireimp', 'magmahound', 'bv_scare', 'fireimp'], rng: ['ashcultist', 'cinderwraith'], elite: ['el_cultist'], mini: ['mb_plaguedoc', 'mb_reaper', 'mb_firebull'], boss: 'b_plaguelord' },
   3: { mel: ['shadowwolf', 'werefox', 'rotdryad', 'autumnbear', 'boarbrute', 'scarecrow'], rng: ['sporeshaman', 'thornimp', 'crowharpy', 'hollowarcher'],
-    elite: ['thornroot', 'el_bear'], mini: 'mb_thornqueen', boss: 'b_serpentqueen' },
-  4: { mel: ['bogghoul', 'leechworm', 'bogghoul', 'drownedknight'], rng: ['toadwitch', 'wisplantern'], elite: ['el_drowned', 'el_witch'], boss: 'b_toadking' },
-  5: { mel: ['gembeetle', 'mn_imp', 'gembeetle', 'mn_worm', 'mn_boar'], rng: ['dwarfbomber', 'mn_thrower'], elite: ['el_forgeman'], boss: 'b_forgegolem' },
-  6: { mel: ['frostlynx', 'ic_fox', 'ic_bear', 'frostlynx', 'ic_wolf'], rng: ['yeti', 'ic_wisp', 'ic_harpy'], elite: ['el_icebear'], boss: 'b_frostqueen' },
-  7: { mel: ['glassdancer', 'rn_ghoul', 'rn_knight', 'glassdancer', 'rn_scare'], rng: ['prismkeeper', 'rn_archer', 'rn_wraith'], elite: ['el_mirror'], boss: 'b_mirrorlord' },
-  8: { mel: ['magmahound', 'fireimp', 'salamander', 'fireimp'], rng: ['ashcultist', 'cinderwraith'], elite: ['el_salamander', 'el_cultist'], boss: 'b_ashlord' },
-  9: { mel: ['marblegriffin', 'sk_fox', 'sk_warrior', 'marblegriffin'], rng: ['skyharpist', 'sk_harpy', 'sk_wisp'], elite: ['el_seraph'], boss: 'b_skyjudge' },
-  10: { mel: ['ab_wolf', 'ab_ghoul', 'ab_knight', 'ab_ghoul'], rng: ['ab_wraith', 'ab_wisp'], elite: ['el_voidcultist'], boss: 'b_voidmage' },
+    elite: ['thornroot', 'el_bear'], mini: ['mb_weaver', 'mb_thornqueen', 'mb_moonhuntress'], boss: 'b_serpentqueen' },
+  4: { mel: ['bogghoul', 'leechworm', 'bogghoul', 'drownedknight'], rng: ['toadwitch', 'wisplantern'], elite: ['el_drowned', 'el_witch'], mini: ['mb_drownedbride', 'mb_crocodile', 'mb_hydra'], boss: 'b_toadking' },
+  5: { mel: ['gembeetle', 'mn_imp', 'gembeetle', 'mn_worm', 'mn_boar'], rng: ['dwarfbomber', 'mn_thrower'], elite: ['el_forgeman'], mini: ['mb_steamdwarf', 'mb_trollminer', 'mb_gemscorpion'], boss: 'b_forgegolem' },
+  6: { mel: ['frostlynx', 'ic_fox', 'ic_bear', 'frostlynx', 'ic_wolf'], rng: ['yeti', 'ic_wisp', 'ic_harpy'], elite: ['el_icebear'], mini: ['mb_snowfairy', 'mb_walrus', 'mb_wyvern'], boss: 'b_frostqueen' },
+  7: { mel: ['glassdancer', 'rn_ghoul', 'rn_knight', 'glassdancer', 'rn_scare'], rng: ['prismkeeper', 'rn_archer', 'rn_wraith'], elite: ['el_mirror'], mini: ['mb_templar', 'mb_mercury', 'mb_timekeeper'], boss: 'b_mirrorlord' },
+  8: { mel: ['magmahound', 'fireimp', 'salamander', 'fireimp'], rng: ['ashcultist', 'cinderwraith'], elite: ['el_salamander', 'el_cultist'], mini: ['mb_lavaturtle', 'mb_embermonk', 'mb_phoenix'], boss: 'b_ashlord' },
+  9: { mel: ['marblegriffin', 'sk_fox', 'sk_warrior', 'marblegriffin'], rng: ['skyharpist', 'sk_harpy', 'sk_wisp'], elite: ['el_seraph'], mini: ['mb_windarcher', 'mb_dawnsmith', 'mb_sphinx'], boss: 'b_skyjudge' },
+  10: { mel: ['ab_wolf', 'ab_ghoul', 'ab_knight', 'ab_ghoul'], rng: ['ab_wraith', 'ab_wisp'], elite: ['el_voidcultist'], mini: ['mb_dreameater', 'mb_obsidian', 'mb_gatekeeper'], boss: 'b_voidmage' },
 };
+// мини-босс части мира (волны 3, 6, 9): у каждого места свой (ROSTER.mini); пока у него нет листов — элита мира, как раньше
+const miniReady = id => !!(id && KIND[id] && (MINI_ART[id] || (typeof VILLAINS !== 'undefined' && VILLAINS[KIND[id].ch])));
+const miniOf = (R, W) => { const m = R.mini && R.mini[W / 3 - 1]; return miniReady(m) ? m : R.elite[(W === 9 ? 1 : 0) % R.elite.length]; };
 const rosterOf = n => ROSTER[BAL.at(n).M] || ROSTER[1];
-// мини-босс части мира (волны 3, 6, 9): Королева Колючек / Жнец Урожая там, где они есть, иначе элита мира — сильнее обычной
-const miniOf = (R, W) => W === 6 && R.mini ? R.mini : R.elite[(W === 9 ? 1 : 0) % R.elite.length];
 
 // листы перекрашенных злодеев: своя копия анимаций, картинка перекрашивается фильтром при загрузке (loadMul)
 for (const id in VARIANT) {

@@ -20,8 +20,8 @@ vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'data.js'), 'utf8') +
 const D = box.D, BAL = D.BAL;
 // виды врагов и кто выходит в каком мире — та же таблица, что в одиночной игре (combat.js), без копии
 const CS = fs.readFileSync(path.join(__dirname, '..', 'combat.js'), 'utf8');
-vm.runInContext(CS.slice(CS.indexOf('const KIND = {'), CS.indexOf('const rosterOf')) + '\n;this.K = { KIND, ROSTER };', box);
-const KIND = box.K.KIND, ROSTER = box.K.ROSTER;
+vm.runInContext(CS.slice(CS.indexOf('const KIND = {'), CS.indexOf('const rosterOf')) + '\n;this.K = { KIND, ROSTER, miniOf };', box);
+const KIND = box.K.KIND, ROSTER = box.K.ROSTER, miniOf = box.K.miniOf;
 const XP0 = { min: 8, war: 18, mag: 14, rog: 14, boss: 150 };
 const { TICK, DT, YK, EV } = NET;
 // ---------- карты миров (data.js WORLDS; мир 1 — арена по умолчанию) ----------
@@ -340,7 +340,7 @@ function nextWave(r) {
     for (let i = 0; i < nr; i++) q.push(R.rng[i % R.rng.length]);
     for (let i = q.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [q[i], q[j]] = [q[j], q[i]]; }
     for (let i = 0; i < BAL.elites(r.wave); i++) q.splice(Math.floor(q.length * (0.55 + 0.3 * i)), 0, R.elite[(i + r.wave) % R.elite.length]);
-    const mini = a.W % 3 === 0 ? (a.W === 6 && R.mini ? R.mini : R.elite[(a.W === 9 ? 1 : 0) % R.elite.length]) : null;   // мини-босс части мира — последним
+    const mini = a.W % 3 === 0 ? miniOf(R, a.W) : null;   // мини-босс части мира — последним
     r.mini = mini; if (mini) q.push(mini);
   }
   r.queue = q;

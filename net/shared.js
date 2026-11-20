@@ -96,7 +96,8 @@
     'ic_bear', 'ic_fox', 'ic_wisp', 'ic_harpy', 'el_icebear', 'tb_frostqueen', 'rn_knight', 'rn_scare',
     'rn_ghoul', 'rn_archer', 'rn_wraith', 'el_mirror', 'tb_mirrorlord', 'sk_fox', 'sk_warrior', 'sk_harpy',
     'sk_wisp', 'el_seraph', 'tb_skyjudge', 'ab_wolf', 'ab_ghoul', 'ab_knight', 'ab_wraith', 'ab_wisp',
-    'el_voidcultist', 'mb_thornqueen', 'mb_reaper', 'b_blackknight', 'mirrorcopy', 'b_serpentqueen', 'b_frostqueen', 'b_plaguelord', 'b_forgegolem', 'b_mirrorlord', 'b_skyjudge', 'porcelainmaid', 'jester', 'gembeetle', 'dwarfbomber', 'yeti', 'glassdancer', 'frostlynx', 'prismkeeper', 'marblegriffin', 'skyharpist'];
+    'el_voidcultist', 'mb_thornqueen', 'mb_reaper', 'b_blackknight', 'mirrorcopy', 'b_serpentqueen', 'b_frostqueen', 'b_plaguelord', 'b_forgegolem', 'b_mirrorlord', 'b_skyjudge', 'porcelainmaid', 'jester', 'gembeetle', 'dwarfbomber', 'yeti', 'glassdancer', 'frostlynx', 'prismkeeper', 'marblegriffin', 'skyharpist',
+    'mb_arbalest', 'mb_executioner', 'mb_bannerlord', 'mb_plaguedoc', 'mb_firebull', 'mb_weaver', 'mb_moonhuntress', 'mb_drownedbride', 'mb_crocodile', 'mb_hydra', 'mb_steamdwarf', 'mb_trollminer', 'mb_gemscorpion', 'mb_snowfairy', 'mb_walrus', 'mb_wyvern', 'mb_templar', 'mb_mercury', 'mb_timekeeper', 'mb_lavaturtle', 'mb_embermonk', 'mb_phoenix', 'mb_windarcher', 'mb_dawnsmith', 'mb_sphinx', 'mb_dreameater', 'mb_obsidian', 'mb_gatekeeper', 'sk_spiderling'];
   // реплики врагов над головой (событие SAY с кодом 10 + номер): [текст, цвет]
   const PHRASES = [['Броня!', '#bcd4ff'], ['Прыжок!', '#ffb36a'], ['Таран!', '#ffb36a'], ['Восстаньте!', '#c9a8ff'], ['РЁВ!', '#ff7a5a'],
     ['Яд!', '#9be37a'], ['Сотрясение!', '#ffb347'], ['Жатва!', '#ffb347'], ['За спиной!', '#ff5a3a'], ['Огненный дождь!', '#ff8a4a'],

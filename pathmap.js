@@ -177,6 +177,12 @@ const PATHMAP = (() => {
       cx.beginPath(); cx.arc(X, Y, rr * 1.35, 0, 6.283); cx.fillStyle = 'rgba(30,20,10,0.75)'; cx.fill();
       cx.beginPath(); cx.arc(X, Y, rr, 0, 6.283); cx.fillStyle = on ? '#ffcf5a' : '#7c776c'; cx.fill();
       if (on) { cx.save(); cx.globalCompositeOperation = 'lighter'; glow(X, Y, rr * 3, '255,200,90', 0.5); cx.restore(); }
+      // имя мини-босса этой точки (волны 3, 6, 9) — на карте выбора, когда она приближена
+      if (st.select && cam.z >= 1.5 && typeof ROSTER !== 'undefined' && ROSTER[c + 1]) {
+        const k = KIND[miniOf(ROSTER[c + 1], Math.round(f * 4) * 3)], nm = k && (Array.isArray(k.nm) ? k.nm[0] : k.nm);
+        if (nm) { cx.save(); cx.font = 'bold ' + Math.round(9 * u * Math.sqrt(cam.z)) + 'px Georgia, serif'; cx.textAlign = 'center'; cx.lineWidth = 3 * u; cx.strokeStyle = 'rgba(20,12,4,0.9)'; cx.fillStyle = on ? '#ffe9a8' : '#cfc8b8';
+          cx.strokeText(nm, X, Y + rr * 3.1); cx.fillText(nm, X, Y + rr * 3.1); cx.restore(); }
+      }
     }
     // пройденная часть — золотая и светится
     const lit = st.select ? Math.max(st.select.litT, st.t) : st.t;
