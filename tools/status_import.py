@@ -7,7 +7,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 SRC = r'C:\Users\User\Desktop\night_19_11\status_icons\png'
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'ui', 'status'); os.makedirs(OUT, exist_ok=True)
-NAMES = 'stun freeze root slow silence poison burn cold bleed shred weak blind mark fear curse shield haste immune clarity star'.split()
+NAMES = 'stun freeze root slow silence poison burn cold bleed shred weak blind mark fear curse shield haste immune clarity star dash'.split()   # dash — иконка кнопки рывка
 bad = []
 for n in NAMES:
     p = os.path.join(SRC, n + '.png')

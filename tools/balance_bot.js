@@ -106,6 +106,12 @@
     }
     const m = Math.hypot(ax, ay);
     stick.active = m > 0.01; stick.dx = m ? ax / m : 0; stick.dy = m ? ay / m : 0;
+    // рывок: снаряд вот-вот попадёт (или метка на земле под ногами) — уходим рывком туда, куда и шли
+    if (B.opt.dash !== false && typeof DASH !== 'undefined' && P.cd.dash <= 0 && m > 0.01 && P.dead <= 0) {
+      const hit = inc.some(q => { const rx = P.x - q.x, ry = (P.y - q.y) / YK, al = rx * q.dx + ry * q.dy; return al > 0 && al < 170 && Math.abs(rx * q.dy - ry * q.dx) < 45; })
+        || zones.some(f => f.dur - f.t < 0.3 && Math.hypot(P.x - f.x, (P.y - f.y) / YK) < f.R);
+      if (hit && cast('dash')) B.dashes = (B.dashes || 0) + 1;
+    }
     held.key = !!near && nd < RANGE + 60;
     if (near && P.dead <= 0 && !STATUS.mute()) {
       for (const id of SK_IDS) {

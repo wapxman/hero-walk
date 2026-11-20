@@ -7,7 +7,7 @@ from playwright.sync_api import sync_playwright
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ap = argparse.ArgumentParser(); ap.add_argument('--waves', type=int, default=100); ap.add_argument('--from', dest='frm', type=int, default=0); ap.add_argument('--hero', default='')
 ap.add_argument('--k', default=''); ap.add_argument('--out', default=''); ap.add_argument('--url', default='http://localhost:8765/'); ap.add_argument('--lvl', type=int, default=0)
-ap.add_argument('--build', default='1,1,1')
+ap.add_argument('--build', default='1,1,1'); ap.add_argument('--nodash', action='store_true')
 A = ap.parse_args()
 K = {k: float(v) for k, v in (x.split('=') for x in A.k.split(',') if x)}
 with sync_playwright() as pw:
@@ -21,7 +21,7 @@ with sync_playwright() as pw:
     p.evaluate("document.querySelector('#hSel .go').dispatchEvent(new PointerEvent('pointerdown'))"); time.sleep(2)
     p.evaluate("k => { if (BAL.tune) BAL.tune(k); }", K)
     p.add_script_tag(path=os.path.join(ROOT, 'balance_model.js')); p.add_script_tag(path=os.path.join(ROOT, 'tools', 'balance_bot.js'))
-    p.evaluate("a => { BOT.maxWave = a[0]; BOT.opt.build = a[2]; if (a[1]) { wave = a[1]; } if (a[3]) { P.lvl = a[3]; P.stp = 3 * (a[3] - 1); P.sp = a[3] - 1; } }", [A.waves, A.frm, [float(x) for x in A.build.split(',')], A.lvl])
+    p.evaluate("a => { BOT.maxWave = a[0]; BOT.opt.build = a[2]; BOT.opt.dash = !a[4]; if (a[1]) { wave = a[1]; } if (a[3]) { P.lvl = a[3]; P.stp = 3 * (a[3] - 1); P.sp = a[3] - 1; } }", [A.waves, A.frm, [float(x) for x in A.build.split(',')], A.lvl, A.nodash])
     t0 = time.time(); shown = 0
     while True:
         st = p.evaluate("BOT.run(6000)")

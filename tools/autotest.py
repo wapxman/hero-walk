@@ -116,7 +116,7 @@ async def extra(br, res):
           for (const id in LOCFX.defs) L.push('ui/locfx/' + id + '.webp');
           for (const w of WORLDS) L.push(w.ground); for (const m in ARENAS) for (const a of ARENAS[m]) L.push(a);
           for (const id in RELICS) L.push('ui/relics/' + id + '.webp'); L.push('ui/items.webp', 'ui/icons.webp', 'ui/map/map.webp');
-          for (const d of HSTAT.DEF) L.push('ui/status/' + d[0] + '.webp'); L.push('ui/status/star.webp');
+          for (const d of HSTAT.DEF) L.push('ui/status/' + d[0] + '.webp'); L.push('ui/status/star.webp', 'ui/status/dash.webp');
           await Promise.all(L.map(async u => { try { const x = await fetch(u, { method: 'HEAD' }); if (!x.ok) bad.push(u + ' — ' + x.status); else if (+x.headers.get('content-length') < 500) bad.push(u + ' — пустой файл'); } catch (e) { bad.push(u + ' — ' + e); } }));
           return { n: L.length, bad }; }""")
         # значки состояний: всё наложили разом — в ряду 8 плохих и хорошие, после снятия ряд пуст
@@ -124,6 +124,11 @@ async def extra(br, res):
           for (const k of ['poison', 'burn', 'cold', 'shred']) STATUS.add(k, 2); slowHero(0.6, 3); slowHero(0, 1); P.ss.spd = 2; P.ss.noMiss = 2; P.ss.imm.sil = 1; P.ss.rshield = 1e9; P.ss.rshT = 2; HSTAT.show('fear', 2);
           combatUpdate(0.02); const on = HSTAT.list(); STATUS.clear(); P.slowT = 0; P.slowK = 1; HSTAT.show('fear', 0);
           combatUpdate(0.02); return { on, off: HSTAT.list() }; }""")
+        # рывок: сдвигает героя на 250, во время рывка урон не проходит, перезарядка идёт; под оглушением — нельзя
+        r['dash'] = await p.evaluate("""() => { const o = {}; P.dead = 0; P.hp = P.maxHp = 1e6; P.cd.dash = 0; P.face = { x: 1, y: 0 }; stick.active = false; const x0 = P.x;
+          o.go = cast('dash') === true; for (let i = 0; i < 4; i++) combatUpdate(0.02); const hp = P.hp; hurtPlayer(500); o.inv = P.hp === hp;
+          for (let i = 0; i < 20; i++) combatUpdate(0.02); o.dx = Math.round(Math.abs(P.x - x0)); o.cd = P.cd.dash > 4;
+          P.cd.dash = 0; STATUS.add('stun', 2); o.stun = cast('dash') === false && !!DASH.why(); STATUS.clear(); P.cd.dash = 0; return o; }""")
         r['ver'] = await p.evaluate("({ v: V, lvlMax: LVL_MAX, k: BAL.K })")
     except Exception as ex:
         red('общее', 'проверка сохранения/предметов/файлов оборвалась: ' + str(ex)[:300])
@@ -192,6 +197,10 @@ if 'stat' in x:
     if ','.join(st['on']) != want: red('общее', 'значки состояний: в ряду %s, а должно быть %s' % (','.join(st['on']), want))
     if st['off']: red('общее', 'значки состояний: после снятия остались ' + ','.join(st['off']))
     L.append('Значки состояний: всё наложено разом — в ряду ' + str(len(st['on'])) + ' значков в нужном порядке, после снятия ряд пуст' + ('.' if ','.join(st['on']) == want and not st['off'] else ' — НЕТ.'))
+if 'dash' in x:
+    d = x['dash']; ok = d['go'] and d['inv'] and d['cd'] and d['stun'] and d['dx'] > 60
+    if not ok: red('общее', 'рывок: ' + json.dumps(d))
+    L.append('Рывок: герой сдвинулся на %d, урон во время рывка не прошёл, перезарядка пошла, под оглушением нельзя' % d['dx'] + ('.' if ok else ' — НЕТ.'))
 if 'files' in x:
     for e in x['files']['bad']: red('общее', 'файл: ' + e)
     L.append(f"Файлы (звуки боссов, живые элементы, арены, иконки): проверено {x['files']['n']}, плохих {len(x['files']['bad'])}.")

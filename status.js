@@ -139,7 +139,7 @@ const HSTAT = (function () {
   const tick = () => performance.now() / 1000;
   {
     const _cast = cast;
-    cast = function (id) { if (why(false) && !(typeof SHOP !== 'undefined' && SHOP.paused)) deny[id] = tick(); return _cast(id); };
+    cast = function (id) { if ((id === 'dash' ? typeof DASH !== 'undefined' && DASH.why() : why(false)) && !(typeof SHOP !== 'undefined' && SHOP.paused)) deny[id] = tick(); return _cast(id); };
     let wasHeld = false;
     const _lb = layoutButtons;
     layoutButtons = function () {                 // запрещённая кнопка после нажатия коротко дёргается
@@ -156,12 +156,12 @@ const HSTAT = (function () {
     combatUI = function () {
       _ui();
       if (P.dead > 0 || (typeof LIMBO !== 'undefined' && LIMBO.on)) return;
-      const ws = why(false), wa = why(true), n = tick(), smoke = P.ss.blind > 0 && !(P.ss.noMiss > 0);
-      if (!ws && !wa && !smoke) return;
+      const ws = why(false), wa = why(true), wd = typeof DASH !== 'undefined' ? DASH.why() : null, n = tick(), smoke = P.ss.blind > 0 && !(P.ss.noMiss > 0);
+      if (!ws && !wa && !wd && !smoke) return;
       ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       for (const b of BTN) {
-        const w = b.id === 'atk' ? wa : ws;
-        if (!w) { if (smoke && b.id !== 'atk') corner(b, 'blind', 1); continue; }
+        const w = b.id === 'atk' ? wa : b.id === 'dash' ? wd : ws;
+        if (!w) { if (smoke && b.id !== 'atk' && b.id !== 'dash') corner(b, 'blind', 1); continue; }
         const d = n - (deny[b.id] || -9), fl = d < 0.25 ? 1 - d / 0.25 : 0, R = b.r * 0.92;
         ctx.beginPath(); ctx.arc(b.x, b.y, R, 0, 7);
         ctx.fillStyle = 'rgba(58,60,66,0.78)'; ctx.fill();                                       // приглушить серым
