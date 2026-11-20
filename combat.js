@@ -680,7 +680,9 @@ function spawnEnemy(type) {
     if (!/^mb_/.test(e.k.ch)) { e.sc *= 1.2; e.rad *= 1.15; }
     else { e.sc /= BAL.ELITE.size; e.rad /= BAL.ELITE.size; }   // у новых мини-боссов (листы mb_*) рост задан художником — без прибавки элиты и ×1,2
     const nm = Array.isArray(e.k.nm) ? e.k.nm[0] : e.k.nm || 'Мини-босс';
-    say(P.x, P.y - CH * 1.4 * HS(), 'Мини-босс: ' + nm, '#ffb36a'); snd('boss_roar', 0.7, 1.2); return; }
+    say(P.x, P.y - CH * 1.4 * HS(), 'Мини-босс: ' + nm, '#ffb36a');
+    if (!(typeof BOSSVO !== 'undefined' && BOSSVO[type] && BOSSVO[type].g)) snd('boss_roar', 0.7, 1.2);   // у мини-босса свой крик (bossvo.js)
+    return; }
   spawnEnemyBase(type);
 }
 function spawnEnemyBase(type) {
