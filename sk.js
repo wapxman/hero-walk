@@ -98,6 +98,8 @@ const SK = (() => {
   let rankAt = -99; const rankOf = new Map();
   function schedule(e, dt, d) {
     const L = DEF[e.type]; if (!L) return false;
+    const soft = SOFT1(), keep = soft ? SOFT1_SK[e.type] : null;   // мир 1 мягче: рядовые без умений, у мини-боссов и босса — по одному простому
+    if (soft && softRank(e)) return false;
     if (!e.sk) {
       e.sk = L.map((s, i) => ({ cd: (s.first != null ? s.first : 1.5 + Math.random() * 1.5) + i * 0.6 }));
       e.skHp = 1;
@@ -111,6 +113,7 @@ const SK = (() => {
     for (let i = 0; i < L.length; i++) {
       const s = L[i], st = e.sk[i];
       if (st.cd > 0 || s.passive) continue;
+      if (keep && !keep.includes(s.ph)) continue;
       if (s.can && !s.can(e, d)) continue;
       // рядовые не колдуют все разом (v91): между умениями рядовых — пауза, одно и то же умение — не чаще раза в несколько секунд
       // (BAL.RANK_SK). Иначе толпа из десятка одинаковых врагов держала героя в оглушении и жгла без шансов увернуться.
@@ -120,6 +123,7 @@ const SK = (() => {
         rankAt = now; rankOf.set(L, now);
       }
       st.cd = s.cd * (e.phase >= 3 ? 0.75 : 1);
+      SK.lastCast = { e, at: performance.now() / 1000 };   // кто последним начал умение (Сфера лотоса возвращает состояние ему)
       if (s.ph) tag(e, s.ph + '!', s.col || '#ffd28a');
       if (s.an) startAct(e, s.an, s.dur || 0.9, s.at || 0.5, () => s.cast(e, d));
       else s.cast(e, d);
@@ -137,7 +141,7 @@ const SK = (() => {
     const wasAtk = e.act && (e.act.anim === 'atk' || e.act.anim === 'tr_logattack') && !e.act.hit;
     _ue(e, dt);
     // пассивы «каждый 3-й удар»: срабатывают на попадании обычного удара
-    if (P.hp < hp0 && e.mel && wasAtk) { e.hits = (e.hits || 0) + 1; if (ON_HIT[e.type]) ON_HIT[e.type](e, e.hits); }
+    if (P.hp < hp0 && e.mel && wasAtk) { e.hits = (e.hits || 0) + 1; if (ON_HIT[e.type] && !softRank(e) && !(SOFT1() && SOFT1_SK[e.type])) ON_HIT[e.type](e, e.hits); }
   };
   const ON_HIT = {};
   // помощники

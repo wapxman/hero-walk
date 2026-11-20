@@ -1,7 +1,8 @@
 // Живые элементы арен от Клауди (19.11): ui/locfx/<id>.webp + описание в ui/locfx/locfx.js (LOCFX.defs — клетка,
 // кадры, fps, blend; LOCFX.place[мир][id] — места: x, y — доли картинки арены, w — доля ширины, a — 'b' низ / 'c' центр,
-// al — прозрачность, move=[dx, dy, период] — ходит туда-обратно лицом по ходу, ph — сдвиг фазы).
-// Птицы (FLYBY) не стоят на месте: пролетают через арену 1–2 раза и уходят за край, новый пролёт — через 20–40 с.
+// al — прозрачность, move=[dx, dy, период] — направление и темп движения, ph — сдвиг фазы).
+// Всё, что движется (v99): один раз пересекает арену и уходит за край, следующий проход — через 20–40 с. Никто не ходит туда-обратно.
+// Птицы (FLYBY) летят на высоте, где смотрит камера; остальные (страж, селянин, призраки, кит, скат) идут по своей линии через всю арену.
 // blend: lighter — свечение (складывается), mask — дым/туман (альфа = яркость, цвет задаём здесь), normal — спрайт.
 // Где у мира есть свои элементы, прежние места из arenafx.js (огонь, фонтаны) не рисуются — остаются частицы и птицы.
 'use strict';
@@ -54,14 +55,25 @@ if (LFX) {
     const f = p._fly || (p._fly = { next: t + 2 + Math.random() * 12, left: 0 });
     if (f.t0 == null) {
       if (t < f.next) return null;
-      if (!f.left) f.left = Math.random() < 0.5 ? 1 : 2;
-      f.t0 = t; f.dir = f.dir ? -f.dir : (Math.random() < 0.5 ? 1 : -1);
+      f.left = 1;   // один пролёт, без разворота
+      f.t0 = t; f.dir = Math.random() < 0.5 ? 1 : -1;
       f.y = Math.max(w, Math.min(WORLD_H - w, cam.y + cam.vh * (0.12 + Math.random() * 0.45)));
       f.sp = WORLD_W * (0.075 + Math.random() * 0.03); f.ph = Math.random() * 6;
     }
     const run = (t - f.t0) * f.sp, len = WORLD_W + w * 3;
     if (run > len) { f.t0 = null; f.left--; f.next = f.left > 0 ? t + 1 + Math.random() * 2 : t + 20 + Math.random() * 20; if (!f.left) f.dir = 0; return null; }
     return { x: f.dir > 0 ? -w * 1.5 + run : WORLD_W + w * 1.5 - run, y: f.y + Math.sin(run / 260 + f.ph) * w * 0.5, flip: f.dir < 0 };
+  }
+  // проход по своей линии через всю арену (страж, селянин, призраки, кит, скат): из-за края — за край, потом пауза 20–40 с
+  function cross(t, p, w) {
+    const c = p._cr || (p._cr = { next: t + Math.random() * 10 });
+    const [dx, dy, T] = p.move, lx = dx * WORLD_W, ly = dy * WORLD_H, len = Math.hypot(lx, ly) || 1;
+    if (c.t0 == null) { if (t < c.next) return null; c.t0 = t; c.dir = Math.random() < 0.5 ? 1 : -1; }
+    const ux = lx / len * c.dir, uy = ly / len * c.dir, m = w * 1.5, X0 = p.x * WORLD_W, Y0 = p.y * WORLD_H;
+    const a = (-m - X0) / ux, b = (WORLD_W + m - X0) / ux, s0 = Math.min(a, b), s1 = Math.max(a, b);   // где линия входит на арену и где выходит
+    const v = Math.max(2 * len / T, WORLD_W / 45), s = s0 + (t - c.t0) * v;
+    if (s > s1) { c.t0 = null; c.next = t + 20 + Math.random() * 20; return null; }
+    return { x: X0 + ux * s, y: Math.max(w, Math.min(WORLD_H, Y0 + uy * s)), flip: ux < 0 };
   }
   function each(t, top) {
     const M = on(); if (!M) return;
@@ -76,12 +88,8 @@ if (LFX) {
         }
         const flying = p.move && p.a === 'c';
         if (!!top !== (flying || d.blend === 'lighter')) continue;   // свечение и летуны — поверх героев
-        let fx = p.x, fy = p.y, flip = false;
-        if (p.move) {
-          const [dx, dy, T] = p.move, u = ((t + (p.ph || 0)) / T) % 1, k = u < 0.5 ? u * 2 : 2 - u * 2;
-          fx += dx * k; fy += dy * k; flip = (u < 0.5) !== (dx >= 0);   // лицом по ходу (лист смотрит вправо)
-        }
-        const x = fx * WORLD_W, y = fy * WORLD_H, w = p.w * WORLD_W;
+        const w = p.w * WORLD_W; let x = p.x * WORLD_W, y = p.y * WORLD_H, flip = false;
+        if (p.move) { const q = cross(t, p, w); if (!q) continue; x = q.x; y = q.y; flip = q.flip; }   // лицом по ходу (лист смотрит вправо)
         if (!seen(x, y, w)) continue;
         LFX.draw(ctx, id, t, x, y, w, { a: p.a, al: p.al, ph: p.ph, flip });
       }

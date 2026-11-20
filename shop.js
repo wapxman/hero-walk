@@ -174,7 +174,7 @@ const SHOP = {
   },
 };
 SHOP.healAmt = () => Math.round(150 + 0.2 * P.maxHp);
-SHOP.flaskPrice = f => BAL.price(f.id === 'heal' ? 40 + 10 * (BAL.mw(wave + 1) - 1) : f.price);
+SHOP.flaskPrice = f => BAL.price(f.id === 'heal' ? 40 + 5 * (BAL.mw(wave + 1) - 1) : f.price);   // v99: лечение дорожает на 5 за мир, а не на 10 (в мире 10 — 85 вместо 130)
 
 // ---------- интерфейс (DOM поверх игры; все фоны — картинки) ----------
 (function buildUI() {

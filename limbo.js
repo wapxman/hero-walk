@@ -33,11 +33,12 @@ const LIMBO = (() => {
   // ---------- кузница: прокачка способностей за золото (навсегда, сохраняется с прогрессом) ----------
   const FORGE_MAX = 5;
   const forgeLv = id => (P.forge && P.forge[id]) || 0;
-  const forgeCost = id => BAL.price(Math.round(380 * Math.pow(1.85, forgeLv(id)) * (id === 'r' ? 1.4 : 1)));
+  // v99: кузница дешевле и растёт медленнее (было 380 × 1,85^уровень): она съедала у часто гибнущего игрока деньги на предметы
+  const forgeCost = id => BAL.price(Math.round(300 * Math.pow(1.5, forgeLv(id)) * (id === 'r' ? 1.4 : 1)));
   function forgeBuy(id) {
     const c = forgeCost(id);
     if (forgeLv(id) >= FORGE_MAX || SHOP.gold < c) { snd('hero_shot', 0.2, 0.6); return; }
-    SHOP.gold -= c; P.forge = P.forge || {}; P.forge[id] = forgeLv(id) + 1;
+    SHOP.gold -= c; if (SHOP.led) SHOP.led.forge += c; P.forge = P.forge || {}; P.forge[id] = forgeLv(id) + 1;
     snd('coins', 0.6, 0.8); burst(X(L.st.forge.p[0]), Y(L.st.forge.p[1]) - 40, 30, '255,170,60');
     if (typeof progSave === 'function') progSave();
     SHOP.refresh(); forgeUI();

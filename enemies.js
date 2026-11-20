@@ -5,6 +5,12 @@
 'use strict';
 
 const dirTo = (e, x, y) => { const dx = x - e.x, dy = (y - e.y) / YK, m = Math.hypot(dx, dy) || 1; return [dx / m, dy / m, m]; };
+// Мир 1 — первый, мягкий (v99, по просьбе Создателя): на первом круге рядовые здесь просто берут в кольцо — без умений и старых приёмов;
+// у элиты умение остаётся, у мини-боссов и босса — по одному простому, с заметным предупреждением (SOFT1_SK: что оставлено).
+// Полигон автопрогона проверяет все умения — для него смягчение выключается (window.NO_SOFT).
+const SOFT1 = () => { if (window.NO_SOFT || (window.NETC && NETC.on)) return false; const a = BAL.at(Math.max(1, wave)); return a.M === 1 && a.C === 1; };
+const SOFT1_SK = { mb_arbalest: ['Шрапнель'], mb_executioner: ['Плаха'], mb_bannerlord: ['Королевское копьё'], b_blackknight: [], tb_blackknight: [] };   // Чёрный Рыцарь: остаётся только «Таран» (bossmech.js)
+const softRank = e => !e.boss && !e.mini && !e.elite && SOFT1();
 const headY = e => e.y - (e.ch.ok ? e.ch.top * e.ch.U * e.sc : 80) - 26;
 function tag(e, t, c) { say(e.x, headY(e), t, c || '#ffb36a'); }
 function slowHero(k, t) { P.slowK = Math.min(P.slowT > 0 ? P.slowK : 1, k); P.slowT = Math.max(P.slowT || 0, t); }
@@ -157,13 +163,13 @@ updateEnemy = function (e, dt) {
     if (ph > (e.phase || 1)) { e.mt = Math.min(e.mt, 1); tag(e, ph === 2 ? 'Вторая фаза' : 'Последняя фаза', '#ff9a6a'); }
     e.phase = Math.max(e.phase || 1, ph);
   }
-  const m = MECH[e.type] || (e.k.spells && spellBoss);
+  const m = softRank(e) ? null : MECH[e.type] || (e.k.spells && spellBoss);
   if (m && !e.kb && !(e.root > 0) && !(P.dead > 0) && !e.leap && !(e.silT > 0 && !e.boss)) {
     if (m(e, dt, gdist(P, e)) === true) return;
   }
   const ns = shots.length, hp0 = P.hp;
   _updateEnemy(e, dt);
-  for (let i = ns; i < shots.length; i++) { shots[i].src = e; if (SHOT_HIT[e.type]) shots[i].onHitP = SHOT_HIT[e.type]; }
+  for (let i = ns; i < shots.length; i++) { shots[i].src = e; if (SHOT_HIT[e.type] && !softRank(e)) shots[i].onHitP = SHOT_HIT[e.type]; }
   if (P.hp < hp0) {
     if (e.k.steal) { const h = (hp0 - P.hp) * e.k.steal; e.hp = Math.min(e.max, e.hp + h); say(e.x, headY(e) + 20, '+' + Math.round(h), '#7dff8a'); }
   }

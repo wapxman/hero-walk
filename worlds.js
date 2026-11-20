@@ -37,7 +37,7 @@ function setArena(m, i, quiet) {
   }
 }
 // перед боем — арена той части мира, где начинается волна
-{ const _sw = SHOP.startWave; SHOP.startWave = function () { if (!(window.NETC && NETC.on) && !(typeof LIMBO !== 'undefined' && LIMBO.on)) setArena(WORLD, arenaIdx(wave + 1)); return _sw.apply(this, arguments); }; }
+{ const _sw = SHOP.startWave; SHOP.startWave = function () { if (SHOP.transit) return; if (!(window.NETC && NETC.on) && !(typeof LIMBO !== 'undefined' && LIMBO.on)) setArena(WORLD, arenaIdx(wave + 1)); return _sw.apply(this, arguments); }; }
 function applyWorld(m) {
   const w = WORLDS[m - 1];
   WORLD = m;
@@ -84,10 +84,11 @@ SHOP.tick = function (dt) {
     if (P.dead <= 0) { P.hp = P.maxHp; P.mp = P.maxMp; say(P.x, P.y - CH * 1.9 * HS(), 'Силы восстановлены', '#7dff8a'); }   // награда за босса мира
     if (typeof PATHMAP !== 'undefined') {
       // переход в новую главу по карте «Путь героев»: свет бежит к следующему медальону, на вспышке — новый мир
+      SHOP.transit = true;   // пока идёт переход в новый мир, «Начать волну» не работает: иначе до карты можно было начать бой на старой арене
       const nx = worldNext, t0 = a0.M - 1 + 0.75, t1 = Math.min(9, a.M - 1 + (a.C > a0.C ? 0 : 0));
       setTimeout(() => PATHMAP.show({ mode: a.M > a0.M ? 'full' : 'short', t0: a.M > a0.M ? t0 : 0, t1: a.M > a0.M ? t1 : 0,
         onMid: () => { if (WORLD !== nx) applyWorld(nx); },
-        onDone: () => { if (WORLD !== nx) applyWorld(nx); SHOP.noMap = true; SHOP.restT = 0.4; } }), 1400);
+        onDone: () => { if (WORLD !== nx) applyWorld(nx); SHOP.noMap = true; SHOP.mapShown = true; SHOP.transit = false; SHOP.restT = 0.4; } }), 1400);   // mapShown: карту игрок только что видел — первый бой в новом мире начнётся без неё (v99)
       return;
     }
     worldT = 3.2;

@@ -33,6 +33,7 @@ const PARTS = {
   blink: { nm: 'Кинжал прыжка', ic: 56, pr: 2250, st: {}, ds: 'Прыжок: перенос на 450, перезарядка 14 с', act: { cd: 14, kind: 'blink', dist: 450 } },
 };
 // предметы: from — из чего собирается (части или другие предметы); бонус предмета больше суммы его частей
+// v99: свитки больших предметов (были от 2400) подешевели на 20 % — живому игроку они были не по карману до конца игры
 const RECIPES = {
   blade: { nm: 'Клинок воина', ic: 12, from: ['sword', 'sword'], st: { dmg: 0.2 } },
   cuirass: { nm: 'Кираса', ic: 13, from: ['bracer', 'plate'], st: { hp: 150, arm: 0.1 } },
@@ -49,21 +50,21 @@ const RECIPES = {
   tring: { nm: 'Кольцо времени', ic: 24, from: ['hourglass', 'crystal'], st: { cd: 0.08, mp: 80 } },
   eboots: { nm: 'Сапоги стойкости', ic: 25, from: ['boots', 'bracer'], st: { spd: 0.1, hp: 100 } },
   rring: { nm: 'Кольцо исцеления', ic: 26, from: ['lifestone', 'rune'], st: { hpr: 3, mpr: 1.5 } },
-  bblade: { nm: 'Кровавый клинок', ic: 27, from: ['blade', 'fang'], st: { dmg: 0.32, ls: 0.1 }, rc: 4900 },
+  bblade: { nm: 'Кровавый клинок', ic: 27, from: ['blade', 'fang'], st: { dmg: 0.32, ls: 0.1 }, rc: 3900 },
   titan: { nm: 'Доспех титана', ic: 28, from: ['cuirass', 'tshield'], st: { hp: 250, arm: 0.28 } },
   archstaff: { nm: 'Посох архимага', ic: 29, from: ['staff', 'diadem'], st: { mp: 260, sk: 0.25, mpr: 3 } },
   stormbow: { nm: 'Буревестник', ic: 30, from: ['windbow', 'feather', 'clover'], st: { as: 0.28, crit: 0.1 } },
   sboots: { nm: 'Сапоги бури', ic: 31, from: ['wboots', 'boots'], st: { spd: 0.22, as: 0.12 } },
   heart: { nm: 'Сердце горы', ic: 32, from: ['amulet', 'lifestone', 'bracer'], st: { hp: 350, hpr: 7 } },
   chrono: { nm: 'Хрономант', ic: 33, from: ['charm', 'hourglass', 'lens'], st: { cd: 0.2, sk: 0.15 } },
-  reaper: { nm: 'Жнец душ', ic: 34, from: ['vdagger', 'clover'], st: { dmg: 0.18, ls: 0.12, crit: 0.1 }, rc: 3080 },
+  reaper: { nm: 'Жнец душ', ic: 34, from: ['vdagger', 'clover'], st: { dmg: 0.18, ls: 0.12, crit: 0.1 }, rc: 2450 },
   dragoneye: { nm: 'Глаз дракона', ic: 35, from: ['coin', 'sword', 'clover'], st: { crit: 0.22, dmg: 0.12 } },
   icecrown: { nm: 'Ледяной венец', ic: 36, from: ['iceorb', 'diadem'], st: { dmg: 0.22, sk: 0.22, mp: 120 } },
   bastion: { nm: 'Бастион', ic: 37, from: ['tshield', 'amulet'], st: { arm: 0.2, hp: 250, hpr: 4 } },
   eternal: { nm: 'Вечные часы', ic: 38, from: ['tring', 'charm'], st: { cd: 0.22, mp: 150, mpr: 2 } },
   runner: { nm: 'Скороход', ic: 39, from: ['eboots', 'feather'], st: { spd: 0.16, hp: 150, as: 0.08 } },
   spring: { nm: 'Источник', ic: 40, from: ['rring', 'lifestone', 'rune'], st: { hpr: 6, mpr: 3.5 } },
-  divine: { nm: 'Божественный клинок', ic: 41, from: ['bblade', 'dragoneye'], st: { dmg: 0.5, crit: 0.25, ls: 0.12 }, rc: 4800 },  // ---- новые предметы (v87): у каждого свой свиток рецепта (rc) ----
+  divine: { nm: 'Божественный клинок', ic: 41, from: ['bblade', 'dragoneye'], st: { dmg: 0.5, crit: 0.25, ls: 0.12 }, rc: 3850 },  // ---- новые предметы (v87): у каждого свой свиток рецепта (rc) ----
   sange: { nm: 'Сандж', ic: 57, from: ['ogreaxe', 'bracer'], st: { hp: 220, dmg: 0.07 }, rc: 360 },
   yasha: { nm: 'Яша', ic: 58, from: ['alacrity', 'boots'], st: { as: 0.15, spd: 0.1 }, rc: 450 },
   kaya: { nm: 'Кайя', ic: 59, from: ['wizard', 'lens'], st: { sk: 0.2, mp: 100, mpr: 1 }, rc: 320 },
@@ -76,18 +77,23 @@ const RECIPES = {
   sny: { nm: 'Сандж и Яша', ic: 65, from: ['sange', 'yasha'], st: { hp: 300, dmg: 0.12, as: 0.22, spd: 0.12 }, rc: 800 },
   desolator: { nm: 'Десолятор', ic: 66, from: ['claymore', 'claymore'], st: { dmg: 0.35 }, rc: 1900, ds: 'Порча: удар — цель получает +15 % урона 6 с', pas: { cor: { amp: 0.15, t: 6 } } },
   aeon: { nm: 'Диск Эона', ic: 67, from: ['vitality', 'crystal'], st: { hp: 250, mp: 120 }, rc: 2080, ds: 'Последний рубеж: ниже 30 % здоровья — 2,5 с неуязвимости, перезарядка 70 с', pas: { aeon: { below: 0.3, t: 2.5, spd: 2.5 }, cd: 70 } },
-  bkb: { nm: 'Чёрный щит короля', ic: 68, from: ['ogreaxe', 'claymore'], st: { hp: 120, dmg: 0.14 }, rc: 2850, ds: 'Аватар: 5 с без состояний и −30 % урона, перезарядка 50 с', act: { cd: 50, kind: 'bkb', t: 5, taken: 0.7 } },
-  linken: { nm: 'Сфера Линкена', ic: 69, from: ['rring', 'vitality', 'wizard'], st: { hp: 250, mp: 100, sk: 0.1, hpr: 5, mpr: 2.5 }, rc: 2960, ds: 'Отражение чар: раз в 15 с снимает первое жёсткое состояние', pas: { linken: { imm: 0.5 }, cd: 15 } },
+  bkb: { nm: 'Чёрный щит короля', ic: 68, from: ['ogreaxe', 'claymore'], st: { hp: 120, dmg: 0.14 }, rc: 2300, ds: 'Аватар: 5 с без состояний и −30 % урона, перезарядка 30 с', act: { cd: 30, kind: 'bkb', t: 5, taken: 0.7 } },   // v99: 50 → 30 с
+  linken: { nm: 'Сфера Линкена', ic: 69, from: ['rring', 'vitality', 'wizard'], st: { hp: 250, mp: 100, sk: 0.1, hpr: 5, mpr: 2.5 }, rc: 2350, ds: 'Отражение чар: раз в 15 с снимает первое жёсткое состояние', pas: { linken: { imm: 0.5 }, cd: 15 } },
   abyssal: { nm: 'Бездонный клинок', ic: 70, from: ['basher', 'vitality'], st: { dmg: 0.22, hp: 300 }, rc: 1650, ds: 'Оглушение 15 % — 1 с и +40; Пролом: 2 с и 150 урона, перезарядка 25 с', pas: { bash: { ch: 0.15, t: 1, dmg: 40, icd: 1 } }, act: { cd: 25, kind: 'abyss', t: 2, dmg: 150, R: 500 } },
-  manta: { nm: 'Мантия иллюзий', ic: 71, from: ['yasha', 'vitality'], st: { as: 0.2, spd: 0.12, dmg: 0.1, hp: 150 }, rc: 2600, ds: 'Иллюзии: снимает состояния, 2 копии на 8 с, перезарядка 40 с', act: { cd: 40, kind: 'manta', t: 8, n: 2, k: 0.3, off: 70 } },
-  shiva: { nm: 'Покров Шивы', ic: 72, from: ['tshield', 'mystic'], st: { arm: 0.18, sk: 0.15, mp: 150 }, rc: 2400, ds: 'Холодная аура −15 % скорости врагам; Ледяная волна 90 урона, перезарядка 25 с', pas: { aura: { R: 450, slow: 0.85 } }, act: { cd: 25, kind: 'shiva', R: 500, dmg: 90, slow: 0.5, st: 4 } },
-  agh: { nm: 'Скипетр Аганима', ic: 73, from: ['wizard', 'ogreaxe', 'alacrity'], st: { hp: 150, mp: 150, sk: 0.1, as: 0.1 }, rc: 2450, ds: 'Скипетр: Буря на 2 с дольше и +30 % урона; Меткость лучницы: +15 % пронзающих стрел', pas: { agh: { t: 2, k: 1.3, pierce: 0.15 } } },
-  radiance: { nm: 'Сияние', ic: 74, from: ['demonedge', 'claymore'], st: { dmg: 0.35 }, rc: 2650, ds: 'Ожог: враги в 320 получают 25 урона в секунду', pas: { aura: { R: 320, burn: 25 } } },
+  manta: { nm: 'Мантия иллюзий', ic: 71, from: ['yasha', 'vitality'], st: { as: 0.2, spd: 0.12, dmg: 0.1, hp: 150 }, rc: 2100, ds: 'Иллюзии: снимает состояния, 2 копии на 8 с, перезарядка 40 с', act: { cd: 40, kind: 'manta', t: 8, n: 2, k: 0.3, off: 70 } },
+  shiva: { nm: 'Покров Шивы', ic: 72, from: ['tshield', 'mystic'], st: { arm: 0.18, sk: 0.15, mp: 150 }, rc: 1900, ds: 'Холодная аура −15 % скорости врагам в 450; Ледяная волна 90 урона и замедление вдвое на 4 с (сама — когда рядом трое врагов или сильный враг), перезарядка 25 с', pas: { aura: { R: 450, slow: 0.85 } }, act: { cd: 25, kind: 'shiva', R: 500, dmg: 90, slow: 0.5, st: 4 } },
+  agh: { nm: 'Скипетр Аганима', ic: 73, from: ['wizard', 'ogreaxe', 'alacrity'], st: { hp: 150, mp: 150, sk: 0.1, as: 0.1 }, rc: 1950, ds: 'Скипетр: Буря на 2 с дольше и +30 % урона; Меткость лучницы: +15 % пронзающих стрел', pas: { agh: { t: 2, k: 1.3, pierce: 0.15 } } },
+  radiance: { nm: 'Сияние', ic: 74, from: ['demonedge', 'claymore'], st: { dmg: 0.35 }, rc: 2100, ds: 'Ожог: враги в 320 получают 25 урона в секунду', pas: { aura: { R: 320, burn: 25 } } },
   vajra: { nm: 'Ваджра', ic: 75, from: ['maelstrom', 'hyper'], st: { dmg: 0.18, as: 0.3 }, rc: 1600, ds: 'Цепная молния 30 % — 40 урона 5 целям; Громовой щит 8 с, перезарядка 30 с', pas: { chain: { ch: 0.3, dmg: 40, n: 5, R: 350 } }, act: { cd: 30, kind: 'storm', t: 8, every: 0.6, dmg: 40, R: 400 } },
-  butterfly: { nm: 'Бабочка', ic: 76, from: ['hyper', 'claymore'], st: { dmg: 0.25, as: 0.3, spd: 0.08 }, rc: 3950, ds: 'Уклонение 25 % от ударов и снарядов', pas: { eva: 0.25 } },
-  tarrasque: { nm: 'Сердце Тарраска', ic: 77, from: ['reaver', 'vitality'], st: { hp: 650, hpr: 4 }, rc: 3500, ds: 'Кровь титана: 5 с без урона — +2 % здоровья в секунду', pas: { calm: { after: 5, pct: 0.02 } } },
-  octarine: { nm: 'Октариновое ядро', ic: 78, from: ['mystic', 'vitality', 'crystal'], st: { sk: 0.2, cd: 0.18, hp: 250, mp: 250 }, rc: 7280, ds: 'Вампиризм умений 10 %', pas: { spl: 0.1 } },
-  satanic: { nm: 'Сатаник', ic: 79, from: ['vdagger', 'reaver', 'claymore'], st: { dmg: 0.28, hp: 450, ls: 0.15 }, rc: 10050, ds: 'Нечестивая ярость: +50 % вампиризма на 5 с, перезарядка 35 с', act: { cd: 35, kind: 'unholy', t: 5, ls: 0.5, cap: 0.75 } },
+  butterfly: { nm: 'Бабочка', ic: 76, from: ['hyper', 'claymore'], st: { dmg: 0.25, as: 0.3, spd: 0.08 }, rc: 3150, ds: 'Уклонение 25 % от ударов и снарядов', pas: { eva: 0.25 } },
+  tarrasque: { nm: 'Сердце Тарраска', ic: 77, from: ['reaver', 'vitality'], st: { hp: 650, hpr: 4 }, rc: 2800, ds: 'Кровь титана: 5 с без урона — +2 % здоровья в секунду', pas: { calm: { after: 5, pct: 0.02 } } },
+  octarine: { nm: 'Октариновое ядро', ic: 78, from: ['mystic', 'vitality', 'crystal'], st: { sk: 0.2, cd: 0.18, hp: 250, mp: 250 }, rc: 5800, ds: 'Вампиризм умений 10 %', pas: { spl: 0.1 } },
+  // ---- v99: два дорогих предмета (иконки и эффекты рисует Клауди — night_19_11/items3; пока стоят иконки Линки и Октаринового ядра) ----
+  lotus: { nm: 'Сфера лотоса', ic: 69, from: ['linken', 'tshield'], st: { hp: 350, mp: 150, arm: 0.12, sk: 0.12, hpr: 6, mpr: 3 }, rc: 3500,
+    ds: 'Отражение: раз в 15 с первое жёсткое состояние снимается и возвращается злодею, который его наложил (боссу и мини-боссу — на половину времени)', pas: { lotus: { imm: 0.5 }, cd: 15 } },
+  bloodstone: { nm: 'Кровавый камень', ic: 78, from: ['octarine', 'vitality'], st: { sk: 0.3, cd: 0.2, hp: 400, mp: 350, mpr: 3 }, rc: 4000,
+    ds: 'Вампиризм умений 20 %; Кровавый обряд: 5 с вампиризм умений вдвое больше (сам — при здоровье ниже половины, если враги рядом), перезарядка 40 с', pas: { spl: 0.2 }, act: { cd: 40, kind: 'rite', t: 5, k: 2 } },
+  satanic: { nm: 'Сатаник', ic: 79, from: ['vdagger', 'reaver', 'claymore'], st: { dmg: 0.28, hp: 450, ls: 0.15 }, rc: 8050, ds: 'Нечестивая ярость: +50 % вампиризма на 5 с, перезарядка 35 с', act: { cd: 35, kind: 'unholy', t: 5, ls: 0.5, cap: 0.75 } },
 };
 // множитель цен из редактора баланса (BAL.price; при 1 цены — как записаны выше)
 for (const id in PARTS) PARTS[id].pr = BAL.price(PARTS[id].pr);
@@ -188,7 +194,7 @@ SHOP.recompute = function () {
   P.skMul = (1 + 0.015 * int) * (1 + S.sk);
   P.mpRegen = 11 + 0.35 * int + S.mpr;
   P.hpRegX = S.hpr; P.ls = Math.min(0.25, S.ls); P.crit = Math.min(0.4, S.crit);   // вампиризм — не больше 25 %
-  P.spl = SHOP.bag.includes('octarine') ? ALL.octarine.pas.spl : 0;                  // Октариновое ядро: вампиризм умений
+  P.spl = 0; for (const id of SHOP.bag) { const p = ALL[id] && ALL[id].pas; if (p && p.spl > P.spl) P.spl = p.spl; }   // вампиризм умений: Октариновое ядро 10 %, Кровавый камень 20 % (берётся больший)
   const mm = 420 + 12 * int + S.mp;
   if (mm !== P.maxMp) { P.mp = Math.min(mm, P.mp + Math.max(0, mm - P.maxMp)); P.maxMp = mm; }
   P.cdMul = 1 - Math.min(0.45, S.cd);
@@ -210,11 +216,26 @@ hurtEnemy = function (e, dmg, col) {
   if (dealt > 0 && P.dead <= 0 && !HIT.noLs) {
     const ls = typeof ITEMFX !== 'undefined' && ITEMFX.T.unholy > 0 ? Math.min(0.75, P.ls + 0.5) : P.ls;   // Сатаник
     let heal = dealt * ls * (atk ? 1 : 0.3);                                  // не атака — ×0,3
-    if (!atk && P.spl && typeof SK !== 'undefined' && SK.isSpell(e, col0)) heal += dealt * P.spl;   // Октариновое ядро
+    if (!atk && P.spl && typeof SK !== 'undefined' && SK.isSpell(e, col0)) heal += dealt * P.spl * (typeof ITEMFX !== 'undefined' && ITEMFX.T.rite > 0 ? ALL.bloodstone.act.k : 1);   // Октариновое ядро, Кровавый камень (в обряд — вдвое)
     if (heal > 0) P.hp = Math.min(P.maxHp, P.hp + heal);
   }
   if (atk && dealt > 0 && !HIT.proc && typeof ITEMFX !== 'undefined') ITEMFX.onAtk(e);   // проки
 };
+// ---------- учёт золота (v99): куда уходят деньги игрока ----------
+// earn — получено (волны, монеты, сундуки, Мидас), items — предметы и части, relics — предметы против боссов, flasks — фласки,
+// forge — кузница Междумирья, sold — выручено продажей. Показывается в меню паузы, хранится в сохранении забега (save.js).
+SHOP.led = { earn: 0, items: 0, relics: 0, flasks: 0, forge: 0, sold: 0 };
+{
+  const _add = SHOP.addGold; SHOP.addGold = function (n) { if (n > 0) SHOP.led.earn += n; return _add.apply(this, arguments); };
+  const _bi = buyItem; buyItem = function (id) { const g = SHOP.gold, r = _bi(id); if (SHOP.gold < g) SHOP.led[ALL[id] && ALL[id].relic ? 'relics' : 'items'] += g - SHOP.gold; return r; };
+  const _sb = SHOP.buy; SHOP.buy = function (kind) { const g = SHOP.gold, r = _sb.apply(this, arguments); if (SHOP.gold < g) SHOP.led[kind === 'flask' ? 'flasks' : 'items'] += g - SHOP.gold; return r; };
+  const _si = sellItem; sellItem = function (i) { const g = SHOP.gold, r = _si(i); if (SHOP.gold > g) SHOP.led.sold += SHOP.gold - g; return r; };
+  if (SHOP.el && SHOP.el.pause) {
+    const d = document.createElement('div'); d.className = 'tip'; d.style.cssText = 'opacity:.9;color:#ffe9a8'; SHOP.el.pause.appendChild(d);
+    const _rf = SHOP.refresh; SHOP.refresh = function () { const r = _rf.apply(this, arguments), L = SHOP.led, f = n => Math.round(n).toLocaleString('ru-RU');
+      d.textContent = 'Золото за забег: получено ' + f(L.earn + L.sold) + ' · предметы ' + f(L.items + L.relics) + ' · фласки ' + f(L.flasks) + ' · кузница ' + f(L.forge); return r; };
+  }
+}
 // реген здоровья от предметов
 const _shopTick2 = SHOP.tick;
 SHOP.tick = function (dt) { if (P.hpRegX && P.dead <= 0) P.hp = Math.min(P.maxHp, P.hp + P.hpRegX * dt); _shopTick2(dt); };

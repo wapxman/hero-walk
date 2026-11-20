@@ -88,7 +88,7 @@ const BALMODEL = (() => {
         addXp(x); rGold += g; wXp += x; wKills += kills;
       }
       n = last; gold += rGold; wInc += rGold; wCoin += rGold;
-      const fp = pk(40) + pk(10) * (BAL.mw(n) - 1);
+      const fp = pk(40) + pk(5) * (BAL.mw(n) - 1);
       gold = Math.max(0, gold - (o.flasks == null ? 2 : o.flasks) * fp);
       shop();
       const a = BAL.at(n), h = hero(bag);

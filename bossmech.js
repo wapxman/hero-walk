@@ -15,7 +15,7 @@ const SMOKE = { clearNear(x, y, R) { for (const s of BM.smoke) if (Math.hypot(s.
 function blackknight(e, dt, d) {
   e.shT = (e.shT == null ? 4 : e.shT) - dt;
   if (e.shield > 0) { e.shield -= dt; if (e.shield <= 0) tag(e, 'щит опущен', '#ffe9a8'); }
-  if (e.shT <= 0 && !e.act) {
+  if (e.shT <= 0 && !e.act && !SOFT1()) {   // в мягком мире 1 щита нет — только «Таран» с меткой на земле
     e.shT = 10 * bossCd(e); tag(e, 'Зеркальный щит!', '#ffd95e'); e.shieldWarn = 0.7;
     startAct(e, 'cast1', 0.9, 0.75, () => { e.shield = 3; });
     return true;

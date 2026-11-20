@@ -79,12 +79,12 @@ const ARENA_FX = {
       ctx.fillStyle = 'rgb(' + COL[C.amb] + ')'; ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 6.283); ctx.fill();
     }
     ctx.restore();
-    // стайка летунов пересекает экран 1–2 раза и улетает; следующая — через 20–40 с (v91)
+    // стайка летунов один раз пересекает экран и улетает за край; следующая — через 20–40 с (v99: раньше могла развернуться и пролететь обратно)
     if (C.fly != null && MFX.ok('sp_flyers')) {
       if (flyNext == null) flyNext = t + 3 + Math.random() * 8;
       if (FLY.length && FLY.every(f => f.q > 1)) { FLY.length = 0; flyNext = --flyLeft > 0 ? t + 1 + Math.random() * 2 : t + 20 + Math.random() * 20; }
       if (!FLY.length && t >= flyNext) {
-        if (flyLeft <= 0) { flyLeft = Math.random() < 0.5 ? 1 : 2; flyDir = Math.random() < 0.5 ? 1 : -1; } else flyDir = -flyDir;
+        flyLeft = 1; flyDir = Math.random() < 0.5 ? 1 : -1;
         const y0 = vy + vh * (0.15 + Math.random() * 0.4), dir = flyDir;
         for (let j = 0; j < 4; j++) FLY.push({ q: -0.04 - j * 0.04 - Math.random() * 0.05, y: y0 + j * 26, dir, sp: 0.07 + Math.random() * 0.02 });
       }

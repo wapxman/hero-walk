@@ -10,7 +10,7 @@
   performance.now = () => VT;
   window.requestAnimationFrame = () => 0;           // кадры крутим сами
   // карту «Путь героев» бот не смотрит: переход между мирами делает сам, а выбор главы (обычный запуск с сохранением) — сразу «Продолжить»
-  if (typeof PATHMAP !== 'undefined') PATHMAP.show = o => { if (o && o.onPick) o.onPick(Math.min(10, BAL.at(wave + 1).M)); };
+  if (typeof PATHMAP !== 'undefined') PATHMAP.show = o => { if (!o) return; if (o.onPick) o.onPick(Math.min(10, BAL.at(wave + 1).M)); if (o.onMid) o.onMid(); if (o.onDone) o.onDone(); };   // показ перехода в новый мир для бота мгновенный
   SHOP.paused = false;
   const B = window.BOT = { rounds: [], cur: null, deaths: 0, stuck: 0, done: false, maxWave: 100, opt: { flaskAt: 0.5, flasks: 5, build: [1, 1, 1], armor: 1 },
     perf: { n: 0, sum: 0, max: 0, slow: 0 }, buys: 0, made: {}, casts: {}, seen: {}, hang: [] };
@@ -129,6 +129,7 @@
     const D0 = SK.DEF[type] || [], L = D0.filter(s => s.ph && (!s.passive || s.poly)).map(s => s.ph), err = [], poke = D0.some(s => s.poly === 'hurt');   // poly — пассив, который полигон тоже должен увидеть ('hurt' — срабатывает, когда злодея бьют)
     for (const e of enemies) e.hp = 0; enemies.length = 0; shots.length = 0; fx.length = 0; ROUND.queue.length = 0; ROUND.fin = null; ROUND.endW = wave;
     SHOP.phase = 'fight'; P.dead = 0; STATUS.clear(); P.maxHp = 1e9; P.hp = 1e9;
+    window.NO_SOFT = 1;   // полигон проверяет все умения, в том числе выключенные в мягком мире 1
     SK.polyMark = n => { B.casts[n] = (B.casts[n] || 0) + 1; };   // пассивы «каждый 4-й удар» сообщают о себе с первой метки
     if (D0.some(s => s.poly)) secs *= 2;                          // пассивам — вдвое больше времени: им нужны удары по герою, а не откат
     if (mini) { ROUND.mini = type; spawnEnemy(type); } else { ROUND.mini = null; spawnEnemyBase(type); }
@@ -144,7 +145,7 @@
       P.maxHp = 1e9; if (P.dead <= 0) P.hp = 1e9; if (e.hp <= 0 || e.dieT != null) break;
       if (LIMBO.on) { LIMBO.leave(); break; }
     }
-    const miss = L.filter(n => !B.casts[n]);
+    const miss = L.filter(n => !B.casts[n]); window.NO_SOFT = 0;
     for (const o of enemies) o.hp = 0; enemies.length = 0; ROUND.queue.length = 0; STATUS.clear(); SHOP.phase = 'rest'; SHOP.restT = 0; SHOP.recompute(); P.hp = P.maxHp;
     return { type, want: L, miss, t: Math.round(t), err };
   };

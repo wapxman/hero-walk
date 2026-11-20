@@ -16,7 +16,7 @@ const SAVE = (() => {
     // в бою сохраняем начало текущего раунда — после перезапуска раунд начнётся заново
     const w = SHOP.phase === 'fight' ? Math.max(0, (SHOP.roundFrom || wave + 1) - 1) : wave;
     best = Math.max(best, w);
-    const d = { v: 1, wave: w, best, hp: Math.round(P.hp), mp: Math.round(P.mp), gold: Math.floor(SHOP.gold), bag: SHOP.bag.slice(), flasks: Object.assign({}, SHOP.flasks), t: Date.now() };
+    const d = { v: 1, wave: w, best, hp: Math.round(P.hp), mp: Math.round(P.mp), gold: Math.floor(SHOP.gold), bag: SHOP.bag.slice(), flasks: Object.assign({}, SHOP.flasks), led: SHOP.led, t: Date.now() };
     try { localStorage.setItem(key(), JSON.stringify(d)); } catch (e) {}
     if (typeof progSave === 'function') progSave();
   }
@@ -27,6 +27,7 @@ const SAVE = (() => {
     const d = read() || {};
     best = Math.max(best, d.best || 0);
     if (d.gold != null) SHOP.gold = d.gold;
+    if (d.led && SHOP.led) for (const k in SHOP.led) if (typeof d.led[k] === 'number') SHOP.led[k] = d.led[k];   // учёт золота за забег
     if (Array.isArray(d.bag)) SHOP.bag = d.bag.filter(id => ALL[id]).slice(0, BAG_MAX);
     if (d.flasks) for (const k in SHOP.flasks) if (typeof d.flasks[k] === 'number') SHOP.flasks[k] = Math.max(0, Math.min(k === 'heal' ? 10 : 99, d.flasks[k] | 0));
     const curC = BAL.at((d.wave || 0) + 1).M;
@@ -73,6 +74,8 @@ const SAVE = (() => {
       if (!direct && !ready && !net() && typeof PATHMAP !== 'undefined' && !PATHMAP.on && !/[?&](mode|auto)=/.test(location.search) && !(window.NETC && NETC.S && NETC.S.mode !== 'single')) { chooser(); return; }
       if (direct || net() || !ready || typeof PATHMAP === 'undefined' || PATHMAP.on || (typeof LIMBO !== 'undefined' && LIMBO.on)) return real.apply(this, arguments);
       if (SHOP.phase !== 'rest' || P.dead > 0) return;
+      // после босса карта уже показала переход в новую главу — второй раз подряд её не открываем: «В бой» сразу начинает бой (v99)
+      if (SHOP.mapShown) { SHOP.mapShown = false; return real.apply(this, arguments); }
       if (SHOP.open) SHOP.closeShop();
       const curC = Math.min(10, BAL.at(wave + 1).M), open = best >= BAL.WAVES * BAL.WORLDS ? 10 : Math.max(curC, Math.min(10, BAL.at(best + 1).M)), t = curC - 1;
       const tw = posOf(wave);

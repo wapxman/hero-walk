@@ -2,7 +2,8 @@
 // Перезарядки — в общем RCD (relics.js): кольцо и вспышку ячейки рисуют relicRings / relicFlash.
 'use strict';
 const ITEMFX = (() => {
-  const T = { bkb: 0, aeon: 0, manta: 0, storm: 0, stormT: 0, unholy: 0, calm: 0, bashAt: 0, dash: null };
+  // ward — короткая полная защита после Линки/Лотоса, rite — Кровавый обряд, linkenF/lotusF — вспышка значка сработавшего предмета, src — кто наложил жёсткое состояние
+  const T = { bkb: 0, aeon: 0, manta: 0, storm: 0, stormT: 0, unholy: 0, calm: 0, bashAt: 0, dash: null, ward: 0, rite: 0, linkenF: 0, lotusF: 0, src: null };
   const ZAPS = [], GLOWS = [];   // молнии { pts, t, dur } и вспышки { x, y, col, t, dur } — рисует combatOver
   const now = () => performance.now() / 1000;
   const off = () => !!(window.NETC && NETC.on) || P.dead > 0 || (typeof LIMBO !== 'undefined' && LIMBO.on);
@@ -17,12 +18,15 @@ const ITEMFX = (() => {
   const sayP = (t, c) => say(P.x, P.y - CH * HS() * 1.45, t, c);
   const flashAt = (x, y, col) => GLOWS.push({ x, y, col, t: 0, dur: 0.3 });
   // жёсткие состояния: их ловят Аватар, Сфера Линкена и Мантия
-  const hard = () => { const s = P.ss, k = SK.S; return s.stun > 0 || s.freeze > 0 || s.silence > 0 || s.blind > 0 || k.bind > 0 || k.pin > 0 || k.hex > 0 || k.called > 0 || !!k.pull || k.sleep > 0; };
+  const rooted = () => P.slowT > 0 && P.slowK <= 0.05 ? P.slowT : 0;   // «Обездвижен» замедлением до нуля (корни боссов)
+  const hard = () => { const s = P.ss, k = SK.S; return s.stun > 0 || s.freeze > 0 || s.silence > 0 || s.blind > 0 || k.bind > 0 || k.pin > 0 || k.hex > 0 || k.called > 0 || !!k.pull || k.sleep > 0 || rooted() > 0; };
   // снять плохие состояния; баффы (imm, rshield, noMiss, spd, щит лучницы) не трогаем; MOV-эффекты sk_defs короткие — остаются
   function purge() {
     const s = P.ss; for (const n of ['poison', 'burn', 'cold', 'shred']) s[n].n = 0; s.freeze = s.stun = s.silence = s.blind = 0;
     const k = SK.S; for (const n of ['bind', 'pin', 'hex', 'atkSlow', 'weak', 'called', 'gaze', 'hunger', 'wounds', 'sleep', 'miss', 'vuln']) k[n] = 0;
     k.poison.n = 0; k.pull = null; k.calledBy = null; P.slowT = 0; P.slowK = 1;
+    for (const n of ['napalm', 'frost', 'spois', 'rupt']) if (k[n] != null) k[n] = 0;   // состояния от злодеев v34
+    if (typeof HSTAT !== 'undefined') for (const n of ['mark', 'fear', 'curse', 'bleed']) HSTAT.show(n, 0);
   }
   const immune = t => { const im = P.ss.imm; for (const n in im) im[n] = Math.max(im[n], t); };
   // урон эффекта: не атака и без проков
@@ -65,6 +69,7 @@ const ITEMFX = (() => {
     shiva(a) { fx.push({ type: 'nova', x: P.x, y: P.y, t: 0, dur: 0.95, R: a.R }); for (const e of inR(a.R)) { proc(e, a.dmg, '#bfe6ff'); slow(e, a.slow, a.st); } snd('nova', 0.7); },
     storm(a) { T.storm = a.t; T.stormT = 0; },
     unholy(a) { T.unholy = a.t; sayP('Ярость!', '#ff4a4a'); },
+    rite(a) { T.rite = a.t; sayP('Кровавый обряд!', '#ff4a4a'); flashAt(P.x, P.y, '255,60,60'); },
   };
   const AUTO = {   // когда срабатывают сами: только в бою, лечение Механизма — и между раундами
     blink: () => P.hp < 0.35 * P.maxHp && (inR(250).length >= 2 || inR(250, e => rank(e) === 3).length > 0),
@@ -75,9 +80,10 @@ const ITEMFX = (() => {
     bkb: () => hard(),
     abyss: () => !!top(500, 1),
     manta: () => hard() || P.slowT > 0 || inR(500).length >= 5 || inR(600, e => rank(e) === 3).length > 0,
-    shiva: () => inR(450).length >= 5 || inR(450, e => rank(e) === 3).length > 0,
+    shiva: () => inR(450).length >= 3 || inR(450, e => rank(e) >= 1).length > 0,   // v99: раньше ждала пятерых вплотную — у дальнего героя почти не срабатывала
     storm: () => inR(450).length >= 4 || inR(600, e => rank(e) === 3).length > 0,
     unholy: () => P.hp < 0.35 * P.maxHp && inR(600).length > 0,
+    rite: () => P.hp < 0.5 * P.maxHp && inR(600).length > 0,
   };
   function use(id, manual) {
     const it = ALL[id], a = it && it.act;
@@ -87,14 +93,26 @@ const ITEMFX = (() => {
   }
   // ---------- каждый кадр ----------
   function tick(dt) {
-    for (const k of ['bkb', 'aeon', 'manta', 'storm', 'unholy']) if (T[k] > 0) T[k] = Math.max(0, T[k] - dt);
+    for (const k of ['bkb', 'aeon', 'manta', 'storm', 'unholy', 'ward', 'rite', 'linkenF', 'lotusF']) if (T[k] > 0) T[k] = Math.max(0, T[k] - dt);
     for (const id of new Set(SHOP.bag)) { const it = ALL[id]; if (it && !it.relic && RCD[id] > 0) RCD[id] = Math.max(0, RCD[id] - dt); }
     for (const L of [ZAPS, GLOWS]) { for (const z of L) z.t += dt; for (let i = L.length - 1; i >= 0; i--) if (L[i].t > L[i].dur) L.splice(i, 1); }
     if (off()) { T.dash = null; return; }
     T.calm += dt;
     if (T.dash) { const d = T.dash, q = Math.min(dt, d.t); P.x += d.vx * q; P.y += d.vy * q * YK; collide(P); if ((d.t -= dt) <= 0) T.dash = null; }
-    if (T.bkb > 0) { purge(); immune(0.2); }
-    if (has('linken') && !(RCD.linken > 0) && hard()) { purge(); immune(ALL.linken.pas.linken.imm); RCD.linken = ALL.linken.pas.cd; relicFlash('linken'); }
+    if (T.bkb > 0 || T.ward > 0) { purge(); immune(0.2); }
+    // Сфера лотоса: первое жёсткое состояние снимается и возвращается тому, кто его наложил (боссу и мини-боссу — на половину времени)
+    if (has('lotus') && !(RCD.lotus > 0) && hard()) {
+      const s = P.ss, k = SK.S, im = Math.max(s.stun, s.freeze, k.bind, k.pin, k.sleep || 0, rooted()), si = Math.max(s.silence, k.hex);
+      const e = T.src && now() - T.src.at < 4 && live(T.src.e) ? T.src.e : SK.lastCast && now() - SK.lastCast.at < 4 && live(SK.lastCast.e) ? SK.lastCast.e : null;
+      purge(); T.ward = ALL.lotus.pas.lotus.imm; immune(T.ward); RCD.lotus = ALL.lotus.pas.cd; relicFlash('lotus'); T.lotusF = 1.5; T.src = null;
+      GLOWS.push({ x: P.x, y: P.y, col: '255,150,210', t: 0, dur: 0.6, R: 150 });
+      if (e) { const h = rank(e) >= 2 ? 0.5 : 1;
+        if (im > 0) e.stunT = Math.max(e.stunT || 0, Math.max(0.3, im * h)); if (si > 0) e.silT = Math.max(e.silT || 0, si * h); if (!(im > 0) && !(si > 0)) e.stunT = Math.max(e.stunT || 0, 0.5 * h);
+        ZAPS.push({ pts: [{ x: P.x, y: P.y - CH * HS() * 0.6 }, { x: e.x, y: e.y }], t: 0, dur: 0.35 }); tagE(e, 'отражено!', '#ffb0e0'); snd('hit', 0.3, 1.5); }
+    }
+    // Сфера Линкена: первое жёсткое состояние снимается; вокруг героя — золотая вспышка щита (картинку рисует Клауди)
+    if (has('linken') && !(RCD.linken > 0) && hard()) { purge(); T.ward = ALL.linken.pas.linken.imm; immune(T.ward); RCD.linken = ALL.linken.pas.cd; relicFlash('linken'); T.linkenF = 1.5;
+      GLOWS.push({ x: P.x, y: P.y, col: '255,215,120', t: 0, dur: 0.6, R: 150 }); snd('hit', 0.25, 1.7); }
     const cm = pas('calm');   // Сердце Тарраска: 5 с без урона — +2 % здоровья в секунду
     if (cm && T.calm >= cm.after && P.hp < P.maxHp) { const h = cm.pct * P.maxHp * dt; P.hp = Math.min(P.maxHp, P.hp + h); T.calmAcc = (T.calmAcc || 0) + h; if ((T.calmT = (T.calmT || 0) + dt) >= 1) { say(P.x, P.y - CH * HS() * 1.1, '+' + Math.round(T.calmAcc), '#7dff8a'); T.calmT = 0; T.calmAcc = 0; } }
     for (const id of new Set(SHOP.bag)) {
@@ -128,7 +146,9 @@ const ITEMFX = (() => {
       if (e.medT > 0) { ctx.save(); ctx.strokeStyle = '#dfe8ff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(e.x, e.y, e.rad * 1.8, e.rad * 1.8 * YK, 0, 0, 6.283); ctx.stroke(); ctx.restore(); }               // храбрость
     }
     if (off()) return;
-    for (const id of new Set(SHOP.bag)) { const au = ALL[id] && ALL[id].pas && ALL[id].pas.aura; if (au && au.burn) glow(P.x, P.y, au.R, au.R * YK, '255,150,60', 0.18 + 0.05 * Math.sin(t * 3)); }   // Сияние
+    for (const id of new Set(SHOP.bag)) { const au = ALL[id] && ALL[id].pas && ALL[id].pas.aura; if (!au) continue;
+      if (au.burn) glow(P.x, P.y, au.R, au.R * YK, '255,150,60', 0.18 + 0.05 * Math.sin(t * 3));                                    // Сияние
+      else if (au.slow && SHOP.phase === 'fight') glow(P.x, P.y, au.R, au.R * YK, '150,210,255', 0.1 + 0.03 * Math.sin(t * 2)); }   // холодная аура Шивы — чтобы было видно, что она работает
   }
   function drawOver(t) {
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
@@ -145,17 +165,26 @@ const ITEMFX = (() => {
         ctx.stroke();
       }
     }
-    for (const g of GLOWS) glow(g.x, g.y - CH * HS() * 0.5, 90, 90, g.col, 0.7 * (1 - g.t / g.dur));
+    for (const g of GLOWS) { const R = g.R || 90, k = g.R ? 0.6 + 0.4 * g.t / g.dur : 1; glow(g.x, g.y - CH * HS() * 0.5, R * k, R * k, g.col, 0.7 * (1 - g.t / g.dur)); }
     if (!off()) {
       const y = P.y - CH * HS() * 0.5, R = 95 * HS(), p = 1 + 0.06 * Math.sin(t * 7);
       if (T.bkb > 0) glow(P.x, y, R * p, R * p, '255,210,90', 0.4);
-      if (T.unholy > 0) glow(P.x, y, R * p, R * p, '255,60,60', 0.4);
+      if (T.unholy > 0 || T.rite > 0) glow(P.x, y, R * p, R * p, '255,60,60', 0.4);
       if (T.aeon > 0) glow(P.x, y, R * 1.2 * p, R * 1.2 * p, '255,240,190', 0.5);
       if (T.storm > 0) glow(P.x, y, R * p, R * p, '140,200,255', 0.3);
       if (T.dash) glow(P.x, y, R * 0.8, R * 0.8, '220,240,255', 0.35);
     }
     ctx.restore();
   }
+  // временные эффекты предметов — в ряд значков состояний (status.js): [предмет, { t — секунд осталось }]
+  if (typeof HSTAT !== 'undefined') HSTAT.items = () => {
+    const L = []; if (off()) return L;
+    if (T.bkb > 0) L.push(['bkb', { t: T.bkb }]); if (T.aeon > 0) L.push(['aeon', { t: T.aeon }]); if (T.unholy > 0) L.push(['satanic', { t: T.unholy }]);
+    if (T.manta > 0) L.push(['manta', { t: T.manta }]); if (T.storm > 0) L.push(['vajra', { t: T.storm }]); if (T.rite > 0) L.push(['bloodstone', { t: T.rite }]);
+    const cm = pas('calm'); if (cm && T.calm >= cm.after && P.hp < P.maxHp) L.push(['tarrasque', { t: 0 }]);   // Кровь титана — пока лечит
+    if (T.linkenF > 0) L.push(['linken', { t: T.linkenF }]); if (T.lotusF > 0) L.push(['lotus', { t: T.lotusF }]);
+    return L;
+  };
   return { T, ZAPS, GLOWS, has, pas, onAtk, amp, evade, use, tick, purge, hard, drawGround, drawOver };
 })();
 
@@ -178,7 +207,8 @@ const ITEMFX = (() => {
   updateEnemy = function (e, dt) {
     if (e.corT > 0) e.corT -= dt; if (e.medT > 0) e.medT -= dt;
     if (e.stunT > 0 && !e.skMove) { e.stunT -= dt; e.act = null; e.anim = 'idle'; e.jump = 0; if (e.leap) { e.leap = null; collide(e); } return; }
-    _ue(e, dt);
+    const h0 = ITEMFX.hard(); _ue(e, dt);
+    if (!h0 && ITEMFX.hard()) ITEMFX.T.src = { e, at: performance.now() / 1000 };   // для «Отражения» Сферы лотоса
   }; }
 // иллюзии Мантии повторяют каждый выстрел
 { const _sh = shoot;

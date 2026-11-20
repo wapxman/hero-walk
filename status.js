@@ -65,9 +65,12 @@ const HSTAT = (function () {
   const row = document.createElement('div'); row.id = 'hStat'; document.body.appendChild(row);
   const EL = {};                                  // имя → { el, ring, num, max, last, key }
   const now = () => performance.now() / 1000;
-  function make(id, nm, good) {
+  function make(id, nm, good, item) {
     const el = document.createElement('div'); el.className = 'st' + (good ? ' good' : '');
-    const im = new Image(); im.onerror = () => im.remove(); im.src = DIR + id + '.webp' + (typeof V === 'string' ? V : ''); el.appendChild(im);
+    const it = item && typeof ALL !== 'undefined' && ALL[item], VV = typeof V === 'string' ? V : '';
+    if (it && typeof (it.img || it.ic) === 'number') {   // иконка предмета из общего листа ui/items.webp (класс .it — items.js)
+      const sp = document.createElement('span'), i = it.ic; sp.className = 'it'; sp.style.cssText = 'position:absolute;inset:11%;border-radius:50%;background-position:' + (i % 4) * 100 / 3 + '% ' + Math.floor(i / 4) * 100 / 19 + '%'; el.appendChild(sp);
+    } else { const im = new Image(); im.onerror = () => im.remove(); im.src = (it ? it.img : DIR + id + '.webp') + VV; el.appendChild(im); }
     const ring = document.createElement('i'), num = document.createElement('b');
     el.append(ring, num);
     return { el, ring, num, max: 0, last: 0, born: now(), key: '' };
@@ -77,10 +80,12 @@ const HSTAT = (function () {
     const hide = P.dead > 0 || (typeof LIMBO !== 'undefined' && LIMBO.on);
     const on = [];
     if (!hide) for (const [id, nm, good] of DEF) { const v = src[id](); if (v && (good || on.length < MAX)) on.push([id, nm, good, v]); }   // плохих — первые 8; хорошие (их всего 4) видны всегда
+    // временные эффекты предметов (v99): значок — иконка самого предмета, зелёный ободок, тот же таймер. Список даёт itemfx.js (HSTAT.items)
+    if (!hide && API.items) for (const [item, v] of API.items()) on.push(['it_' + item, '', 1, v, item]);
     const want = {}; let prevGood = 0, i = 0;
-    for (const [id, nm, good, v] of on) {
+    for (const [id, nm, good, v, item] of on) {
       want[id] = 1;
-      let o = EL[id]; if (!o) { o = EL[id] = make(id, nm, good); o.idx = -1; }
+      let o = EL[id]; if (!o) { o = EL[id] = make(id, nm, good, item); o.idx = -1; }
       // порядок в ряду
       if (row.children[i] !== o.el) row.insertBefore(o.el, row.children[i] || null);
       const gap = good && !prevGood && i > 0; if (o.gap !== gap) { o.gap = gap; o.el.classList.toggle('gap', gap); }
@@ -190,5 +195,6 @@ const HSTAT = (function () {
       };
     }
   }
-  return { src, why, show(id, t, o) { X[id] = Object.assign({ t }, o || {}); }, list: () => Object.keys(EL), DEF };
+  const API = { src, why, show(id, t, o) { X[id] = Object.assign({ t }, o || {}); }, list: () => Object.keys(EL), DEF, items: null };
+  return API;
 })();

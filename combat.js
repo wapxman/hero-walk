@@ -506,7 +506,7 @@ function nextWave() {
   if (ROUND.fin) needChar(CHARS[KIND[ROUND.fin].ch]);
   if (a.W === 10) q.push(R.boss);
   else {
-    const n = BAL.count(wave), nr = Math.round(n * 0.25);
+    const n = BAL.count(wave), nr = Math.round(n * (a.M === 1 && a.C === 1 ? 0.15 : 0.25));   // в мире 1 стрелков меньше: больше простых ближних, которые берут в кольцо (v99)
     for (let i = 0; i < n - nr; i++) q.push(R.mel[(wave === 1 && i < 6 ? 0 : i) % R.mel.length]);
     for (let i = 0; i < nr; i++) q.push(R.rng[i % R.rng.length]);
     for (let i = q.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [q[i], q[j]] = [q[j], q[i]]; }
