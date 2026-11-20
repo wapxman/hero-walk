@@ -76,12 +76,23 @@ const BV = (() => {
     const fm = SK.ON_HIT.b_mirrorlord;
     if (fm) SK.ON_HIT.b_mirrorlord = (e, n) => { const h0 = P.hp; const r = fm(e, n); if (P.hp < h0) skill(e, 'Танец рапиры'); return r; };
   }
+  // пассивки без надписи и без момента каста (Создатель, 20.11) — только звук, без фразы босса
+  const pas = (e, name) => { const v = BOSSVO[e.type]; if (v && v.s[name] && !(window.NETC && NETC.on)) play(e.type + '_s' + v.s[name], 0.9); };
+  // Королева Змей: «Ядовитый выстрел» и «Ядовитый укус» — при попадании её снаряда по герою, каждый не чаще раза в 6 с (по очереди)
+  if (typeof SK !== 'undefined' && SK.SHOT_HIT && SK.SHOT_HIT.b_serpentqueen) {
+    const f = SK.SHOT_HIT.b_serpentqueen; let at = -1e9, n = 0;
+    SK.SHOT_HIT.b_serpentqueen = e => { const h = f(e); return function () { const now = performance.now(); if (now - at >= 3000) { at = now; pas(e, n++ % 2 ? 'Ядовитый укус' : 'Ядовитый выстрел'); } return h.apply(this, arguments); }; };
+  }
   // добивание: герой погиб, пока босс жив
   {
-    let was = 0;
+    let was = 0, inRust = false, inJudge = false;
+    const near = (type, R) => P.dead > 0 ? null : enemies.find(e => e.type === type && e.hp > 0 && e.dieT == null && Math.hypot(e.x - P.x, (e.y - P.y) / YK) < R);
     const _cu = combatUpdate;
     combatUpdate = function (dt) {
       _cu(dt);
+      // Горн-Голем: «Аура ржавчины» — когда герой входит в круг ауры (350); Небесный Судья: «Неприкосновенный» — когда защита срабатывает (герой подошёл на 500 и стал бить медленнее)
+      const g = near('b_forgegolem', 350); if (g && !inRust) pas(g, 'Аура ржавчины'); inRust = !!g;
+      const j = near('b_skyjudge', 500); if (j && !inJudge) pas(j, 'Неприкосновенный'); inJudge = !!j;
       if (P.dead > 0 && !(was > 0)) { const b = enemies.find(e => e.hp > 0 && BOSSVO[e.type] && BOSSVO[e.type].l); if (b) { busyTo = 0; line(b, 3); } }
       was = P.dead;
     };
