@@ -23,9 +23,7 @@ const STATUS = {
     if (kind === 'freeze' && S.imm.freeze > 0) return;
     if ((kind === 'silence' || kind === 'stun') && S.imm.sil > 0) return;
     S[kind] = Math.max(S[kind], v);
-    const T = { freeze: ['Заморожен!', '#9fd8ff'], stun: ['Оглушён!', '#ffe27a'], silence: ['Безмолвие!', '#c9a8ff'], blind: ['Дым — умения мажут', '#c0c0c0'] }[kind];
-    if (T) say(P.x, P.y - CH * HS() * 1.25, T[0], T[1]);
-  },
+  },   // надписей нет: состояние видно по значкам, звёздам и запрету на кнопках (status.js)
   locked: () => P.ss.freeze > 0 || P.ss.stun > 0,                 // ни шагу, ни удара
   mute: () => P.ss.freeze > 0 || P.ss.stun > 0 || P.ss.silence > 0, // без умений
   clear() { const S = P.ss; for (const k of ['poison', 'burn', 'cold', 'shred']) S[k].n = 0; S.freeze = S.stun = S.silence = S.blind = 0; S.rshield = 0; S.spd = S.noMiss = S.rshT = 0; for (const k in S.imm) S.imm[k] = 0; },
@@ -83,7 +81,7 @@ hurtPlayer = function (d, kind) {
 // ---------- умения и удары под состояниями ----------
 const _castS = cast;
 cast = function (id) {
-  if (STATUS.mute()) { if (!P.muteSaid || performance.now() - P.muteSaid > 900) { say(P.x, P.y - CH * HS(), P.ss.silence > 0 ? 'безмолвие' : 'не двинуться', '#c9a8ff'); P.muteSaid = performance.now(); } return; }
+  if (STATUS.mute()) return;   // запрет виден на кнопках (status.js)
   // дым: умение срывается с шансом 50 % (Око Ясности даёт 2 с без промахов)
   if (P.ss.blind > 0 && !(P.ss.noMiss > 0) && !SHOP.paused && !(HERO_ID === 'archer' && id === 'r') && P.cd[id] <= 0 && P.mp >= MANA[id] && Math.random() < 0.5) {
     P.cd[id] = 1.2; say(P.x, P.y - CH * HS(), 'промах в дыму', '#c0c0c0'); return;

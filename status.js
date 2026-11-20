@@ -1,4 +1,5 @@
-// Что висит на герое (v92): ряд значков состояний под полосками героя и звёзды оглушения над головой.
+// Что висит на герое (v92–v93): ряд значков состояний внизу над ячейками предметов (без слов), звёзды оглушения над головой,
+// запрет на кнопках умений и атаки.
 // Картинки — Клауди (ui/status/<имя>.webp, 128×128). Кодом рисуется только интерфейс: подложка, ободок, кольцо времени, цифры, подписи.
 // Новое состояние подключается одной строкой:
 //   HSTAT.src.bleed = () => P.sk.rip > 0 && { t: P.sk.rip, n: 2 };     // свой источник: { t — секунд осталось, n — стаки, pct — процент, nm — своя подпись }
@@ -49,32 +50,28 @@ const HSTAT = (function () {
   };
   function NET_F(n) { return typeof NET !== 'undefined' && NET[n] || 0; }
 
-  // ---------- ряд значков (DOM, под полосками героя) ----------
+  // ---------- ряд значков (DOM, внизу по центру над ячейками предметов) ----------
   const css = document.createElement('style');
-  css.textContent = `#hStat { position: fixed; z-index: 6; left: calc(1.5vh + env(safe-area-inset-left)); top: calc(17.4vh + env(safe-area-inset-top)); display: flex; pointer-events: none; --s: clamp(40px, 11.4vh, 56px); }
-  #hStat .st { position: relative; width: var(--s); height: var(--s); margin-right: calc(var(--s) * 0.1); border-radius: 50%; box-sizing: border-box; flex: none;
-    background: radial-gradient(circle at 50% 38%, #2a3242, #10141c 72%); border: calc(var(--s) * 0.065) solid #d8463a; box-shadow: 0 0 0 1px #000, 0 2px 5px rgba(0,0,0,.6); animation: hstPop .3s ease-out; }
-  #hStat .st.good { border-color: #4ec96b; } #hStat .st.gap { margin-left: calc(var(--s) * 0.3); }
-  #hStat .st img { position: absolute; inset: 4%; width: 92%; height: 92%; border-radius: 50%; object-fit: contain; }
-  #hStat .st i { position: absolute; inset: 0; border-radius: 50%; }
-  #hStat .st b { position: absolute; right: -12%; bottom: -10%; font: bold calc(var(--s) * 0.36) system-ui, sans-serif; color: #fff; text-shadow: 0 0 3px #000, 0 0 3px #000, 0 1px 2px #000; white-space: nowrap; }
-  #hStat .st b.p { right: auto; left: 50%; transform: translateX(-50%); bottom: -14%; font-size: calc(var(--s) * 0.3); color: #ffe9a8; }
-  #hStat .st u { position: absolute; left: 0; top: 112%; text-decoration: none; white-space: nowrap; font: bold calc(var(--s) * 0.27) system-ui, sans-serif; color: #fff; padding: 1px 5px; border-radius: 4px; background: rgba(8,10,16,.72);
-    text-shadow: 0 1px 2px #000; transition: opacity .3s; }
-  #hStat .st u.l1 { top: 147%; } #hStat .st u.l2 { top: 182%; } #hStat .st u.off { opacity: 0; }
+  css.textContent = `#hStat { position: fixed; z-index: 6; left: calc(50% - 14vh); transform: translateX(-50%); bottom: calc(14.6vh + env(safe-area-inset-bottom)); display: flex; pointer-events: none; --s: clamp(32px, 9.4vh, 46px); }
+  #hStat .st { position: relative; width: var(--s); height: var(--s); margin: 0 calc(var(--s) * 0.05); border-radius: 50%; box-sizing: border-box; flex: none;
+    background: radial-gradient(circle at 50% 38%, #2a3242, #10141c 72%); --c: #e2463a; box-shadow: 0 0 0 1px #000, 0 2px 5px rgba(0,0,0,.6); animation: hstPop .3s ease-out; }
+  #hStat .st.good { --c: #4ec96b; } #hStat .st.gap { margin-left: calc(var(--s) * 0.35); }
+  #hStat .st img { position: absolute; inset: 11%; width: 78%; height: 78%; border-radius: 50%; object-fit: contain; }
+  #hStat .st i { position: absolute; inset: 0; border-radius: 50%; background: var(--c);
+    -webkit-mask-image: radial-gradient(closest-side, transparent 83%, #000 86%); mask-image: radial-gradient(closest-side, transparent 83%, #000 86%); }
+  #hStat .st b { position: absolute; right: -8%; bottom: -12%; font: bold calc(var(--s) * 0.4) system-ui, sans-serif; color: #fff; text-shadow: 0 0 3px #000, 0 0 3px #000, 0 1px 2px #000; }
   @keyframes hstPop { 0% { transform: scale(1.7); filter: brightness(1.8); } 100% { transform: none; filter: none; } }`;
   document.head.appendChild(css);
   const row = document.createElement('div'); row.id = 'hStat'; document.body.appendChild(row);
-  const EL = {};                                  // имя → { el, ring, num, cap, max, last, born, key }
+  const EL = {};                                  // имя → { el, ring, num, max, last, key }
   const now = () => performance.now() / 1000;
   function make(id, nm, good) {
     const el = document.createElement('div'); el.className = 'st' + (good ? ' good' : '');
     const im = new Image(); im.onerror = () => im.remove(); im.src = DIR + id + '.webp' + (typeof V === 'string' ? V : ''); el.appendChild(im);
-    const ring = document.createElement('i'), num = document.createElement('b'), cap = document.createElement('u');
-    el.append(ring, num, cap);
-    return { el, ring, num, cap, max: 0, last: 0, born: now(), key: '' };
+    const ring = document.createElement('i'), num = document.createElement('b');
+    el.append(ring, num);
+    return { el, ring, num, max: 0, last: 0, born: now(), key: '' };
   }
-  const pct = v => '−' + Math.round(v * 100) + '%';
   function update(dt) {
     for (const k in X) if (X[k].t > 0) X[k].t -= dt;
     const hide = P.dead > 0 || (typeof LIMBO !== 'undefined' && LIMBO.on);
@@ -88,19 +85,14 @@ const HSTAT = (function () {
       if (row.children[i] !== o.el) row.insertBefore(o.el, row.children[i] || null);
       const gap = good && !prevGood && i > 0; if (o.gap !== gap) { o.gap = gap; o.el.classList.toggle('gap', gap); }
       prevGood = good;
-      // кольцо оставшегося времени: тёмный сектор растёт по часовой
+      // ободок — оставшееся время: цветная дуга убывает по часовой от «12 часов» (без таймера — полный ободок)
       const t = v.t || 0; if (t > o.last + 0.05 || !o.max) o.max = t; o.last = t;
       const deg = o.max >= 0.5 ? Math.round(360 * (1 - Math.min(1, t / o.max)) / 6) * 6 : 0;
-      const txt = v.n > 0 ? '×' + v.n : v.pct > 0 ? pct(v.pct) : '', cap = (v.nm || nm) + (v.n > 0 ? ' ×' + v.n : v.pct > 0 ? ' ' + pct(v.pct) : '');
-      const key = deg + '|' + txt;
+      const txt = v.n > 1 ? String(v.n) : '', key = deg + '|' + txt;       // слов нет: только картинка, кольцо и число стаков
       if (key !== o.key) {
-        o.key = key; o.ring.style.background = deg ? 'conic-gradient(rgba(0,0,0,.62) ' + deg + 'deg, rgba(0,0,0,0) 0)' : 'none';
-        if (o.txt !== txt) { o.txt = txt; o.num.textContent = txt; o.num.className = v.n > 0 ? '' : 'p'; o.cap.textContent = cap; }
+        o.key = key; o.ring.style.background = deg ? 'conic-gradient(#232832 ' + deg + 'deg, var(--c) 0)' : '';
+        if (o.txt !== txt) { o.txt = txt; o.num.textContent = txt; }
       }
-      // подпись 2 с после появления; у соседей — на разной высоте, чтобы не наезжали
-      const capOn = now() - o.born < 2, lo = i % 3;
-      if (o.capOn !== capOn) { o.capOn = capOn; o.cap.classList.toggle('off', !capOn); }
-      if (o.lo !== lo) { o.lo = lo; o.cap.classList.toggle('l1', lo === 1); o.cap.classList.toggle('l2', lo === 2); }
       i++;
     }
     for (const id in EL) if (!want[id]) { EL[id].el.remove(); delete EL[id]; }
@@ -127,5 +119,76 @@ const HSTAT = (function () {
     }
     ctx.restore();
   };
-  return { src, show(id, t, o) { X[id] = Object.assign({ t }, o || {}); }, list: () => Object.keys(EL), DEF };
+
+  // ---------- запрет на кнопках (v93): умения нельзя — кнопки серые, знак запрета, секунды и значок причины ----------
+  const ICO = {}; for (const k of ['stun', 'freeze', 'silence', 'root', 'blind']) { ICO[k] = new Image(); ICO[k].src = DIR + k + '.webp' + (typeof V === 'string' ? V : ''); }
+  // почему нельзя: atk — про кнопку атаки (иначе про умения). → { k: значок причины, t: секунд осталось (0 — неизвестно) } или null
+  function why(atk) {
+    const S = K(), ss = P.ss;
+    if (P.dead > 0) return null;
+    if (ss.freeze > 0) return { k: 'freeze', t: ss.freeze };
+    if (ss.stun > 0) return { k: 'stun', t: ss.stun };
+    if (S.sleep > 0 || S.astral > 0) return { k: 'root', t: mx(S.sleep, S.astral) };
+    if (S.hex > 0) return { k: 'silence', t: S.hex };
+    if (atk) return S.bind > 0 ? { k: 'root', t: S.bind } : STATUS.noAtk && STATUS.noAtk() ? { k: 'root', t: 0 } : null;
+    if (ss.silence > 0) return { k: 'silence', t: ss.silence };
+    if (net() & NET_F('F_SIL')) return { k: 'silence', t: 0 };
+    return STATUS.mute() ? { k: 'silence', t: 0 } : null;
+  }
+  const deny = {};                                // кнопка → когда нажали запрещённую
+  const tick = () => performance.now() / 1000;
+  {
+    const _cast = cast;
+    cast = function (id) { if (why(false) && !(typeof SHOP !== 'undefined' && SHOP.paused)) deny[id] = tick(); return _cast(id); };
+    let wasHeld = false;
+    const _lb = layoutButtons;
+    layoutButtons = function () {                 // запрещённая кнопка после нажатия коротко дёргается
+      _lb();
+      const h = held.key || held.touch || held.mouse || held.pad; if (h && !wasHeld && why(true)) deny.atk = tick(); wasHeld = h;
+      const n = tick(); for (const b of BTN) { const d = n - (deny[b.id] || -9); if (d < 0.2) b.x += Math.sin(d * 75) * b.r * 0.1 * (1 - d / 0.2); }
+    };
+    const corner = (b, k, sc) => {                 // значок причины в левом верхнем углу кнопки
+      const im = ICO[k], r = b.r * 0.36 * sc, x = b.x - b.r * 0.66, y = b.y - b.r * 0.66;
+      ctx.beginPath(); ctx.arc(x, y, r * 1.12, 0, 7); ctx.fillStyle = '#10141c'; ctx.fill(); ctx.lineWidth = Math.max(1.5, r * 0.14); ctx.strokeStyle = '#d8463a'; ctx.stroke();
+      if (im.complete && im.naturalWidth) ctx.drawImage(im, x - r, y - r, r * 2, r * 2);
+    };
+    const _ui = combatUI;
+    combatUI = function () {
+      _ui();
+      if (P.dead > 0 || (typeof LIMBO !== 'undefined' && LIMBO.on)) return;
+      const ws = why(false), wa = why(true), n = tick(), smoke = P.ss.blind > 0 && !(P.ss.noMiss > 0);
+      if (!ws && !wa && !smoke) return;
+      ctx.save(); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      for (const b of BTN) {
+        const w = b.id === 'atk' ? wa : ws;
+        if (!w) { if (smoke && b.id !== 'atk') corner(b, 'blind', 1); continue; }
+        const d = n - (deny[b.id] || -9), fl = d < 0.25 ? 1 - d / 0.25 : 0, R = b.r * 0.92;
+        ctx.beginPath(); ctx.arc(b.x, b.y, R, 0, 7);
+        ctx.fillStyle = 'rgba(58,60,66,0.78)'; ctx.fill();                                       // приглушить серым
+        if (fl) { ctx.fillStyle = 'rgba(255,40,30,' + (0.55 * fl).toFixed(2) + ')'; ctx.fill(); }
+        // знак запрета: круг с косой чертой
+        const q = b.r * 0.56, lw = b.r * 0.13;
+        ctx.lineCap = 'butt'; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.lineWidth = lw + 3;
+        ctx.beginPath(); ctx.arc(b.x, b.y, q, 0, 7); ctx.moveTo(b.x - q * 0.707, b.y - q * 0.707); ctx.lineTo(b.x + q * 0.707, b.y + q * 0.707); ctx.stroke();
+        ctx.strokeStyle = '#e8372c'; ctx.lineWidth = lw; ctx.stroke();
+        if (w.t > 0) {                                                                          // сколько секунд осталось
+          const s = w.t < 10 ? w.t.toFixed(1).replace('.', ',') : String(Math.ceil(w.t));
+          ctx.font = 'bold ' + Math.round(b.r * 0.42) + 'px system-ui, sans-serif'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.9)'; ctx.fillStyle = '#fff';
+          ctx.strokeText(s, b.x, b.y + b.r * 0.86); ctx.fillText(s, b.x, b.y + b.r * 0.86);
+        }
+        corner(b, w.k, 1 + 0.5 * fl);
+      }
+      ctx.restore();
+    };
+    // джойстик: герой не может идти — приглушаем
+    if (typeof drawStickUI === 'function') {
+      const _ds = drawStickUI;
+      drawStickUI = function () {
+        if (!(STATUS.locked() && P.dead <= 0)) return _ds();
+        _ds(); if (!('ontouchstart' in window)) return;
+        const h = stick.active ? { x: stick.x0, y: stick.y0 } : stickHome(); ctx.beginPath(); ctx.arc(h.x, h.y, stickR() * 0.98, 0, 7); ctx.fillStyle = 'rgba(40,42,48,0.6)'; ctx.fill();
+      };
+    }
+  }
+  return { src, why, show(id, t, o) { X[id] = Object.assign({ t }, o || {}); }, list: () => Object.keys(EL), DEF };
 })();

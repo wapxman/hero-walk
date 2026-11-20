@@ -21,7 +21,7 @@ URL = f'http://localhost:{A.port}/'
 class H(http.server.SimpleHTTPRequestHandler):
     def log_message(self, *a): pass
     def end_headers(self): self.send_header('Cache-Control', 'no-store'); super().end_headers()
-class S(socketserver.ThreadingMixIn, http.server.HTTPServer): daemon_threads = True; allow_reuse_address = True
+class S(socketserver.ThreadingMixIn, http.server.HTTPServer): daemon_threads = True; allow_reuse_address = True; request_queue_size = 256   # очередь по умолчанию (5) при 10 вкладках давала отказы в соединении
 srv = S(('127.0.0.1', A.port), functools.partial(H, directory=ROOT)); threading.Thread(target=srv.serve_forever, daemon=True).start()
 
 # модель баланса: с чем герой приходит в каждый мир и что должно получиться в конце
