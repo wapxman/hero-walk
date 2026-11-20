@@ -16,7 +16,7 @@ const SAVE = (() => {
     // в бою сохраняем начало текущего раунда — после перезапуска раунд начнётся заново
     const w = SHOP.phase === 'fight' ? Math.max(0, (SHOP.roundFrom || wave + 1) - 1) : wave;
     best = Math.max(best, w);
-    const d = { v: 1, wave: w, best, gold: Math.floor(SHOP.gold), bag: SHOP.bag.slice(), flasks: Object.assign({}, SHOP.flasks), t: Date.now() };
+    const d = { v: 1, wave: w, best, hp: Math.round(P.hp), mp: Math.round(P.mp), gold: Math.floor(SHOP.gold), bag: SHOP.bag.slice(), flasks: Object.assign({}, SHOP.flasks), t: Date.now() };
     try { localStorage.setItem(key(), JSON.stringify(d)); } catch (e) {}
     if (typeof progSave === 'function') progSave();
   }
@@ -27,13 +27,18 @@ const SAVE = (() => {
     best = Math.max(best, d.best || 0);
     if (d.gold != null) SHOP.gold = d.gold;
     if (Array.isArray(d.bag)) SHOP.bag = d.bag.filter(id => ALL[id]).slice(0, BAG_MAX);
-    if (d.flasks) for (const k in SHOP.flasks) if (typeof d.flasks[k] === 'number') SHOP.flasks[k] = Math.max(0, Math.min(99, d.flasks[k] | 0));
+    if (d.flasks) for (const k in SHOP.flasks) if (typeof d.flasks[k] === 'number') SHOP.flasks[k] = Math.max(0, Math.min(k === 'heal' ? 10 : 99, d.flasks[k] | 0));
     const curC = BAL.at((d.wave || 0) + 1).M;
     wave = c === curC ? (d.wave || 0) : (c - 1) * BAL.WAVES;
     SHOP.phase = 'rest'; SHOP.restT = 0; SHOP.roundFrom = wave + 1;
     enemies.length = 0; ROUND.queue.length = 0; ROUND.endW = wave; ROUND.fin = null;
     if (typeof applyWorld === 'function') applyWorld(BAL.at(wave + 1).M);
-    SHOP.recompute(); P.hp = P.maxHp; P.mp = P.maxMp; SHOP.refresh();
+    SHOP.recompute();
+    // посреди мира — здоровье и мана из сохранения (лечение теперь за деньги); начало мира и переигрывание главы — полные
+    const mid = c === curC && (d.wave || 0) % BAL.WAVES !== 0 && d.hp > 0;
+    P.hp = mid ? Math.min(P.maxHp, d.hp) : P.maxHp;
+    P.mp = mid && d.mp != null ? Math.min(P.maxMp, d.mp) : P.maxMp;
+    SHOP.refresh();
     save();
   }
   // карта выбора главы после кнопки «В бой» у выбора героя

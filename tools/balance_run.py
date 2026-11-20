@@ -28,13 +28,14 @@ src = open('items.js', encoding='utf-8').read()
 def grab(name):
     body = src[src.index('const ' + name + ' = {'):]; body = body[:body.index('\n};') + 3]
     items = {}
-    for m in re.finditer(r"^\s+(\w+): \{ nm: '([^']+)', ic: \d+, (?:pr: (\d+), )?(?:from: \[([^\]]+)\], )?st: \{ ([^}]*) \}", body, re.M):
+    for m in re.finditer(r"^\s+(\w+): \{ nm: '([^']+)', ic: \d+, (?:pr: (\d+), )?(?:from: \[([^\]]+)\], )?st: \{\s*([^}]*?)\s*\}(.*)$", body, re.M):   # st может быть пустым; дальше — rc, ds, pas, act
         st = {k: float(v) for k, v in re.findall(r"(\w+): ([\d.]+)", m.group(5))}
         items[m.group(1)] = {'nm': m.group(2), 'pr': int(m.group(3)) if m.group(3) else None,
-                             'from': [x.strip(" '") for x in m.group(4).split(',')] if m.group(4) else None, 'st': st}
+                             'from': [x.strip(" '") for x in m.group(4).split(',')] if m.group(4) else None, 'st': st,
+                             'rc': int((re.search(r"rc: (\d+)", m.group(6)) or [0, 0])[1])}
     return items
 PARTS, RECIPES = grab('PARTS'), grab('RECIPES'); ALL = {**PARTS, **RECIPES}
-def full(i): return round(PARTS[i]['pr'] * PM) if i in PARTS else sum(full(x) for x in RECIPES[i]['from'])
+def full(i): return round(PARTS[i]['pr'] * PM) if i in PARTS else sum(full(x) for x in RECIPES[i]['from']) + round(RECIPES[i]['rc'] * PM)   # + свиток рецепта
 def need(l): return round(30 + 20 * l + 0.5 * l * l)
 NWORLD = 10
 def at(n): m = (n - 1) % (10 * NWORLD); return (n - 1) // (10 * NWORLD) + 1, m // 10 + 1, m % 10 + 1
@@ -56,7 +57,8 @@ def hero(L, bag):
     dmg = 50 * (1 + S['dmg']) * (1 + 0.015 * (L - 1)) * (1 + 0.006 * s)
     dps = dmg * (1 + min(.4, S['crit'])) * (1 / 0.62) * (1 + 0.015 * a) * (1 + min(.6, S['as'])) * (1.45 + S['sk'] * 0.45)   # умения ≈ +45 %
     hp = 600 + 10 * (L - 1) + 8 * s + S['hp']
-    ehp = hp / (1 - min(.6, S['arm'])) + (5 + S['hpr']) * 20 + dps * S['ls'] * 20
+    ls = min(.25, S['ls'])   # v87: своего регена нет, вампиризм ≤ 25 %, с умений (≈ 45 % урона) — ×0,3
+    ehp = hp / (1 - min(.6, S['arm'])) + S['hpr'] * 20 + dps * ls * (0.55 + 0.45 * 0.3) * 20
     return dmg, dps, hp, ehp
 def score(bag, L): d = hero(L, bag); return d[1] * d[3]
 gold, lvl, xp, bag, n, rows = 0, 1, 0, [], 0, []
@@ -76,6 +78,7 @@ def shop():
                 nonlocal cost
                 if x in have: have.remove(x); return
                 if x in PARTS: cost += round(PARTS[x]['pr'] * PM); return
+                cost += round(RECIPES[x]['rc'] * PM)   # свиток рецепта
                 for f in RECIPES[x]['from']: plan(f)
             plan(i)
             nb = have + [i]

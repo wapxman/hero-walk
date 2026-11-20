@@ -136,16 +136,16 @@ function relicSpeed() { if (P.spdBase == null) P.spdBase = P.spdMul; const k = P
 function relicFlash(id) {
   const i = SHOP.bag.indexOf(id), c = SHOP.el && SHOP.el.slots && SHOP.el.slots[i];
   if (!c) return; c.classList.remove('rfl'); void c.offsetWidth; c.classList.add('rfl');
-  say(P.x, P.y - CH * HS() * 1.45, RELICS[id].nm, '#ffe27a');
+  say(P.x, P.y - CH * HS() * 1.45, (RELICS[id] || ALL[id]).nm, '#ffe27a');
 }
 function relicRings() {
   if (!SHOP.el || !SHOP.el.slots) return;
   SHOP.el.slots.forEach((c, i) => {
-    const id = SHOP.bag[i], r = id && RELICS[id];
+    const id = SHOP.bag[i], it = id && ALL[id], cdMax = !it ? 0 : it.relic ? it.cd : it.act ? it.act.cd : (it.pas && it.pas.cd) || 0;
     let o = c.querySelector('.rcd');
-    if (!r || !r.cd) { if (o) o.remove(); return; }
+    if (!cdMax) { if (o) o.remove(); return; }
     if (!o) { o = document.createElement('div'); o.className = 'rcd'; c.appendChild(o); }
-    const f = (RCD[id] || 0) / r.cd;
+    const f = (RCD[id] || 0) / cdMax;
     o.style.background = f > 0.01 ? 'conic-gradient(rgba(0,0,0,.55) ' + Math.round(f * 360) + 'deg, rgba(0,0,0,0) 0)' : 'none';
   });
 }

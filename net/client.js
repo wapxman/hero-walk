@@ -339,6 +339,7 @@ var NETC = { on: false };   // NETC.limboBack — вернуться из Меж
     if (!NETC.on || (id !== 'heal' && id !== 'mana' && id !== 'frost')) return _use(id);
     if (P.dead > 0 || !SHOP.flasks[id]) return;
     if ((id === 'heal' && P.hp >= P.maxHp) || (id === 'mana' && P.mp >= P.maxMp)) return;
+    if (id === 'heal') { if (performance.now() < (SHOP.healCdT || 0)) return; SHOP.healCdT = performance.now() + 1000; }   // не чаще раза в секунду
     if (S.ws && S.ws.readyState === 1) S.ws.send(JSON.stringify({ t: 'use', id }));
     if (id === 'frost') { for (const k in P.cd) P.cd[k] = 0; say(P.x, P.y - CH * HS() * 1.1, 'Скиллы готовы', '#bfe6ff'); }
     SHOP.flasks[id]--; SHOP.refresh(); snd('flask', 0.7);

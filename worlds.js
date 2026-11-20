@@ -66,6 +66,7 @@ SHOP.tick = function (dt) {
     worldNext = worldOf(wave + 1); SHOP.restT = 0;
     const a = BAL.at(wave + 1), a0 = BAL.at(wave);
     say(P.x, P.y - CH * 1.6 * HS(), 'Мир ' + a0.M + ' пройден!', '#ffd95e');
+    if (P.dead <= 0) { P.hp = P.maxHp; P.mp = P.maxMp; say(P.x, P.y - CH * 1.9 * HS(), 'Силы восстановлены', '#7dff8a'); }   // награда за босса мира
     if (typeof PATHMAP !== 'undefined') {
       // переход в новую главу по карте «Путь героев»: свет бежит к следующему медальону, на вспышке — новый мир
       const nx = worldNext, t0 = a0.M - 1 + 0.75, t1 = Math.min(9, a.M - 1 + (a.C > a0.C ? 0 : 0));

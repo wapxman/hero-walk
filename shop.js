@@ -6,7 +6,7 @@
 const ICON = { heal: 0, frost: 1, swift: 2, power: 3, orb: 4, boots: 5, heart: 6, ring: 7, shield: 8,
   coin: 9, pouch: 10, chest: 11, swords: 12, skull: 13, bag: 14, lock: 15 };
 const FLASKS = [
-  { id: 'heal', name: 'Фласка лечения', desc: '+280 здоровья', price: 30, key: '1' },
+  { id: 'heal', name: 'Фласка лечения', desc: '+150 и 20 % здоровья', price: 40, key: '1' },   // настоящая цена — SHOP.flaskPrice (растёт с миром)
   { id: 'frost', name: 'Фласка холода', desc: 'сброс перезарядки', price: 55, key: '2' },
   { id: 'swift', name: 'Фласка скорости', desc: '+45% бега на 8 с', price: 35, key: '3' },
   { id: 'power', name: 'Эликсир силы', desc: '+50% урона на 10 с', price: 60, key: '4' },
@@ -24,6 +24,8 @@ const ITEMS = [
 const MAXLVL = 3;
 const KILL_GOLD = { min: 6, war: 13, mag: 11, rog: 11, boss: 90 };
 const BASE_HP = 600;
+// фласка лечения (v87): 150 + 20 % здоровья, цена 40 + 10 за мир, с собой не больше 10, пить не чаще раза в секунду
+const HEAL = { max: 10, cd: 1 };
 
 const SHOP = {
   gold: 0, flasks: { heal: 1, frost: 0, swift: 0, power: 0, mana: 0 }, items: {}, buffs: { swift: 0, power: 0 },
@@ -86,7 +88,7 @@ const SHOP = {
     SHOP.drop('coin', null, e.x, e.y, g);
     if (e.boss) SHOP.drop('chest', null, e.x + 40, e.y + 10);
     else if (Math.random() < 0.05) SHOP.drop('chest', null, e.x + rnd(-30, 30), e.y + rnd(-10, 20));
-    else if (Math.random() < 0.1) SHOP.drop('flask', Math.random() < 0.6 ? 'heal' : pick(['frost', 'swift', 'power', 'mana', 'mana']), e.x + rnd(-30, 30), e.y + rnd(-10, 20));
+    else if (Math.random() < 0.04) SHOP.drop('flask', pick(['frost', 'swift', 'power', 'mana', 'mana']), e.x + rnd(-30, 30), e.y + rnd(-10, 20));   // лечение с врагов не падает
   },
   drop(kind, id, x, y, amount) {
     const d = { kind, id, x, y, t: 0, amount, icon: kind === 'coin' ? ICON.coin : kind === 'chest' ? ICON.chest : ICON[id] };
@@ -107,7 +109,7 @@ const SHOP = {
       SHOP.addGold(d.amount); say(P.x + rnd(-10, 10), P.y - CH * HS() * 0.9, '+' + d.amount, '#ffd95e');
       snd('coins', 0.25, 1.3);   // тихий звон, когда монеты долетели до героя
     }
-    else if (d.kind === 'flask') { SHOP.flasks[d.id]++; say(P.x, P.y - CH * HS() * 1.1, FLASKS.find(f => f.id === d.id).name, '#bfe6ff'); }
+    else if (d.kind === 'flask') { SHOP.flasks[d.id] = Math.min(d.id === 'heal' ? HEAL.max : 99, SHOP.flasks[d.id] + 1); say(P.x, P.y - CH * HS() * 1.1, FLASKS.find(f => f.id === d.id).name, '#bfe6ff'); }
     else {
       snd('coins', 0.6, 0.85);
       const free = ITEMS.filter(it => (SHOP.items[it.id] || 0) < MAXLVL);
@@ -122,7 +124,7 @@ const SHOP = {
   use(id) {
     if (P.dead > 0 || !SHOP.flasks[id]) return;
     if (SHOP.el && SHOP.el.pause && SHOP.el.pause.style.display === 'flex') return;   // в меню паузы фласки не пьются
-    if (id === 'heal') { if (P.hp >= P.maxHp) return; P.hp = Math.min(P.maxHp, P.hp + 280); say(P.x, P.y - CH * HS() * 1.1, '+280', '#7dff8a'); }
+    if (id === 'heal') { if (P.hp >= P.maxHp || performance.now() < (SHOP.healCdT || 0)) return; SHOP.healCdT = performance.now() + 1000 * HEAL.cd; const h = SHOP.healAmt(); P.hp = Math.min(P.maxHp, P.hp + h); say(P.x, P.y - CH * HS() * 1.1, '+' + h, '#7dff8a'); }
     else if (id === 'frost') { for (const k in P.cd) P.cd[k] = 0; say(P.x, P.y - CH * HS() * 1.1, 'Скиллы готовы', '#bfe6ff'); }
     else if (id === 'swift') { SHOP.buffs.swift = 8; say(P.x, P.y - CH * HS() * 1.1, 'Скорость!', '#a8ffb5'); }
     else if (id === 'power') { SHOP.buffs.power = 10; say(P.x, P.y - CH * HS() * 1.1, 'Сила!', '#ffd95e'); }
@@ -134,9 +136,10 @@ const SHOP = {
   // ----- покупки -----
   buy(kind, id) {
     if (kind === 'flask') {
-      const f = FLASKS.find(x => x.id === id);
-      if (SHOP.gold < f.price) return;
-      SHOP.gold -= f.price; SHOP.flasks[id]++;
+      const f = FLASKS.find(x => x.id === id), pr = SHOP.flaskPrice(f);
+      if (id === 'heal' && SHOP.flasks.heal >= HEAL.max) { say(P.x, P.y - CH * HS() * 1.2, 'Фласок лечения — не больше ' + HEAL.max, '#ffb36a'); return; }
+      if (SHOP.gold < pr) return;
+      SHOP.gold -= pr; SHOP.flasks[id]++;
     } else {
       const it = ITEMS.find(x => x.id === id), lvl = SHOP.items[id] || 0, pr = SHOP.itemPrice(it);
       if (lvl >= MAXLVL || SHOP.gold < pr) return;
@@ -170,6 +173,8 @@ const SHOP = {
     }
   },
 };
+SHOP.healAmt = () => Math.round(150 + 0.2 * P.maxHp);
+SHOP.flaskPrice = f => f.id === 'heal' ? 40 + 10 * (BAL.mw(wave + 1) - 1) : f.price;
 
 // ---------- интерфейс (DOM поверх игры; все фоны — картинки) ----------
 (function buildUI() {
@@ -270,7 +275,7 @@ const SHOP = {
   E.slots = [];
   for (let i = 0; i < 6; i++) { const c = mk('div', 'hs bg', E.inv); tap(c, () => { if (c.use) SHOP.use(c.use); }); E.slots.push(c); }
   E.flask = mk('div', 'bg', E.inv, icon(ICON.heal) + '<b class="bg">0</b>'); E.flask.id = 'hFlask';
-  E.flask.title = 'Фласка лечения: +280 здоровья (клавиша 1)'; tap(E.flask, () => SHOP.use('heal'));
+  E.flask.title = 'Фласка лечения: +150 и 20 % здоровья, не чаще раза в секунду (клавиша 1)'; tap(E.flask, () => SHOP.use('heal'));
   // пауза: продолжить, музыка, редактор
   E.pause = mk('div', 'sh'); E.pause.id = 'hPause';
   for (const ev of ['touchstart', 'mousedown', 'pointerdown']) E.pause.addEventListener(ev, x => x.stopPropagation(), { passive: true });
@@ -300,7 +305,7 @@ const SHOP = {
     E.gold.lastChild.textContent = SHOP.gold;
     E.title.querySelector('em').textContent = SHOP.gold;
     const nh = SHOP.flasks.heal;
-    E.flask.lastChild.textContent = nh; E.flask.classList.toggle('off', !nh);
+    E.flask.lastChild.textContent = nh; E.flask.classList.toggle('off', !nh || performance.now() < (SHOP.healCdT || 0));
     // сумка: сначала фласки (кроме лечения), потом предметы; ячейку перерисовываем, только если она поменялась
     const inv = [];
     for (const f of FLASKS) if (f.id !== 'heal' && SHOP.flasks[f.id]) inv.push({ ic: ICON[f.id], n: SHOP.flasks[f.id], use: f.id, t: f.name + ': ' + f.desc + ' (клавиша ' + f.key + ')' });

@@ -98,8 +98,8 @@ function heroStats(p) {
   p.dmgMul = (1 + it.dmg) * (it.pow ? 1.5 : 1) * (1 + 0.015 * (s.lvl - 1)) * (1 + 0.006 * st.str);
   p.spdMul = (1 + it.spd) * (it.swift ? 1.45 : 1) * (1 + 0.006 * st.agi);
   p.atkSpd = (1 + 0.015 * st.agi) * (1 + Math.min(0.6, it.as)); p.skMul = (1 + 0.015 * st.int) * (1 + it.sk);
-  p.mpRegen = 11 + 0.35 * st.int + it.mpr; p.hpReg = 5 + it.hpr;
-  p.ls = it.ls; p.crit = Math.min(0.4, it.crit); p.cdMul = 1 - Math.min(0.45, it.cd); p.armMul = 1 - Math.min(0.6, it.arm);
+  p.mpRegen = 11 + 0.35 * st.int + it.mpr; p.hpReg = it.hpr;   // своего регена нет — только от предметов
+  p.ls = Math.min(0.25, it.ls); p.crit = Math.min(0.4, it.crit); p.cdMul = 1 - Math.min(0.45, it.cd); p.armMul = 1 - Math.min(0.6, it.arm);
   const mh = h.hp + it.hp + 10 * (s.lvl - 1) + 8 * st.str, mm = 420 + 12 * st.int + it.mp;
   if (p.max && mh > p.max) p.hp += mh - p.max;
   if (p.maxMp && mm > p.maxMp) p.mp += mm - p.maxMp;
@@ -115,8 +115,8 @@ function cleanProg(m) {
   return { lvl: n(m.lvl, 1, 100, 1), st: { str: n(st.str, 0, 300, 0), agi: n(st.agi, 0, 300, 0), int: n(st.int, 0, 300, 0) },
     sk: { q: n(sk.q, 1, 10, 1), e: n(sk.e, 1, 10, 1), f: n(sk.f, 1, 10, 1), r: n(sk.r, 1, 10, 1) },
     // предметы: значения ограничены сверху (6 ячеек сумки), чтобы чужой клиент не прислал бессмертие
-    it: { dmg: f(it.dmg, 2), hp: f(it.hp, 2500), mp: f(it.mp, 1500), as: f(it.as, 1), spd: f(it.spd, 0.6), hpr: f(it.hpr, 40), mpr: f(it.mpr, 30),
-      arm: f(it.arm, 0.8), sk: f(it.sk, 2), cd: f(it.cd, 0.6), ls: f(it.ls, 0.4), crit: f(it.crit, 0.6), pow: it.pow ? 1 : 0, swift: it.swift ? 1 : 0 } };
+    it: { dmg: f(it.dmg, 3), hp: f(it.hp, 4000), mp: f(it.mp, 1500), as: f(it.as, 1), spd: f(it.spd, 0.6), hpr: f(it.hpr, 40), mpr: f(it.mpr, 30),
+      arm: f(it.arm, 0.8), sk: f(it.sk, 2), cd: f(it.cd, 0.6), ls: f(it.ls, 0.25), crit: f(it.crit, 0.6), pow: it.pow ? 1 : 0, swift: it.swift ? 1 : 0 } };
 }
 function spawnPoint(r, team) {
   const s = r.mode === 'duel' && team === 2 ? r.map.portal : r.map.hero;
@@ -137,7 +137,7 @@ function addPlayer(r, c, hero, prog) {
 }
 
 // ---------- урон ----------
-function hurt(r, e, dmg, src, col, tru) {
+function hurt(r, e, dmg, src, col, tru, atk) {
   if (!alive(e)) return;
   if (src && src.player) { dmg *= src.dmgMul; if (src.crit && Math.random() < src.crit) { dmg *= 2; col = 3; } }
   if (e.player && src && src.player) dmg *= PVP_DMG;
@@ -154,7 +154,7 @@ function hurt(r, e, dmg, src, col, tru) {
   e.hp -= dmg;
   ev(r, EV.DMG, e.id, dmg, col || 0);
   const dealt = hp0 - Math.max(0, e.hp);
-  if (src && src.player && src.ls && alive(src)) src.hp = Math.min(src.max, src.hp + dealt * src.ls);   // вампиризм от предметов
+  if (src && src.player && src.ls && alive(src)) src.hp = Math.min(src.max, src.hp + dealt * src.ls * (atk ? 1 : 0.3));   // не атака (умения) — вампиризм ×0,3   // вампиризм от предметов
   if (e.player && src && !src.player) {
     if (src.k.steal && alive(src)) src.hp = Math.min(src.max, src.hp + dealt * src.k.steal);
   }
@@ -197,7 +197,7 @@ function posAt(r, e, rewind) {
 }
 function rewindOf(p) { return p && p.player ? Math.max(0, Math.min(20, Math.round(((p.rtt || 0) / 2 + (p.interp || 100)) / (1000 / TICK)))) : 0; }
 function shoot(r, owner, kind, dx, dy, tgt, dmg, sp, left, h) {
-  const s = { id: newId(r), owner, team: owner.team, kind, x: owner.x + dx * 26, y: owner.y + dy * 26 * YK, dx, dy, sp, left, tgt, dmg, rew: rewindOf(owner) };
+  const s = { id: newId(r), owner, team: owner.team, kind, atk: owner.atkShot ? 1 : 0, x: owner.x + dx * 26, y: owner.y + dy * 26 * YK, dx, dy, sp, left, tgt, dmg, rew: rewindOf(owner) };
   r.shots.push(s);
   ev(r, EV.SHOT, s.id, owner.id, SHOT_KIND[kind], s.x, s.y, dx * 1000, dy * 1000, sp, tgt ? tgt.id : -1, h || 0);
   // снаряд игрока догоняет то время, которое его ввод шёл до сервера (стрелок видел выстрел сразу)
@@ -218,7 +218,7 @@ function stepShot(r, s) {
       const through = s.pierce && !s.hitE;   // пронзающая стрела Эйры бьёт ещё одного врага за целью
       if (through) { s.hitE = e; s.tgt = null; } else s.left = 0;
       ev(r, EV.HIT, s.id, e.id, e.x, e.y);
-      hurt(r, e, s.dmg, s.owner, s.kind === 'arrow' ? 2 : 1, s.pierce);
+      hurt(r, e, s.dmg, s.owner, s.kind === 'arrow' ? 2 : 1, s.pierce, s.atk);
       if (s.slowE) slow(e, s.slowE, 1.5);
       if (s.kind === 'ice') slow(e, 0.8, 1);
       if (s.slowHit && e.player) { slow(e, s.slowHit, s.slowHit > 0.7 ? 1.2 : 1.8); if (s.slowHit < 0.7) ev(r, EV.SAY, e.id, 10 + 13); }
@@ -296,11 +296,11 @@ function attack(r, p) {
   if (t) { dx = t.x - p.x; dy = (t.y - p.y) / YK; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m; p.row = runRow(t.x - p.x, t.y - p.y); }
   if (p.kind === 'archer') {
     const pr = p.focus > 0 && Math.random() < 0.25 + 0.02 * (skLv(p, 'r') - 1);   // пронзающая: +60 % урона, сквозь щит и броню
-    const s = shoot(r, p, 'arrow', dx, dy, t, rnd(40, 52) * markK(p) * (pr ? 1.6 : 1), 1300, range + 120);
+    p.atkShot = 1; const s = shoot(r, p, 'arrow', dx, dy, t, rnd(40, 52) * markK(p) * (pr ? 1.6 : 1), 1300, range + 120); p.atkShot = 0;
     if (pr && s) s.pierce = true;
     p.atkCd = h.atkCd / p.atkSpd;
   } else {
-    shoot(r, p, 'ice', dx, dy, t, rnd(44, 56), 980, 700);
+    p.atkShot = 1; shoot(r, p, 'ice', dx, dy, t, rnd(44, 56), 980, 700); p.atkShot = 0;
     p.atkCd = h.atkCd / p.atkSpd;
   }
   p.atkT = 0.36;
@@ -376,7 +376,7 @@ function runRound(r) {
 function setWorld(r, m) {
   r.world = m; r.map = MAPS[m]; r.dist = null;
   r.shots = []; r.zones = []; r.shards = []; r.pzones = []; r.orbs = [];
-  for (const p of r.ents.values()) if (p.player) { const s = spawnPoint(r, p.team); p.x = NET.qpos(s.x); p.y = NET.qpos(s.y); p.kb = null; }
+  for (const p of r.ents.values()) if (p.player) { const s = spawnPoint(r, p.team); p.x = NET.qpos(s.x); p.y = NET.qpos(s.y); p.kb = null; if (alive(p)) { p.hp = p.max; p.mp = p.maxMp; } }   // новый мир — полные силы
   const a = BAL.at(r.wave + 1);
   ev(r, EV.WORLD, m, a.C);
 }
@@ -660,7 +660,7 @@ function step(r) {
       else if (p.dead <= 0) { p.back = false; p.limbo = false; const s = spawnPoint(r, p.team); p.dead = 0; p.x = NET.qpos(s.x); p.y = NET.qpos(s.y); p.hp = p.max; p.mp = p.maxMp; ev(r, EV.SAY, p.id, 4); }
       continue;
     }
-    p.hp = Math.min(p.max, p.hp + (p.hpReg || 5) * DT);
+    if (p.hpReg) p.hp = Math.min(p.max, p.hp + p.hpReg * DT);
     p.mp = Math.min(p.maxMp, p.mp + p.mpRegen * (r.mode === 'coop' && r.phase === 0 ? 3 : 1) * DT);
     if ((p.btn & NET.B_ATK) && p.atkCd <= 0) attack(r, p);
     if (p.ult > 0) {
@@ -788,7 +788,7 @@ function onMessage(c, data, isBin) {
       const p = c.player, now = Date.now();
       if (now - (p.useAt || 0) < 400) return;      // не чаще 2,5 раза в секунду
       p.useAt = now;
-      if (m.id === 'heal') { const h = Math.min(280, p.max - p.hp); p.hp += h; ev(c.room, EV.HEAL, p.id, h, 0); }
+      if (m.id === 'heal') { if (now - (p.healAt || 0) < 1000) return; p.healAt = now; const h = Math.min(Math.round(150 + 0.2 * p.max), p.max - p.hp); p.hp += h; ev(c.room, EV.HEAL, p.id, h, 0); }
       else if (m.id === 'mana') { const h = Math.min(220, p.maxMp - p.mp); p.mp += h; ev(c.room, EV.HEAL, p.id, h, 1); }
       else if (m.id === 'frost') { for (const k in p.cd) p.cd[k] = 0; }
     }

@@ -1744,5 +1744,1629 @@
    }
   },
   "vfx": []
+ },
+ "mb_arbalest": {
+  "size": 240,
+  "nm": "Королевская арбалетчица",
+  "mul": {
+   "run": {
+    "at": "vl_mb_arbalest_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 262
+   },
+   "atk": {
+    "at": "vl_mb_arbalest_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 344
+   },
+   "cast1": {
+    "at": "vl_mb_arbalest_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 344
+   },
+   "cast2": {
+    "at": "vl_mb_arbalest_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 344
+   },
+   "die": {
+    "at": "vl_mb_arbalest_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 344
+   },
+   "idle": {
+    "at": "vl_mb_arbalest_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 262
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_arbalest_1.webp",
+    "how": "multi"
+   },
+   {
+    "img": "fx/vfx_mb_arbalest_2.webp",
+    "how": "moving"
+   }
+  ]
+ },
+ "mb_executioner": {
+  "size": 265,
+  "nm": "Королевский палач",
+  "mul": {
+   "run": {
+    "at": "vl_mb_executioner_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "atk": {
+    "at": "vl_mb_executioner_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 376
+   },
+   "cast1": {
+    "at": "vl_mb_executioner_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 376
+   },
+   "cast2": {
+    "at": "vl_mb_executioner_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 376
+   },
+   "die": {
+    "at": "vl_mb_executioner_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 376
+   },
+   "idle": {
+    "at": "vl_mb_executioner_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 294
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_executioner_1.webp",
+    "how": "target"
+   },
+   {
+    "img": "fx/vfx_mb_executioner_2.webp",
+    "how": "target"
+   }
+  ]
+ },
+ "mb_bannerlord": {
+  "size": 285,
+  "nm": "Знаменосец короля",
+  "mul": {
+   "run": {
+    "at": "vl_mb_bannerlord_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   },
+   "atk": {
+    "at": "vl_mb_bannerlord_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 408
+   },
+   "cast1": {
+    "at": "vl_mb_bannerlord_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "cast2": {
+    "at": "vl_mb_bannerlord_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "die": {
+    "at": "vl_mb_bannerlord_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 408
+   },
+   "idle": {
+    "at": "vl_mb_bannerlord_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 326
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_bannerlord_1.webp",
+    "how": "moving"
+   },
+   {
+    "img": "fx/vfx_mb_bannerlord_2.webp",
+    "how": "self"
+   }
+  ]
+ },
+ "mb_plaguedoc": {
+  "size": 240,
+  "nm": "Чумной лекарь",
+  "mul": {
+   "run": {
+    "at": "vl_mb_plaguedoc_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 262
+   },
+   "atk": {
+    "at": "vl_mb_plaguedoc_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 344
+   },
+   "cast1": {
+    "at": "vl_mb_plaguedoc_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 344
+   },
+   "cast2": {
+    "at": "vl_mb_plaguedoc_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 344
+   },
+   "die": {
+    "at": "vl_mb_plaguedoc_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 344
+   },
+   "idle": {
+    "at": "vl_mb_plaguedoc_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 262
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_plaguedoc_1.webp",
+    "how": "target"
+   },
+   {
+    "img": "fx/vfx_mb_plaguedoc_2.webp",
+    "how": "target"
+   }
+  ]
+ },
+ "mb_firebull": {
+  "size": 265,
+  "nm": "Огненный бык",
+  "mul": {
+   "run": {
+    "at": "vl_mb_firebull_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 440
+   },
+   "atk": {
+    "at": "vl_mb_firebull_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 536
+   },
+   "cast1": {
+    "at": "vl_mb_firebull_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 536
+   },
+   "cast2": {
+    "at": "vl_mb_firebull_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 536
+   },
+   "die": {
+    "at": "vl_mb_firebull_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 536
+   },
+   "idle": {
+    "at": "vl_mb_firebull_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 440
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_firebull_1.webp",
+    "how": "moving"
+   },
+   {
+    "img": "fx/vfx_mb_firebull_2.webp",
+    "how": "moving"
+   }
+  ]
+ },
+ "mb_weaver": {
+  "size": 210,
+  "nm": "Осенняя ткачиха",
+  "mul": {
+   "run": {
+    "at": "vl_mb_weaver_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "atk": {
+    "at": "vl_mb_weaver_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 504
+   },
+   "cast1": {
+    "at": "vl_mb_weaver_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 504
+   },
+   "cast2": {
+    "at": "vl_mb_weaver_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 504
+   },
+   "die": {
+    "at": "vl_mb_weaver_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 504
+   },
+   "idle": {
+    "at": "vl_mb_weaver_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 408
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_weaver_1.webp",
+    "how": "moving"
+   },
+   {
+    "img": "fx/vfx_mb_weaver_2.webp",
+    "how": "self"
+   }
+  ]
+ },
+ "mb_moonhuntress": {
+  "size": 270,
+  "nm": "Лунная охотница",
+  "mul": {
+   "run": {
+    "at": "vl_mb_moonhuntress_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "atk": {
+    "at": "vl_mb_moonhuntress_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 504
+   },
+   "cast1": {
+    "at": "vl_mb_moonhuntress_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 504
+   },
+   "cast2": {
+    "at": "vl_mb_moonhuntress_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 504
+   },
+   "die": {
+    "at": "vl_mb_moonhuntress_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 504
+   },
+   "idle": {
+    "at": "vl_mb_moonhuntress_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 408
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_moonhuntress_1.webp",
+    "how": "target"
+   },
+   {
+    "img": "fx/vfx_mb_moonhuntress_2.webp",
+    "how": "multi"
+   }
+  ]
+ },
+ "mb_drownedbride": {
+  "size": 240,
+  "nm": "Невеста-утопленница",
+  "mul": {
+   "run": {
+    "at": "vl_mb_drownedbride_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 262
+   },
+   "atk": {
+    "at": "vl_mb_drownedbride_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 344
+   },
+   "cast1": {
+    "at": "vl_mb_drownedbride_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 344
+   },
+   "cast2": {
+    "at": "vl_mb_drownedbride_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 344
+   },
+   "die": {
+    "at": "vl_mb_drownedbride_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 344
+   },
+   "idle": {
+    "at": "vl_mb_drownedbride_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 262
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_drownedbride_1.webp",
+    "how": "moving"
+   },
+   {
+    "img": "fx/vfx_mb_drownedbride_2.webp",
+    "how": "moving"
+   }
+  ]
+ },
+ "mb_crocodile": {
+  "size": 300,
+  "nm": "Крокодил-костолом",
+  "mul": {
+   "run": {
+    "at": "vl_mb_crocodile_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "atk": {
+    "at": "vl_mb_crocodile_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 504
+   },
+   "cast1": {
+    "at": "vl_mb_crocodile_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 504
+   },
+   "cast2": {
+    "at": "vl_mb_crocodile_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 504
+   },
+   "die": {
+    "at": "vl_mb_crocodile_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 504
+   },
+   "idle": {
+    "at": "vl_mb_crocodile_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 408
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_crocodile_1.webp",
+    "how": "moving"
+   },
+   {
+    "img": "fx/vfx_mb_crocodile_2.webp",
+    "how": "target"
+   }
+  ]
+ },
+ "mb_hydra": {
+  "size": 300,
+  "nm": "Болотная гидра",
+  "mul": {
+   "run": {
+    "at": "vl_mb_hydra_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "atk": {
+    "at": "vl_mb_hydra_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 504
+   },
+   "cast1": {
+    "at": "vl_mb_hydra_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 504
+   },
+   "cast2": {
+    "at": "vl_mb_hydra_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 504
+   },
+   "die": {
+    "at": "vl_mb_hydra_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 504
+   },
+   "idle": {
+    "at": "vl_mb_hydra_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 408
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_hydra_1.webp",
+    "how": "moving"
+   },
+   {
+    "img": "fx/vfx_mb_hydra_2.webp",
+    "how": "moving"
+   }
+  ]
+ },
+ "mb_steamdwarf": {
+  "size": 265,
+  "nm": "Гном в паровом доспехе",
+  "mul": {
+   "run": {
+    "at": "vl_mb_steamdwarf_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "atk": {
+    "at": "vl_mb_steamdwarf_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 376
+   },
+   "cast1": {
+    "at": "vl_mb_steamdwarf_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 376
+   },
+   "cast2": {
+    "at": "vl_mb_steamdwarf_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 376
+   },
+   "die": {
+    "at": "vl_mb_steamdwarf_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 376
+   },
+   "idle": {
+    "at": "vl_mb_steamdwarf_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 294
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_steamdwarf_1.webp",
+    "how": "self"
+   },
+   {
+    "img": "fx/vfx_mb_steamdwarf_2.webp",
+    "how": "moving"
+   }
+  ]
+ },
+ "mb_trollminer": {
+  "size": 265,
+  "nm": "Тролль-рудокоп",
+  "mul": {
+   "run": {
+    "at": "vl_mb_trollminer_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "atk": {
+    "at": "vl_mb_trollminer_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 376
+   },
+   "cast1": {
+    "at": "vl_mb_trollminer_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 376
+   },
+   "cast2": {
+    "at": "vl_mb_trollminer_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 376
+   },
+   "die": {
+    "at": "vl_mb_trollminer_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 376
+   },
+   "idle": {
+    "at": "vl_mb_trollminer_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 294
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_trollminer_1.webp",
+    "how": "moving"
+   },
+   {
+    "img": "fx/vfx_mb_trollminer_2.webp",
+    "how": "self"
+   }
+  ]
+ },
+ "mb_gemscorpion": {
+  "size": 240,
+  "nm": "Самоцветный скорпион",
+  "mul": {
+   "run": {
+    "at": "vl_mb_gemscorpion_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "atk": {
+    "at": "vl_mb_gemscorpion_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 504
+   },
+   "cast1": {
+    "at": "vl_mb_gemscorpion_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 504
+   },
+   "cast2": {
+    "at": "vl_mb_gemscorpion_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 504
+   },
+   "die": {
+    "at": "vl_mb_gemscorpion_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 504
+   },
+   "idle": {
+    "at": "vl_mb_gemscorpion_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 408
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_gemscorpion_1.webp",
+    "how": "moving"
+   },
+   {
+    "img": "fx/vfx_mb_gemscorpion_2.webp",
+    "how": "self"
+   }
+  ]
+ },
+ "mb_snowfairy": {
+  "size": 240,
+  "nm": "Снежная фея",
+  "mul": {
+   "run": {
+    "at": "vl_mb_snowfairy_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "atk": {
+    "at": "vl_mb_snowfairy_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 376
+   },
+   "cast1": {
+    "at": "vl_mb_snowfairy_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 376
+   },
+   "cast2": {
+    "at": "vl_mb_snowfairy_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 376
+   },
+   "die": {
+    "at": "vl_mb_snowfairy_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 376
+   },
+   "idle": {
+    "at": "vl_mb_snowfairy_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 294
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_snowfairy_1.webp",
+    "how": "moving"
+   },
+   {
+    "img": "fx/vfx_mb_snowfairy_2.webp",
+    "how": "target"
+   }
+  ]
+ },
+ "mb_walrus": {
+  "size": 300,
+  "nm": "Морж-берсерк",
+  "mul": {
+   "run": {
+    "at": "vl_mb_walrus_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 344
+   },
+   "atk": {
+    "at": "vl_mb_walrus_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 440
+   },
+   "cast1": {
+    "at": "vl_mb_walrus_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 440
+   },
+   "cast2": {
+    "at": "vl_mb_walrus_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 440
+   },
+   "die": {
+    "at": "vl_mb_walrus_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 440
+   },
+   "idle": {
+    "at": "vl_mb_walrus_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 344
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_walrus_1.webp",
+    "how": "moving"
+   },
+   {
+    "img": "fx/vfx_mb_walrus_2.webp",
+    "how": "target"
+   }
+  ]
+ },
+ "mb_wyvern": {
+  "size": 285,
+  "nm": "Зимняя виверна",
+  "mul": {
+   "run": {
+    "at": "vl_mb_wyvern_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 440
+   },
+   "atk": {
+    "at": "vl_mb_wyvern_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 536
+   },
+   "cast1": {
+    "at": "vl_mb_wyvern_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 536
+   },
+   "cast2": {
+    "at": "vl_mb_wyvern_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 536
+   },
+   "die": {
+    "at": "vl_mb_wyvern_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 536
+   },
+   "idle": {
+    "at": "vl_mb_wyvern_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 440
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_wyvern_1.webp",
+    "how": "target"
+   },
+   {
+    "img": "fx/vfx_mb_wyvern_2.webp",
+    "how": "target"
+   }
+  ]
+ },
+ "mb_templar": {
+  "size": 240,
+  "nm": "Храмовая убийца",
+  "mul": {
+   "run": {
+    "at": "vl_mb_templar_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 262
+   },
+   "atk": {
+    "at": "vl_mb_templar_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 344
+   },
+   "cast1": {
+    "at": "vl_mb_templar_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 344
+   },
+   "cast2": {
+    "at": "vl_mb_templar_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 344
+   },
+   "die": {
+    "at": "vl_mb_templar_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 344
+   },
+   "idle": {
+    "at": "vl_mb_templar_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 262
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_templar_1.webp",
+    "how": "self"
+   },
+   {
+    "img": "fx/vfx_mb_templar_2.webp",
+    "how": "multi"
+   }
+  ]
+ },
+ "mb_mercury": {
+  "size": 265,
+  "nm": "Ртутный двойник",
+  "mul": {
+   "run": {
+    "at": "vl_mb_mercury_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "atk": {
+    "at": "vl_mb_mercury_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 376
+   },
+   "cast1": {
+    "at": "vl_mb_mercury_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 376
+   },
+   "cast2": {
+    "at": "vl_mb_mercury_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 376
+   },
+   "die": {
+    "at": "vl_mb_mercury_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 376
+   },
+   "idle": {
+    "at": "vl_mb_mercury_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 294
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_mercury_1.webp",
+    "how": "moving"
+   },
+   {
+    "img": "fx/vfx_mb_mercury_2.webp",
+    "how": "self"
+   }
+  ]
+ },
+ "mb_timekeeper": {
+  "size": 305,
+  "nm": "Хранитель времени",
+  "mul": {
+   "run": {
+    "at": "vl_mb_timekeeper_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   },
+   "atk": {
+    "at": "vl_mb_timekeeper_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 408
+   },
+   "cast1": {
+    "at": "vl_mb_timekeeper_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "cast2": {
+    "at": "vl_mb_timekeeper_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "die": {
+    "at": "vl_mb_timekeeper_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 408
+   },
+   "idle": {
+    "at": "vl_mb_timekeeper_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 326
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_timekeeper_1.webp",
+    "how": "moving"
+   },
+   {
+    "img": "fx/vfx_mb_timekeeper_2.webp",
+    "how": "target"
+   }
+  ]
+ },
+ "mb_lavaturtle": {
+  "size": 250,
+  "nm": "Лавовый панцирник",
+  "mul": {
+   "run": {
+    "at": "vl_mb_lavaturtle_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 376
+   },
+   "atk": {
+    "at": "vl_mb_lavaturtle_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 472
+   },
+   "cast1": {
+    "at": "vl_mb_lavaturtle_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 472
+   },
+   "cast2": {
+    "at": "vl_mb_lavaturtle_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 472
+   },
+   "die": {
+    "at": "vl_mb_lavaturtle_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 472
+   },
+   "idle": {
+    "at": "vl_mb_lavaturtle_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 376
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_lavaturtle_1.webp",
+    "how": "multi"
+   },
+   {
+    "img": "fx/vfx_mb_lavaturtle_2.webp",
+    "how": "moving"
+   }
+  ]
+ },
+ "mb_embermonk": {
+  "size": 240,
+  "nm": "Монах огненных цепей",
+  "mul": {
+   "run": {
+    "at": "vl_mb_embermonk_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 262
+   },
+   "atk": {
+    "at": "vl_mb_embermonk_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 344
+   },
+   "cast1": {
+    "at": "vl_mb_embermonk_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 344
+   },
+   "cast2": {
+    "at": "vl_mb_embermonk_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 344
+   },
+   "die": {
+    "at": "vl_mb_embermonk_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 344
+   },
+   "idle": {
+    "at": "vl_mb_embermonk_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 262
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_embermonk_1.webp",
+    "how": "target"
+   },
+   {
+    "img": "fx/vfx_mb_embermonk_2.webp",
+    "how": "multi"
+   }
+  ]
+ },
+ "mb_phoenix": {
+  "size": 270,
+  "nm": "Пепельный феникс",
+  "mul": {
+   "run": {
+    "at": "vl_mb_phoenix_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 440
+   },
+   "atk": {
+    "at": "vl_mb_phoenix_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 536
+   },
+   "cast1": {
+    "at": "vl_mb_phoenix_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 536
+   },
+   "cast2": {
+    "at": "vl_mb_phoenix_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 536
+   },
+   "die": {
+    "at": "vl_mb_phoenix_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 536
+   },
+   "idle": {
+    "at": "vl_mb_phoenix_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 440
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_phoenix_1.webp",
+    "how": "moving"
+   },
+   {
+    "img": "fx/vfx_mb_phoenix_2.webp",
+    "how": "self"
+   }
+  ]
+ },
+ "mb_windarcher": {
+  "size": 240,
+  "nm": "Ветряная лучница",
+  "mul": {
+   "run": {
+    "at": "vl_mb_windarcher_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 262
+   },
+   "atk": {
+    "at": "vl_mb_windarcher_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 344
+   },
+   "cast1": {
+    "at": "vl_mb_windarcher_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 344
+   },
+   "cast2": {
+    "at": "vl_mb_windarcher_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 344
+   },
+   "die": {
+    "at": "vl_mb_windarcher_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 344
+   },
+   "idle": {
+    "at": "vl_mb_windarcher_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 262
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_windarcher_1.webp",
+    "how": "moving"
+   },
+   {
+    "img": "fx/vfx_mb_windarcher_2.webp",
+    "how": "moving"
+   }
+  ]
+ },
+ "mb_dawnsmith": {
+  "size": 265,
+  "nm": "Небесная молотобойца",
+  "mul": {
+   "run": {
+    "at": "vl_mb_dawnsmith_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 294
+   },
+   "atk": {
+    "at": "vl_mb_dawnsmith_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 376
+   },
+   "cast1": {
+    "at": "vl_mb_dawnsmith_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 376
+   },
+   "cast2": {
+    "at": "vl_mb_dawnsmith_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 376
+   },
+   "die": {
+    "at": "vl_mb_dawnsmith_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 376
+   },
+   "idle": {
+    "at": "vl_mb_dawnsmith_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 294
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_dawnsmith_1.webp",
+    "how": "moving"
+   },
+   {
+    "img": "fx/vfx_mb_dawnsmith_2.webp",
+    "how": "self"
+   }
+  ]
+ },
+ "mb_sphinx": {
+  "size": 265,
+  "nm": "Сфинкс-страж",
+  "mul": {
+   "run": {
+    "at": "vl_mb_sphinx_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 440
+   },
+   "atk": {
+    "at": "vl_mb_sphinx_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 536
+   },
+   "cast1": {
+    "at": "vl_mb_sphinx_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 536
+   },
+   "cast2": {
+    "at": "vl_mb_sphinx_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 536
+   },
+   "die": {
+    "at": "vl_mb_sphinx_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 536
+   },
+   "idle": {
+    "at": "vl_mb_sphinx_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 440
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_sphinx_1.webp",
+    "how": "moving"
+   },
+   {
+    "img": "fx/vfx_mb_sphinx_2.webp",
+    "how": "multi"
+   }
+  ]
+ },
+ "mb_dreameater": {
+  "size": 265,
+  "nm": "Пожиратель снов",
+  "mul": {
+   "run": {
+    "at": "vl_mb_dreameater_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   },
+   "atk": {
+    "at": "vl_mb_dreameater_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 408
+   },
+   "cast1": {
+    "at": "vl_mb_dreameater_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "cast2": {
+    "at": "vl_mb_dreameater_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "die": {
+    "at": "vl_mb_dreameater_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 408
+   },
+   "idle": {
+    "at": "vl_mb_dreameater_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 326
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_dreameater_1.webp",
+    "how": "target"
+   },
+   {
+    "img": "fx/vfx_mb_dreameater_2.webp",
+    "how": "moving"
+   }
+  ]
+ },
+ "mb_obsidian": {
+  "size": 275,
+  "nm": "Обсидиановый страж",
+  "mul": {
+   "run": {
+    "at": "vl_mb_obsidian_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 326
+   },
+   "atk": {
+    "at": "vl_mb_obsidian_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 408
+   },
+   "cast1": {
+    "at": "vl_mb_obsidian_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "cast2": {
+    "at": "vl_mb_obsidian_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 408
+   },
+   "die": {
+    "at": "vl_mb_obsidian_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 408
+   },
+   "idle": {
+    "at": "vl_mb_obsidian_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 326
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_obsidian_1.webp",
+    "how": "target"
+   },
+   {
+    "img": "fx/vfx_mb_obsidian_2.webp",
+    "how": "moving"
+   }
+  ]
+ },
+ "mb_gatekeeper": {
+  "size": 310,
+  "nm": "Привратник Бездны",
+  "mul": {
+   "run": {
+    "at": "vl_mb_gatekeeper_walk",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 344
+   },
+   "atk": {
+    "at": "vl_mb_gatekeeper_attack",
+    "n": 6,
+    "ms": 105,
+    "rows": 8,
+    "foot": 440
+   },
+   "cast1": {
+    "at": "vl_mb_gatekeeper_cast1",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 440
+   },
+   "cast2": {
+    "at": "vl_mb_gatekeeper_cast2",
+    "n": 6,
+    "ms": 115,
+    "rows": 8,
+    "foot": 440
+   },
+   "die": {
+    "at": "vl_mb_gatekeeper_death",
+    "n": 6,
+    "ms": 170,
+    "rows": 1,
+    "foot": 440
+   },
+   "idle": {
+    "at": "vl_mb_gatekeeper_idle",
+    "n": 4,
+    "ms": 230,
+    "rows": 3,
+    "foot": 344
+   }
+  },
+  "vfx": [
+   {
+    "img": "fx/vfx_mb_gatekeeper_1.webp",
+    "how": "multi"
+   },
+   {
+    "img": "fx/vfx_mb_gatekeeper_2.webp",
+    "how": "target"
+   }
+  ]
  }
 }

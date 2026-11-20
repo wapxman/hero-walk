@@ -45,7 +45,7 @@ gainXp = function (n) {
   }
   if (P.lvl >= LVL_MAX) P.xp = 0;
   if (up) {
-    SHOP.recompute(); P.hp = P.maxHp; P.mp = P.maxMp;
+    SHOP.recompute(); P.mp = P.maxMp;   // здоровье — только прибавка к максимуму (SHOP.recompute), без полного лечения
     say(P.x, P.y - CH * 1.45 * HS(), 'Уровень ' + P.lvl + '!  очки прокачки', '#ffe27a');
   }
   progSave(); progUI();
@@ -149,7 +149,7 @@ function progUI() {
     r.querySelector('em').textContent = P.st[s.id];
     r.querySelector('.pl').classList.toggle('off', !P.stp);
   }
-  PE.sum.innerHTML = 'Здоровье: <b>' + P.maxHp + '</b> · Мана: <b>' + P.maxMp + '</b> (+' + P.mpRegen.toFixed(1) + '/с)<br>Урон: <b>×' + P.dmgMul.toFixed(2) +
+  PE.sum.innerHTML = 'Здоровье: <b>' + P.maxHp + '</b>' + (P.hpRegX ? ' (+' + P.hpRegX + '/с)' : '') + ' · Мана: <b>' + P.maxMp + '</b> (+' + P.mpRegen.toFixed(1) + '/с)<br>Урон: <b>×' + P.dmgMul.toFixed(2) +
     '</b> · Атака: <b>×' + P.atkSpd.toFixed(2) + '</b> · Умения: <b>×' + P.skMul.toFixed(2) + '</b>';
   PE.kn.textContent = 'очков: ' + P.sp;
   SK_IDS.forEach((k, i) => {

@@ -87,6 +87,9 @@ if (LFX) {
     if (!d || !LFX.img(id).ok) return _ds(s);
     const y = s.y - s.h, w = 100 * (s.sc || 1);
     ctx.save(); ctx.translate(s.x, y); ctx.rotate(Math.atan2(s.dy * YK, s.dx));
+    if (s.pierce && typeof FX3 !== 'undefined' && FX3.trail && FX3.trail.ok) {   // пронзающая стрела Эйры: зелёный шлейф по полёту, остриё у наконечника
+      const tl = 300 * (s.sc || 1), th = tl * FX3.trail.img.naturalHeight / FX3.trail.img.naturalWidth; ctx.drawImage(FX3.trail.img, w * 0.5 - tl, -th / 2, tl, th);
+    }
     LFX.draw(ctx, id, performance.now() / 1000, 0, 0, w, { a: 'c' });
     ctx.restore();
   };

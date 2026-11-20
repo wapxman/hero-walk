@@ -107,7 +107,7 @@ function heroVoiceTick() {
 
 // ---------- эффекты лучницы ----------
 const FX3 = {};
-for (const k of ['arrow', 'hit', 'wave', 'shield', 'silence', 'aura']) {
+for (const k of ['arrow', 'hit', 'wave', 'shield', 'silence', 'aura', 'markglow', 'trail']) {
   const im = new Image(); FX3[k] = { img: im }; im.onload = () => { FX3[k].ok = true; }; im.src = 'fx/fx3_' + k + '.webp' + V;
 }
 function fx3(k, x, y, w, h, ax, ay, alpha, rot, ground) {
@@ -127,7 +127,7 @@ const MARK_R = 350;
 const markOn = () => (window.NETC && NETC.on) ? P.focus > 0 : !!P.mark;   // в онлайне решает сервер (флаг приходит в P.focus)
 const markK = () => markOn() ? 1.12 + 0.02 * (skLv('r') - 1) : 1;
 const markRange = () => markOn() ? 1.10 + 0.01 * (skLv('r') - 1) : 1;
-const markPierce = () => 0.25 + 0.02 * (skLv('r') - 1);
+const markPierce = () => 0.25 + 0.02 * (skLv('r') - 1) + (typeof ITEMFX !== 'undefined' && ITEMFX.pas('agh') ? ITEMFX.pas('agh').pierce : 0);   // Скипетр Аганима: +15 %
 // урон умения: щиты боссов видят его как умение, а не как обычную атаку
 function eiraSpell(fn) { const g = typeof heroSpell !== 'undefined'; if (g) heroSpell++; try { fn(); } finally { if (g) heroSpell--; } }
 
@@ -149,7 +149,7 @@ shoot = function () {
 };
 function arrow(dx, dy, tgt, dmg, extra) {
   const s = { own: 'p', arrow: true, x: P.x + dx * 26 * HS(), y: P.y + dy * 26 * YK * HS(), dx, dy, sp: 1300, tgt, left: RANGE + 120,
-    dmg, h: CH * 0.6 * HS(), sc: HS() };
+    dmg, h: CH * 0.6 * HS(), sc: HS(), sk: typeof heroSpell !== 'undefined' && heroSpell > 0 };
   if (extra) Object.assign(s, extra);
   shots.push(s);
 }
@@ -158,11 +158,9 @@ drawShot = function (s) {
   if (!s.arrow || !FX3.arrow.ok) return _drawShot(s);
   ctx.save(); ctx.translate(s.x, s.y - s.h); ctx.rotate(Math.atan2(s.dy * YK, s.dx));
   const w = 170 * (s.sc || 1);
-  if (s.pierce) {   // пронзающая: светлый шлейф из той же стрелы
-    ctx.globalCompositeOperation = 'lighter';
-    for (let i = 3; i >= 1; i--) { ctx.globalAlpha = 0.5 - i * 0.12; ctx.drawImage(FX3.arrow.img, -w * 0.92 - i * 30 * (s.sc || 1), -w / 2, w, w); }
-    ctx.globalAlpha = 1; ctx.drawImage(FX3.arrow.img, -w * 0.92, -w / 2, w, w);
-    ctx.globalCompositeOperation = 'source-over';
+  if (s.pierce && FX3.trail.ok) {   // пронзающая: светло-зелёный шлейф (картинка смотрит вправо, остриё — у наконечника стрелы)
+    const tl = 300 * (s.sc || 1), th = tl * FX3.trail.img.naturalHeight / FX3.trail.img.naturalWidth;
+    ctx.drawImage(FX3.trail.img, w * 0.1 - tl, -th / 2, tl, th);
   }
   ctx.drawImage(FX3.arrow.img, -w * 0.92, -w / 2, w, w);
   ctx.restore();
@@ -283,7 +281,7 @@ combatUpdate = function (dt) {
       let dx = P.face.x, dy = P.face.y;
       if (t) { dx = t.x - P.x; dy = (t.y - P.y) / YK; const m = Math.hypot(dx, dy) || 1; dx /= m; dy /= m; if (P.act && P.act.anim === 'volley') P.act.row = runRow(t.x - P.x, t.y - P.y); }
       const a0 = Math.atan2(dy, dx);
-      for (let i = -2; i <= 2; i++) { const a = a0 + i * Math.PI / 12; arrow(Math.cos(a), Math.sin(a), null, rnd(34, 42) * v.k, { onHit: e => slow(e, 0.85, 1.5) }); }
+      for (let i = -2; i <= 2; i++) { const a = a0 + i * Math.PI / 12; arrow(Math.cos(a), Math.sin(a), null, rnd(34, 42) * v.k, { sk: 1, onHit: e => slow(e, 0.85, 1.5) }); }
       snd('archer_shot', 0.6, 1.1);
     }
     if (v.t >= 0.9 || (typeof STATUS !== 'undefined' && STATUS.locked())) { P.volley = null; if (P.act && P.act.anim === 'volley' && v.t < 0.9) P.act = null; }
@@ -318,11 +316,10 @@ function heroOver(t) {
   }
   if (HERO_ID !== 'archer' || P.dead > 0) return;
   // Меткость работает — зелёное свечение на луке (гаснет, когда враг ближе 350)
-  if (markOn() && FX3.aura.ok) {
-    const s = 64 * HS() * (1 + 0.08 * Math.sin(t * 6));
-    ctx.save(); ctx.globalCompositeOperation = 'lighter';
-    fx3('aura', P.x + P.face.x * 34 * HS(), P.y - CH * 0.55 * HS() + P.face.y * YK * 18 * HS(), s, s, 0.5, 0.5, 0.6, t * 1.5);
-    ctx.restore();
+  if (markOn() && FX3.markglow.ok) {
+    const h = CH * 0.92 * HS() * (1 + 0.04 * Math.sin(t * 5)), w = h * FX3.markglow.img.naturalWidth / FX3.markglow.img.naturalHeight;
+    const side = Math.abs(P.face.x) < 0.35 ? 0.75 : 1;   // лицом или спиной к нам лук виден уже
+    fx3('markglow', P.x + P.face.x * 34 * HS(), P.y - CH * 0.62 * HS() + P.face.y * YK * 16 * HS(), w * side, h, 0.5, 0.5, 0.85 + 0.15 * Math.sin(t * 5));
   }
   // купол щита
   if (P.shieldT > 0) {

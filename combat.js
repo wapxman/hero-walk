@@ -126,7 +126,7 @@ function gainXp(n) {
   while (P.xp >= xpNeed(P.lvl)) {
     P.xp -= xpNeed(P.lvl); P.lvl++;
     if (typeof SHOP !== 'undefined') SHOP.recompute();
-    P.hp = P.maxHp; P.mp = P.maxMp;
+    P.mp = P.maxMp;   // здоровье — только прибавка к максимуму
     say(P.x, P.y - CH * 1.45 * HS(), 'Уровень ' + P.lvl + '!', '#ffe27a');
   }
 }
@@ -219,6 +219,8 @@ function aimPoint(d) {
   const t = nearestEnemy(RANGE);
   return t ? { x: t.x, y: t.y } : { x: P.x + P.face.x * d, y: P.y + P.face.y * d * YK };
 }
+// метка «удар атакой» (предметы v87): atk — сейчас бьёт снаряд обычной атаки героя; proc — урон эффекта предмета; noLs — без вампиризма
+const HIT = { atk: false, proc: false, noLs: false };
 function hurtEnemy(e, dmg, col) {
   if (e.hp <= 0) return;
   dmg *= P.dmgMul || 1;
@@ -263,7 +265,8 @@ function cast(id) {
     zones.push({ type: 'hail', x: c.x, y: c.y, R: 250 * HS(), t: 3.2, tick: 0, mul: skDmg('f') });
     snd('hail', 0.8);
   } else if (id === 'r') {
-    P.ult = 5 + 0.2 * (skLv('r') - 1); P.ultTick = 0; P.ultMul = skDmg('r');   // звук бури длится те же 5 секунд
+    const agh = typeof ITEMFX !== 'undefined' && ITEMFX.pas('agh');   // Скипетр Аганима: Буря дольше и сильнее
+    P.ult = 5 + 0.2 * (skLv('r') - 1) + (agh ? agh.t : 0); P.ultTick = 0; P.ultMul = skDmg('r') * (agh ? agh.k : 1);   // звук бури длится те же 5 секунд
     snd('storm', 0.85);
   }
   P.cd[id] = CDMAX[id] * (P.cdMul || 1) * skCd(id); P.cast = 0.3; P.mp -= MANA[id];
@@ -634,7 +637,8 @@ KIND.mb_gatekeeper = { nm: 'Привратник Бездны', ch: 'mb_gatekeep
 // паучок Осенней ткачихи («Выводок»): её же лист ходьбы в масштабе 0,3
 KIND.sk_spiderling = { nm: 'Паучок', ch: 'mb_weaver', mel: 1, hp: 60, rad: 12, speed: 215, dmg: [6, 6], cd: 0.8, reach: 52, xp: 2, gold: 1, sz: 0.3, col: '#c9781a' };
 // у каких мини-боссов уже есть листы (сервер листов не видит — список общий). Пока листов нет, на месте мини-босса выходит элита мира.
-const MINI_ART = { mb_reaper: 1, mb_thornqueen: 1 };
+const MINI_ART = { mb_reaper: 1, mb_thornqueen: 1,   // листы 28 новых пришли 20.11 (v87)
+  mb_arbalest: 1, mb_executioner: 1, mb_bannerlord: 1, mb_plaguedoc: 1, mb_firebull: 1, mb_weaver: 1, mb_moonhuntress: 1, mb_drownedbride: 1, mb_crocodile: 1, mb_hydra: 1, mb_steamdwarf: 1, mb_trollminer: 1, mb_gemscorpion: 1, mb_snowfairy: 1, mb_walrus: 1, mb_wyvern: 1, mb_templar: 1, mb_mercury: 1, mb_timekeeper: 1, mb_lavaturtle: 1, mb_embermonk: 1, mb_phoenix: 1, mb_windarcher: 1, mb_dawnsmith: 1, mb_sphinx: 1, mb_dreameater: 1, mb_obsidian: 1, mb_gatekeeper: 1 };
 const ROSTER = {
   1: { mel: ['porcelainmaid', 'cs_guard', 'cs_hound', 'porcelainmaid', 'cs_brute'], rng: ['jester', 'cs_archer'], elite: ['el_castellan'], mini: ['mb_arbalest', 'mb_executioner', 'mb_bannerlord'], boss: 'b_blackknight' },
   2: { mel: ['fireimp', 'magmahound', 'bv_scare', 'fireimp'], rng: ['ashcultist', 'cinderwraith'], elite: ['el_cultist'], mini: ['mb_plaguedoc', 'mb_reaper', 'mb_firebull'], boss: 'b_plaguelord' },
@@ -672,7 +676,9 @@ const corpses = [];
 function spawnEnemy(type) {
   if (ROUND.mini === type && ROUND.queue.length === 0) { ROUND.mini = null; spawnEnemyBase(type); const e = enemies[enemies.length - 1];
     // мини-босс: вдвое крепче элиты, крупнее, своё имя над головой
-    e.mini = true; e.hp = e.max = Math.round(e.hp * 2); e.dm *= 1.15; e.sc *= 1.2; e.rad *= 1.15;
+    e.mini = true; e.hp = e.max = Math.round(e.hp * 2); e.dm *= 1.15;
+    if (!/^mb_/.test(e.k.ch)) { e.sc *= 1.2; e.rad *= 1.15; }
+    else { e.sc /= BAL.ELITE.size; e.rad /= BAL.ELITE.size; }   // у новых мини-боссов (листы mb_*) рост задан художником — без прибавки элиты и ×1,2
     const nm = Array.isArray(e.k.nm) ? e.k.nm[0] : e.k.nm || 'Мини-босс';
     say(P.x, P.y - CH * 1.4 * HS(), 'Мини-босс: ' + nm, '#ffb36a'); snd('boss_roar', 0.7, 1.2); return; }
   spawnEnemyBase(type);
@@ -802,8 +808,10 @@ function updateEnemy(e, dt) {
     e.atkCd = k.cd;
     startAct(e, 'atk', 0.5, 0.55, () => {
       if (gdist(P, e) < k.reach + 34 && P.dead <= 0) {
-        const hd = rnd(k.dmg[0], k.dmg[1]) * e.dm; hurtPlayer(hd);
-        if (k.leech) { e.hp = Math.min(e.max, e.hp + hd * k.leech); say(e.x, e.y - 60, '+' + Math.round(hd * k.leech), '#e05a6a'); }   // Пиявец пьёт кровь
+        const hd = rnd(k.dmg[0], k.dmg[1]) * e.dm;
+        if (typeof ITEMFX !== 'undefined' && ITEMFX.evade()) say(P.x, P.y - CH * HS(), 'уклон', '#d0e8ff');   // Бабочка
+        else { hurtPlayer(hd);
+        if (k.leech) { e.hp = Math.min(e.max, e.hp + hd * k.leech); say(e.x, e.y - 60, '+' + Math.round(hd * k.leech), '#e05a6a'); } }   // Пиявец пьёт кровь
         snd('enemy_melee', 0.5, rnd(0.9, 1.1));
       }
     });
@@ -877,7 +885,7 @@ function combatUpdate(dt) {
     // смерть офлайн — в Междумирье (limbo.js); в онлайне возрождает сервер
     if (P.dead <= 0) { P.dead = 0; if (typeof LIMBO !== 'undefined' && !(window.NETC && NETC.on)) LIMBO.enter(); else { P.hp = P.maxHp; P.mp = P.maxMp; P.x = SPAWN.x; P.y = SPAWN.y; } }
   } else {
-    P.hp = Math.min(P.maxHp, P.hp + 5 * dt);
+    // своего восстановления здоровья нет (v87): только фласки, предметы, победа над боссом мира и Междумирье
     P.mp = Math.min(P.maxMp, P.mp + (P.mpRegen || MP_REGEN) * (SHOP.phase === 'rest' ? 3 : 1) * dt);   // между волнами мана копится втрое быстрее
     stepT -= dt;
     if (P.moving && stepT <= 0) { snd('step', P.running ? 0.22 : 0.14, rnd(0.94, 1.06)); stepT = P.running ? 0.33 : 0.55; }
@@ -915,7 +923,8 @@ function combatUpdate(dt) {
         if (e.hp > 0 && e !== s.hitE && gdist(s, e) < e.rad + 16 * (s.sc || 1)) {
           // пронзающая стрела Эйры (Меткость): не смотрит на щиты и броню, летит насквозь и бьёт ещё одного врага
           if (s.trueShot) P.trueShot = true;
-          try { hurtEnemy(e, s.dmg); } finally { P.trueShot = false; }
+          HIT.atk = !s.sk && !s.ill;   // снаряд обычной атаки героя: полный вампиризм и проки предметов
+          try { hurtEnemy(e, s.dmg); } finally { P.trueShot = false; HIT.atk = false; }
           if (!s.arrow) slow(e, 0.8, 1);
           if (s.pierce && !s.hitE) { s.hitE = e; s.tgt = null; } else s.left = 0;
           if (s.onHit) s.onHit(e);
@@ -924,6 +933,8 @@ function combatUpdate(dt) {
           break;
         }
       }
+    } else if (P.dead <= 0 && gdist(s, P) < 30 * HS() && typeof ITEMFX !== 'undefined' && ITEMFX.evade()) {
+      s.left = 0; say(P.x, P.y - CH * HS(), 'уклон', '#d0e8ff');   // Бабочка: снаряд мимо
     } else if (P.dead <= 0 && gdist(s, P) < 30 * HS()) {
       hurtPlayer(s.dmg); s.left = 0;
       if (s.onHitP) s.onHitP(s);
