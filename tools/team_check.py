@@ -19,7 +19,7 @@ with sync_playwright() as pw:
         p.evaluate("(r) => { const m = [...document.querySelectorAll('#hSel .md')].find(d => /Вместе/.test(d.textContent)); m.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); document.querySelector('#hSel input').value = r; }", ROOM)
         p.evaluate("document.querySelector('#hSel .go').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))"); time.sleep(2.5)
         return p
-    A = mk('mage'); print('A', A.evaluate(ST))
+    A = mk('mage'); print('A', A.evaluate(ST)); A.evaluate("setInterval(() => { if (!LIMBO.on) P.hp = P.maxHp; }, 150)")   # пока грузится второй клиент, ведущий не должен погибнуть
     # ведущий: карта выбора главы → «Продолжить»
     if A.evaluate("PATHMAP.on"): A.keyboard.press('Enter'); time.sleep(4)
     B = mk('archer'); time.sleep(2); print('A', A.evaluate(ST)); print('B', B.evaluate(ST))
