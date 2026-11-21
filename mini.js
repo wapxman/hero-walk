@@ -110,7 +110,7 @@
 
   // ===================== Мир 1: Королевский замок =====================
   DEF.mb_arbalest = [
-    { ph: 'Шрапнель', col: '#ffb36a', cd: 10, an: 'cast1', dur: 0.8, at: 0.5, can: (e, d) => d < 900,
+    { ph: 'Град болтов', col: '#ffb36a', cd: 10, an: 'cast1', dur: 0.8, at: 0.5, can: (e, d) => d < 900,
       cast(e) { const x = P.x, y = P.y; warn(x, y, 220, 0.8, 0);
         after(0.8, e, () => { groundImg(V1(e), x, y, 220, 3, { rot: 0.4 }); zone({ x, y, R: 220, dur: 3, tick: 1, onTick: () => hurtPlayer(14 * e.dm), onStay: () => slowHero(0.75, 0.2) }); }); } },
     { ph: 'Прицельный выстрел', col: '#ff5a5a', cd: 14, first: 6, can: (e, d) => d < 1000,
@@ -118,7 +118,7 @@
         channel(e, 'cast2', 1.8, { breakPct: 0.1, breakFar: 1100, stop(broke) { if (!broke) proj(e, { img: V2(e), sp: 1600, left: 1300, w: 70, size: 110, onHit() { hurtPlayer(90 * e.dm); stun(0.6); } }); } }); } },
   ];
   DEF.mb_executioner = [
-    { ph: 'Кандалы', col: '#c0c0c0', cd: 13, an: 'cast1', dur: 0.7, at: 0.55, can: (e, d) => d < 700,
+    { ph: 'Колодки', col: '#c0c0c0', cd: 13, an: 'cast1', dur: 0.7, at: 0.55, can: (e, d) => d < 700,
       cast(e) { const m = mark({ img: V1(e), dur: 2.1, at: HEAD() * 0.5, size: 150 }); bind(2);
         channel(e, 'cast1', 2, { breakPct: 0.08, tick(dt) { m.acc2 = (m.acc2 || 0) + dt; if (m.acc2 >= 1) { m.acc2 -= 1; hurtPlayer(15 * e.dm); } }, stop() { S.bind = 0; m.dur = m.t; } }); } },
     { ph: 'Плаха', col: '#ff5a3a', cd: 12, first: 5, can: (e, d) => d < 300 && d > 60,
@@ -145,7 +145,7 @@
     { ph: 'Кислотный туман', col: '#9be37a', cd: 11, an: 'cast1', dur: 0.8, at: 0.55, can: (e, d) => d < 900,
       cast(e) { const x = P.x, y = P.y; proj(e, { img: V1(e), sp: 700, left: Math.max(60, dist(P, e) - 40), w: 0, size: 70, spin: 8, arc: 1,
         onEnd() { groundImg(V1(e), x, y, 250, 5, { rot: 0.2, a: 0.85 }); zone({ x, y, R: 250, dur: 5, tick: 1, onTick: () => hurtPlayer(10 * e.dm, 'poison'), onStay: () => { S.vuln = 0.3; } }); } }); } },
-    { ph: 'Нестабильная склянка', col: '#ffb36a', cd: 14, first: 6, can: (e, d) => d < 900,
+    { ph: 'Гремучая склянка', col: '#ffb36a', cd: 14, first: 6, can: (e, d) => d < 900,
       cast(e) { const T = 1.5 + Math.random() * 1.5, over = Math.random() < 0.15, k = (T - 1.5) / 1.5;
         const b = mark({ img: V2(e), on: e, at: e.ch.top * e.ch.U * e.sc * 1.05, dur: T + 0.3, size: 50 });
         channel(e, 'cast2', T + (over ? 0.3 : 0), { tick(dt, t) { b.size = 50 + 60 * t / 3; }, stop(broke) { b.dur = b.t; if (broke) return;
@@ -173,9 +173,9 @@
           after(12, m, () => { m.hp = 0; m.dieT = 0; m.anim = 'die'; m.act = null; corpses.push(m); }); } } },
   ];
   DEF.mb_moonhuntress = [
-    { ph: 'Лунный луч', col: '#bfe6ff', cd: 8, an: 'cast1', dur: 0.6, at: 0.5, can: (e, d) => d < 900,
+    { ph: 'Копьё луны', col: '#bfe6ff', cd: 8, an: 'cast1', dur: 0.6, at: 0.5, can: (e, d) => d < 900,
       cast(e) { const x = P.x, y = P.y; warn(x, y, 100, 0.3, 0, { onHitP() { hurtPlayer(45 * e.dm); stun(0.8); } }); after(0.3, null, () => groundImg(V1(e), x, y, 110, 0.6, { add: 1 })); } },
-    { ph: 'Затмение', col: '#8aa8ff', cd: 20, first: 7, an: 'cast2', dur: 0.9, at: 0.5,
+    { ph: 'Тёмная луна', col: '#8aa8ff', cd: 20, first: 7, an: 'cast2', dur: 0.9, at: 0.5,
       cast(e) {
         MOV.push({ t: 0, dur: 3.4, n: 0, update(m) {
           while (m.n < 6 && m.t >= m.n * 0.5) { m.n++; const lead = P.moving ? 90 : 0, x = P.x + P.face.x * lead, y = P.y + P.face.y * lead * YK;
@@ -224,24 +224,24 @@
     { ph: 'Веер кирок', col: '#9fd8ff', cd: 9, an: 'cast1', dur: 0.7, at: 0.5, can: (e, d) => d < 800,
       cast(e) { const [dx, dy] = dirTo2(e, P), a0 = Math.atan2(dy, dx);
         for (let i = -2; i <= 2; i++) { const a = a0 + i * 0.131; proj(e, { img: V1(e), dx: Math.cos(a), dy: Math.sin(a), sp: 800, left: 800, w: 60, size: 90, spin: 14, onHit() { hurtPlayer(18 * e.dm); slowHero(0.7, 2); } }); } } },
-    { ph: 'Боевой транс', col: '#ff5a5a', cd: 22, first: 6, an: 'cast2', dur: 0.8, at: 0.5,
+    { ph: 'Раж рудокопа', col: '#ff5a5a', cd: 22, first: 6, an: 'cast2', dur: 0.8, at: 0.5,
       cast(e) { e.trance = 5; const sp0 = e.speed; e.speed *= 1.25; mark({ img: V2(e), on: e, at: e.ch.top * e.ch.U * e.sc * 0.5, dur: 5, size: 220, add: 1 });
         MOV.push({ t: 0, dur: 5, update(m, dt) { e.trance = Math.max(0, 5 - m.t); if (e.atkCd > 0) e.atkCd -= dt * 0.8; if (m.t >= m.dur || !alive(e)) { e.speed = sp0; e.trance = 0; } } }); } },
   ];
   ON_HIT.mb_trollminer = e => { if (e.trance > 0) e.hp = Math.min(e.max, e.hp + (e.k.dmg[0] + e.k.dmg[1]) / 2 * e.dm * 0.2); };   // вампиризм 20 % в трансе
   DEF.mb_gemscorpion = [
-    { ph: 'Подкоп', col: '#ff9ad8', cd: 12, can: (e, d) => d > 180 && d < 700,
+    { ph: 'Удар из-под земли', col: '#ff9ad8', cd: 12, can: (e, d) => d > 180 && d < 700,
       cast(e) { const [dx, dy, d] = dirTo2(e, P), tx = P.x, ty = P.y; e.hide = 1; e.untarget = 0.9; e.skBusy = 0.9; e.act = hold('cast1', 0.9);
         line(e, { img: V1(e), len: d, w: 110, run: 0.5, dur: 1.1 });
         after(0.8, e, () => { e.hide = 0; e.act = null; tele(e, tx - dx * 70, ty - dy * 70 * YK); if (near(tx, ty, 120)) { hurtPlayer(50 * e.dm); stun(1.2); say2('подброшен!', '#ff9ad8'); } }); } },
-    { ph: 'Эпицентр', col: '#ffb36a', cd: 22, first: 7, can: (e, d) => d < 650,
+    { ph: 'Дрожь земли', col: '#ffb36a', cd: 22, first: 7, can: (e, d) => d < 650,
       cast(e) { channel(e, 'cast2', 2, { breakPct: 0.1, stop(broke) { if (broke) return;
         for (let i = 0; i < 6; i++) after(i * 0.5, e, () => { const R = 200 + 80 * i; groundImg(V2(e), e.x, e.y, R, 0.5, { grow: 0.25 }); if (near(e.x, e.y, R)) { hurtPlayer(15 * e.dm); slowHero(0.7, 1); } snd('boss_slam', 0.5, 1.2); }); } }); } },
   ];
 
   // ===================== Мир 6: Ледяные вершины =====================
   DEF.mb_snowfairy = [
-    { ph: 'Иллюзорная сфера', col: '#bfe6ff', cd: 9, an: 'cast1', dur: 0.6, at: 0.5, can: (e, d) => d < 1000,
+    { ph: 'Снежная искра', col: '#bfe6ff', cd: 9, an: 'cast1', dur: 0.6, at: 0.5, can: (e, d) => d < 1000,
       cast(e) { const jump = p => { if (p.tp || !alive(e)) return; p.tp = 1; groundImg(V1(e), e.x, e.y, 70, 0.4, { add: 1 }); tele(e, p.x, p.y); };
         proj(e, { img: V1(e), orb: V1(e) ? null : '190,230,255', sp: 450, left: 1000, w: 90, size: 80, pierce: true, add: 1, onHit() { hurtPlayer(35 * e.dm, 'cold'); }, trail(p) { if (p.t >= 1.5) { jump(p); p.left = 0; } }, onEnd: jump }); } },
     { ph: 'Ледяные путы', col: '#9fd8ff', cd: 16, first: 5, an: 'cast2', dur: 0.8, at: 0.5, can: (e, d) => d < 800,
@@ -249,51 +249,51 @@
         MOV.push({ t: 0, dur: 4, update(m) { if (P.dead > 0) { m.t = m.dur; return; } if (dist(P, c) > 300) { m.t = m.dur; g.dur = g.t + 0.3; hurtPlayer(50 * e.dm, 'cold'); stun(1.5); say2('путы разорваны!', '#9fd8ff'); } } }); } },
   ];
   DEF.mb_walrus = [
-    { ph: 'Снежный ком', col: '#e8f4ff', cd: 14, can: (e, d) => d > 250 && d < 1200,
+    { ph: 'Снежный вал', col: '#e8f4ff', cd: 14, can: (e, d) => d > 250 && d < 1200,
       cast(e) { const b = mark({ img: V1(e), on: e, at: 60, dur: 4, size: 120, spin: 8, until: () => !e.skMove });
         charge(e, { an: 'cast1', wind: 0.4, sp: 600, turn: 2.2, max: 1900, time: 3, trail: () => { b.size = Math.min(260, b.size + 14); },
           onHit(dx, dy) { hurtPlayer(50 * e.dm, 'cold'); stun(1); groundImg(V1(e), e.x, e.y, 150, 0.5); } }); } },
-    { ph: 'Моржовый удар', col: '#7ad0ff', cd: 12, first: 5, an: 'cast2', dur: 0.9, at: 0.65, can: (e, d) => d < 150,
+    { ph: 'Удар бивнем', col: '#7ad0ff', cd: 12, first: 5, an: 'cast2', dur: 0.9, at: 0.65, can: (e, d) => d < 150,
       cast(e) { if (dist(P, e) > 175) return; hurtPlayer(80 * e.dm); stun(1); say2('МОРЖОВЫЙ УДАР!', '#7ad0ff'); mark({ img: V2(e), dur: 0.8, at: HEAD() * 0.6, size: 170 });
         after(1, null, () => slowHero(0.6, 2)); } },
   ];
   DEF.mb_wyvern = [
-    { ph: 'Осколочный взрыв', col: '#9fd8ff', cd: 9, an: 'cast1', dur: 0.7, at: 0.5, can: (e, d) => d < 900,
+    { ph: 'Ледяные осколки', col: '#9fd8ff', cd: 9, an: 'cast1', dur: 0.7, at: 0.5, can: (e, d) => d < 900,
       cast(e) { const burst = p => { if (p.done) return; p.done = 1; groundImg(V1(e), p.x, p.y, 300, 0.7, { add: 1, grow: 0.25 }); if (near(p.x, p.y, 300)) { hurtPlayer(40 * e.dm, 'cold'); slowHero(0.6, 3); } };
         proj(e, { img: V1(e), orb: V1(e) ? null : '170,220,255', sp: 700, left: Math.min(1000, dist(P, e) + 40), w: 70, size: 70, onHit: burst, onEnd: burst }); } },
-    { ph: 'Зимнее проклятие', col: '#7ad0ff', cd: 18, first: 6, an: 'cast2', dur: 0.8, at: 0.5, can: (e, d) => d < 900,
+    { ph: 'Стужа раздора', col: '#7ad0ff', cd: 18, first: 6, an: 'cast2', dur: 0.8, at: 0.5, can: (e, d) => d < 900,
       cast(e) { mark({ img: V2(e), dur: 3, at: HEAD() * 0.5, size: 190 });
         after(0.5, null, () => { if (P.dead > 0) return; STATUS.add('freeze', 2.5); after(2.5, null, () => hurtPlayer(30 * e.dm, 'cold')); }); } },
   ];
 
   // ===================== Мир 7: Руины Зеркального города =====================
   DEF.mb_templar = [
-    { ph: 'Преломление', col: '#c9a8ff', cd: 18, an: 'cast1', dur: 0.7, at: 0.5,
+    { ph: 'Грани щита', col: '#c9a8ff', cd: 18, an: 'cast1', dur: 0.7, at: 0.5,
       cast(e) { e.refr = 4; if (!e.dm0) { e.dm0 = e.dm; e.dm *= 1.3; }
         mark({ img: V1(e), on: e, at: e.ch.top * e.ch.U * e.sc * 0.5, dur: 8, size: 200, add: 1, until: () => !(e.refr > 0) }); after(8, e, () => refrOff(e)); } },
-    { ph: 'Пси-ловушки', col: '#c9a8ff', cd: 12, first: 5, an: 'cast2', dur: 0.7, at: 0.5, can: (e, d) => d < 700,
+    { ph: 'Храмовые ловушки', col: '#c9a8ff', cd: 12, first: 5, an: 'cast2', dur: 0.7, at: 0.5, can: (e, d) => d < 700,
       cast(e) { for (let i = 0; i < 3; i++) { const a = Math.random() * 6.283, r = 80 + Math.random() * 90, x = P.x + Math.cos(a) * r, y = P.y + Math.sin(a) * r * YK;
         const g = groundImg(V2(e), x, y, 70, 1.4, { rot: 2 });
         MOV.push({ t: 0, dur: 1, update(m) { if ((m.t > 0.25 && near(x, y, 60)) || m.t >= m.dur) { if (m.done) return; m.done = 1; m.t = m.dur; g.dur = g.t + 0.25;
           groundImg(V2(e), x, y, 110, 0.4, { add: 1 }); if (near(x, y, 110)) { hurtPlayer(30 * e.dm); slowHero(0.5, 2); } } } }); } } },
   ];
   DEF.mb_mercury = [
-    { ph: 'Астральный шаг', col: '#d0d0ff', cd: 10, can: (e, d) => d > 120 && d < 560,
+    { ph: 'Ртутный шаг', col: '#d0d0ff', cd: 10, can: (e, d) => d > 120 && d < 560,
       cast(e) { const [dx, dy, d] = dirTo2(e, P), len = Math.min(700, d + 150); let trav = 0, hitH = false; line(e, { img: V1(e), len, w: 90, run: 0.25, dur: 0.8 }); e.act = hold('cast1', 1);
         e.skMove = dt => { const st = 1900 * dt; e.x += dx * st; e.y += dy * st * YK; trav += st; face(e, dx, dy); if (dist(P, e) < 95) hitH = true;
           if (trav < len && alive(e)) return; e.skMove = null; e.act = null; collide(e); if (!hitH) return;
           mark({ img: V1(e), dur: 1.2, at: HEAD() * 0.5, size: 110 }); after(1.2, null, () => { if (P.dead > 0) return; hurtPlayer(50 * e.dm); slowHero(0.5, 2); }); }; } },
-    { ph: 'Резонансный импульс', col: '#d0d0ff', cd: 14, first: 5, an: 'cast2', dur: 0.8, at: 0.5, can: (e, d) => d < 450,
+    { ph: 'Ртутная волна', col: '#d0d0ff', cd: 14, first: 5, an: 'cast2', dur: 0.8, at: 0.5, can: (e, d) => d < 450,
       cast(e) { groundImg(V2(e), e.x, e.y, 450, 0.7, { add: 1, grow: 0.3 }); if (near(e.x, e.y, 450)) hurtPlayer(35 * e.dm);
         e.absorb = Math.min(e.max * 0.5, 150 * Math.max(1, wave)); tag(e, 'ртутный щит', '#d0d0ff'); after(5, e, () => { e.absorb = 0; }); } },
   ];
   DEF.mb_timekeeper = [
-    { ph: 'Шаг во времени', col: '#7ab8ff', cd: 10, an: 'cast1', dur: 0.5, at: 0.5, can: (e, d) => d > 150 && d < 700,
+    { ph: 'Скачок сквозь миг', col: '#7ab8ff', cd: 10, an: 'cast1', dur: 0.5, at: 0.5, can: (e, d) => d > 150 && d < 700,
       cast(e) { const [dx, dy] = dirTo2(e, P), x0 = e.x, y0 = e.y; tele(e, P.x - dx * 85, P.y - dy * 85 * YK); line({ x: x0, y: y0 }, { img: V1(e), len: Math.hypot(e.x - x0, (e.y - y0) / YK), w: 80, run: 0.15, dur: 0.6 });
         if (dist(P, e) < 150) hurtPlayer(30 * e.dm);
         const now = performance.now() / 1000, back = (e.log || []).filter(l => now - l.t <= 2).reduce((s, l) => s + l.d, 0); e.log = [];
         if (back > 0) { e.hp = Math.min(e.max, e.hp + back); tag(e, 'время вспять +' + Math.round(back), '#7ab8ff'); } } },
-    { ph: 'Хроносфера', col: '#7ab8ff', cd: 24, first: 7, an: 'cast2', dur: 0.9, at: 0.65, can: (e, d) => d < 600,
+    { ph: 'Застывший час', col: '#7ab8ff', cd: 24, first: 7, an: 'cast2', dur: 0.9, at: 0.65, can: (e, d) => d < 600,
       cast(e) { const c = { x: P.x, y: P.y, R: 300 }, frozen = []; groundImg(V2(e), c.x, c.y, 300, 3, { rot: 0.3, a: 0.8 }); if (P.dead <= 0) { stun(3); say2('время остановлено', '#7ab8ff'); }
         MOV.push({ t: 0, dur: 3, update(m) {   // снаряды в куполе замирают
           for (const L of [shots, SK.PR]) for (const s of L) if (s.fz == null && s.sp > 0 && dist(s, c) < c.R) { s.fz = s.sp; s.sp = 0; frozen.push(s); }
@@ -302,7 +302,7 @@
 
   // ===================== Мир 8: Огненный вулкан =====================
   DEF.mb_lavaturtle = [
-    { ph: 'Поцелуи вулкана', col: '#ff7a3a', cd: 16, an: 'cast1', dur: 0.9, at: 0.5,
+    { ph: 'Плевки лавы', col: '#ff7a3a', cd: 16, an: 'cast1', dur: 0.9, at: 0.5,
       cast(e) { for (let i = 0; i < 6; i++) after(i * 0.5, e, () => { const x = P.x + rnd(-70, 70), y = P.y + rnd(-50, 50);
         warn(x, y, 120, 0.8, 25 * e.dm); after(0.8, null, () => { groundImg(V1(e), x, y, 120, 2, { a: 0.85 }); zone({ x, y, R: 120, dur: 2, tick: 1, acc: 0.5, onTick: () => hurtPlayer(10 * e.dm, 'fire') }); }); }); } },
     { ph: 'Огненный залп', col: '#ff5a2a', cd: 8, first: 4, an: 'cast2', dur: 0.8, at: 0.55, can: (e, d) => { if (d >= 450) return false; const [dx, dy] = dirTo2(e, P); e.aim = Math.atan2(dy, dx); return true; },
@@ -313,7 +313,7 @@
   DEF.mb_embermonk = [
     { ph: 'Огненные цепи', col: '#ff7a3a', cd: 12, an: 'cast1', dur: 0.6, at: 0.5, can: (e, d) => d < 400,
       cast(e) { if (dist(P, e) > 430) return; pin(2); dot(15 * e.dm, 2, 'fire'); beam(e, { img: V1(e), dur: 2, w: 30, add: 1 }); } },
-    { ph: 'Ловкость рук', col: '#ffb347', cd: 10, first: 5, can: (e, d) => d < 600,
+    { ph: 'Пляска клинков', col: '#ffb347', cd: 10, first: 5, can: (e, d) => d < 600,
       cast(e) { const c = { x: P.x, y: P.y }; e.hide = 1; e.untarget = 0.95; e.skBusy = 0.95; e.act = hold('cast2', 0.95);
         for (let i = 0; i < 3; i++) after(0.2 + i * 0.25, e, () => { const a = Math.random() * 6.283; groundImg(V2(e), c.x + Math.cos(a) * 60, c.y + Math.sin(a) * 60 * YK, 130, 0.35, { ang: a, add: 1 }); if (near(c.x, c.y, 250)) hurtPlayer(20 * e.dm, 'fire'); });
         after(0.95, e, () => { e.hide = 0; e.act = null; const [dx, dy] = dirTo2(P, e); tele(e, P.x + dx * 80, P.y + dy * 80 * YK); }); } },
@@ -330,20 +330,20 @@
 
   // ===================== Мир 9: Небесный храм =====================
   DEF.mb_windarcher = [
-    { ph: 'Сковывающий выстрел', col: '#b9e37a', cd: 11, an: 'cast1', dur: 0.6, at: 0.5, can: (e, d) => d < 900,
+    { ph: 'Стрела-привязь', col: '#b9e37a', cd: 11, an: 'cast1', dur: 0.6, at: 0.5, can: (e, d) => d < 900,
       cast(e) { proj(e, { img: V1(e), sp: 1000, left: 1000, w: 70, size: 110, rope: e,
         onHit(p) { hurtPlayer(30 * e.dm); if (wallAhead(p.dx, p.dy, 400) > 0) { pin(2); say2('привязан!', '#b9e37a'); } else stun(0.6); } }); } },
-    { ph: 'Мощный выстрел', col: '#e8ffb0', cd: 10, first: 5, can: (e, d) => d < 1300,
+    { ph: 'Стрела бури', col: '#e8ffb0', cd: 10, first: 5, can: (e, d) => d < 1300,
       cast(e) { const [dx, dy] = dirTo2(e, P); face(e, dx, dy); const w = { x: e.x, y: e.y }; line(w, { img: V2(e), dx, dy, len: 1300, w: 100, run: 0.2, dur: 1.2 });
         channel(e, 'cast2', 1.2, { stop(broke) { if (!broke) proj(e, { img: V2(e), dx, dy, sp: 1900, left: 1300, w: 100, size: 170, pierce: true, onHit() { hurtPlayer(70 * e.dm); } }); } }); } },
   ];
   DEF.mb_dawnsmith = [
-    { ph: 'Звёздный молот', col: '#ffd95e', cd: 12, an: 'cast1', dur: 0.7, at: 0.5, can: (e, d) => d > 200 && d < 900,
+    { ph: 'Молот небес', col: '#ffd95e', cd: 12, an: 'cast1', dur: 0.7, at: 0.5, can: (e, d) => d > 200 && d < 900,
       cast(e) { const len = Math.min(900, dist(P, e) + 220);
         line(e, { img: V1(e), len, w: 90, run: len / 900, dur: len / 900 + 3, onStay(l, dt) { l.acc = (l.acc || 0) - dt; if (l.acc <= 0) { l.acc = 1; hurtPlayer(12 * e.dm, 'fire'); } } });
         proj(e, { img: V1(e), sp: 900, left: len, w: 90, size: 130, spin: 12, pierce: true, onHit() { hurtPlayer(35 * e.dm); },
           onEnd(p) { if (!alive(e)) return; leapTo(e, p.x, p.y, 0.5, 0, 0, 'cast1'); } }); } },
-    { ph: 'Звездолом', col: '#ffb347', cd: 12, first: 5, can: (e, d) => d < 220,
+    { ph: 'Удар зари', col: '#ffb347', cd: 12, first: 5, can: (e, d) => d < 220,
       cast(e) { e.act = hold('cast2', 1.35); e.skBusy = 1.35;
         for (let i = 0; i < 3; i++) after(0.2 + i * 0.35, e, () => { groundImg(V2(e), e.x, e.y, 200, 0.3, { ang: i * 2.1 }); if (near(e.x, e.y, 200)) hurtPlayer(20 * e.dm); });
         after(1.3, e, () => { e.act = null; groundImg(V2(e), e.x, e.y, 260, 0.6, { add: 1, grow: 0.2 }); snd('boss_slam', 0.8); if (near(e.x, e.y, 260)) { hurtPlayer(40 * e.dm, 'fire'); stun(1); } }); } },
@@ -359,25 +359,25 @@
 
   // ===================== Мир 10: Бездна =====================
   DEF.mb_dreameater = [
-    { ph: 'Кошмар', col: '#c9a8ff', cd: 16, an: 'cast1', dur: 0.8, at: 0.5, can: (e, d) => d < 800,
+    { ph: 'Дурной сон', col: '#c9a8ff', cd: 16, an: 'cast1', dur: 0.8, at: 0.5, can: (e, d) => d < 800,
       cast(e) { if (P.dead > 0) return; S.sleep = 2.5; S.bind = Math.max(S.bind, 0.1); say2('кошмар…', '#c9a8ff'); mark({ img: V1(e), dur: 2.5, at: HEAD() * 0.6, size: 170, until: () => !(S.sleep > 0) });
         MOV.push({ t: 0, dur: 2.5, acc: 1, update(m, dt) { if (!(S.sleep > 0)) { m.t = m.dur; return; } m.acc -= dt; if (m.acc <= 0) { m.acc += 1; hurtPlayer(8 * e.dm, 'nightmare'); } } }); } },
-    { ph: 'Высасывание разума', col: '#b07aff', cd: 10, first: 5, an: 'cast2', dur: 0.7, at: 0.5, can: (e, d) => d < 700,
+    { ph: 'Пожирание снов', col: '#b07aff', cd: 10, first: 5, an: 'cast2', dur: 0.7, at: 0.5, can: (e, d) => d < 700,
       cast(e) { if (dist(P, e) > 800 || P.dead > 0) return; beam(e, { img: V2(e), dur: 0.5, w: 34, add: 1 }); hurtPlayer(45 * e.dm); e.hp = Math.min(e.max, e.hp + 45 * e.dm); } },
   ];
   DEF.mb_obsidian = [
-    { ph: 'Астральная темница', col: '#b07aff', cd: 18, an: 'cast1', dur: 0.8, at: 0.5, can: (e, d) => d < 800,
+    { ph: 'Обсидиановый плен', col: '#b07aff', cd: 18, an: 'cast1', dur: 0.8, at: 0.5, can: (e, d) => d < 800,
       cast(e) { if (P.dead > 0) return; S.astral = 2.5; say2('в темнице', '#b07aff'); mark({ img: V1(e), dur: 2.5, at: HEAD() * 0.5, size: 180, spin: 1.5 });
         after(2.5, null, () => { S.astral = 0; S.bind = 0; groundImg(V1(e), P.x, P.y, 200, 0.5, { add: 1 }); if (P.dead <= 0) hurtPlayer(50 * e.dm); }); } },
-    { ph: 'Тайная сфера', col: '#c9a8ff', cd: 10, first: 4, an: 'cast2', dur: 0.6, at: 0.5,
+    { ph: 'Сфера пустоты', col: '#c9a8ff', cd: 10, first: 4, an: 'cast2', dur: 0.6, at: 0.5,
       cast(e) { e.arc = 3; tag(e, '3 усиленных выстрела', '#c9a8ff'); } },
   ];
   SK.SHOT_HIT.mb_obsidian = e => () => { if (!(e.arc > 0)) return; e.arc--; hurtPlayer(25 * e.dm); groundImg(V2(e), P.x, P.y, 120, 0.4, { add: 1 }); };
   DEF.mb_gatekeeper = [
-    { ph: 'Огненный шторм', col: '#9be37a', cd: 14, an: 'cast1', dur: 0.8, at: 0.5, can: (e, d) => d < 800,
+    { ph: 'Огонь Бездны', col: '#9be37a', cd: 14, an: 'cast1', dur: 0.8, at: 0.5, can: (e, d) => d < 800,
       cast(e) { const x = P.x, y = P.y; groundImg(V1(e), x, y, 300, 3.2, { rot: 0.3, a: 0.85 }); warn(x, y, 300, 0.5, 0);
         for (let i = 0; i < 6; i++) after(0.5 + i * 0.5, e, () => { if (near(x, y, 300)) { hurtPlayer(15 * e.dm, 'fire'); dot(5 * e.dm, 2, 'fire'); } }); } },
-    { ph: 'Яма злобы', col: '#8a5aff', cd: 18, first: 6, an: 'cast2', dur: 0.8, at: 0.5, can: (e, d) => d < 800,
+    { ph: 'Яма Бездны', col: '#8a5aff', cd: 18, first: 6, an: 'cast2', dur: 0.8, at: 0.5, can: (e, d) => d < 800,
       cast(e) { const x = P.x, y = P.y; groundImg(V2(e), x, y, 280, 6, { rot: 0.15, a: 0.9 });
         for (let i = 0; i < 3; i++) after(0.3 + i * 2, e, () => { if (near(x, y, 280)) { pin(1); hurtPlayer(20 * e.dm); } }); } },
   ];

@@ -102,7 +102,7 @@ KIND.b_serpentqueen = { nm: ['Королева Змей', 'хозяйка Осе
 KIND.b_frostqueen = { nm: ['Королева Вьюги', 'владычица Ледяных вершин'], ch: 'b_frostqueen', boss: 1, mel: 1, hp: 2150, rad: 52, speed: 96, dmg: [48, 60], cd: 1.3, reach: 125,
   xp: 150, gold: 100, col: '#5a7a9a', sz: 1.15, spells: [
     { nm: 'Вьюга', ph: 22, how: 'self', R: 330, warn: 0.8, dmg: 12, tick: 0.8, eff: 'slow', slow: 0.6, t: 5, cd: 10, an: 'cast1' },
-    { nm: 'Ледяная темница', ph: 22, how: 'target', R: 110, warn: 1.0, dmg: 30, eff: 'root', t: 1.5, cd: 9, an: 'cast2' }] };
+    { nm: 'Ледяной плен', ph: 22, how: 'target', R: 110, warn: 1.0, dmg: 30, eff: 'root', t: 1.5, cd: 9, an: 'cast2' }] };
 KIND.b_plaguelord = { nm: ['Чумной Мародёр', 'поджигатель деревни'], ch: 'b_plaguelord', boss: 1, mel: 1, hp: 1950, rad: 52, speed: 98, dmg: [44, 56], cd: 1.3, reach: 125,
   xp: 150, gold: 100, col: '#4a3a2a', sz: 1.15, spells: [
     { nm: 'Дымовая завеса', ph: 21, how: 'self', R: 300, warn: 0.8, dmg: 0, cd: 11, an: 'cast1' },

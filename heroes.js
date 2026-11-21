@@ -14,10 +14,10 @@ const ARCHER = { k: 0.8625, mul: { idle: EIRA_ROW('idle', 4, 230), run: EIRA_ROW
 const HEROES = {
   mage: { def: MAGE, name: 'Ganfaul', role: 'маг льда', icons: 'ui/sk_icons.webp', portrait: 'ui/h_portrait.webp',
     hp: 600, range: 600, cd: { q: 6, e: 9, f: 12, r: 28 }, mana: { q: 60, e: 50, f: 80, r: 150 },
-    skills: ['Ледяная стрела', 'Нова — взрыв льда', 'Оковы — заморозка цели', 'Град — дождь сосулек', 'Буря — ульт'] },
+    skills: ['Ледяная стрела', 'Кольцо стужи — взрыв льда', 'Оковы — заморозка цели', 'Град — дождь сосулек', 'Буря — ульт'] },
   archer: { def: ARCHER, name: 'Эйра', role: 'лучница', icons: 'ui/sk_icons_archer.webp', portrait: 'ui/h_portrait_archer.webp',
     hp: 520, range: 720, cd: { q: 9, e: 6, f: 15, r: 0 }, mana: { q: 70, e: 60, f: 90, r: 0 },
-    skills: ['Меткий выстрел', 'Порыв ветра — волна вперёд: отброс и немота', 'Залп — 3 волны по 5 стрел', 'Щит листьев — снимает путы, в конце взрыв', 'Меткость — пассивка: урон, дальность, пронзающие стрелы'] },
+    skills: ['Меткий выстрел', 'Шквал — волна вперёд: отброс и немота', 'Залп — 3 волны по 5 стрел', 'Щит листьев — снимает путы, в конце взрыв', 'Верный глаз — пассивка: урон, дальность, пронзающие стрелы'] },
 };
 let HERO_ID = 'mage';
 const HERO_KEY = 'hw_hero';
@@ -130,7 +130,7 @@ function heroVoiceTick() {
   }
   st.moving = P.moving; st.kills = kills; st.dead = P.dead; st.lvl = P.lvl;
 }
-// покупка в лавке (предмет, часть, фласка): золото ушло — реплика с шансом 40 %, не чаще раза в 20 с
+// покупка в лавке (предмет, часть, склянка): золото ушло — реплика с шансом 40 %, не чаще раза в 20 с
 addEventListener('load', () => {
   const paid = fn => function () { const g = SHOP.gold, r = fn.apply(this, arguments); if (SHOP.gold < g) vo('shop', 0.4, 20); return r; };
   if (typeof SHOP !== 'undefined' && SHOP.buy) SHOP.buy = paid(SHOP.buy);
@@ -152,14 +152,14 @@ function fx3(k, x, y, w, h, ax, ay, alpha, rot, ground) {
   ctx.restore();
 }
 
-// ---------- Меткость (пассивка, кнопка R; Drow Ranger — Marksmanship) ----------
+// ---------- Верный глаз (пассивка, кнопка R; Marksmanship) ----------
 // Пока ни один враг не ближе 350 к Эйре: +12 % урона и +10 % дальности (+2 % и +1 % за уровень R), а 25 % стрел
 // (+2 % за уровень R) — пронзающие: +60 % урона, не смотрят на щиты и броню врага, пролетают насквозь и бьют ещё одного.
 const MARK_R = 350;
 const markOn = () => (window.NETC && NETC.on) ? P.focus > 0 : !!P.mark;   // в онлайне решает сервер (флаг приходит в P.focus)
 const markK = () => markOn() ? 1.12 + 0.02 * (skLv('r') - 1) : 1;
 const markRange = () => markOn() ? 1.10 + 0.01 * (skLv('r') - 1) : 1;
-const markPierce = () => 0.25 + 0.02 * (skLv('r') - 1) + (typeof ITEMFX !== 'undefined' && ITEMFX.pas('agh') ? ITEMFX.pas('agh').pierce : 0);   // Скипетр Аганима: +15 %
+const markPierce = () => 0.25 + 0.02 * (skLv('r') - 1) + (typeof ITEMFX !== 'undefined' && ITEMFX.pas('agh') ? ITEMFX.pas('agh').pierce : 0);   // Скипетр древних: +15 %
 // урон умения: щиты боссов видят его как умение, а не как обычную атаку
 function eiraSpell(fn) { const g = typeof heroSpell !== 'undefined'; if (g) heroSpell++; try { fn(); } finally { if (g) heroSpell--; } }
 
@@ -211,7 +211,7 @@ cast = function (id) {
     return;
   }
   if (P.dead > 0 || (typeof SHOP !== 'undefined' && SHOP.paused)) return;
-  if (id === 'r') { say(P.x, P.y - CH * 1.2 * HS(), markOn() ? 'Меткость работает — пассивка' : 'Меткость: враг ближе ' + MARK_R + ' — отойди', '#d9ffb0'); return; }
+  if (id === 'r') { say(P.x, P.y - CH * 1.2 * HS(), markOn() ? 'Верный глаз работает — пассивка' : 'Верный глаз: враг ближе ' + MARK_R + ' — отойди', '#d9ffb0'); return; }
   if (P.volley) return;   // канал Залпа не прерывается другим умением
   if (P.cd[id] > 0) { vo('cooldown', 1, 15); return; }
   if (P.mp < MANA[id]) { vo('nomana', 1, 15); if (!P.noMana || P.noMana < performance.now()) { say(P.x, P.y - CH * HS(), 'мало маны', '#8ab8ff'); P.noMana = performance.now() + 700; } return; }
@@ -223,7 +223,7 @@ cast = function (id) {
     return [dx, dy];
   };
   if (id === 'q') {
-    // Порыв ветра: волна вперёд — полоса 900, ширина 140 → 320, скорость 1400; урон, немота, отброс от Эйры.
+    // Шквал: волна вперёд — полоса 900, ширина 140 → 320, скорость 1400; урон, немота, отброс от Эйры.
     // Стрела слетает на 3-м кадре анимации — тогда и идёт волна.
     const [dx, dy] = aim(1100);
     an = 'wave'; dur = mulDur(HERO, 'wave');
@@ -271,7 +271,7 @@ hurtPlayer = function (d, kind) {
   _hurtPlayer(d, kind);
   if (P.dead <= 0) vo('hurt', 0.15, 20);
 };
-// каждый кадр: Меткость, дальность, волна ветра, канал Залпа, время щита
+// каждый кадр: Верный глаз, дальность, волна ветра, канал Залпа, время щита
 const _combatUpdate = combatUpdate;
 combatUpdate = function (dt) {
   _combatUpdate(dt);
@@ -327,7 +327,7 @@ function heroGround(t) {
     if (f.type === 'wave3') {   // взрыв щита: кольцо ветра с листьями
       const k = f.t / f.dur, s = f.R * 2.3 * (0.3 + 0.75 * easeOut(Math.min(1, k * 1.4)));
       fx3('wave', f.x, f.y, s, s, 0.5, 0.5, k < 0.5 ? 1 : (1 - k) / 0.5, k * 0.8, true);
-    } else if (f.type === 'gust3' && FX3.wave.ok) {   // Порыв ветра: тот же ветер, растянутый вдоль полосы, бежит от Эйры
+    } else if (f.type === 'gust3' && FX3.wave.ok) {   // Шквал: тот же ветер, растянутый вдоль полосы, бежит от Эйры
       const front = Math.min(900, 1400 * f.t), tail = Math.max(0, front - 560), k = f.t / f.dur, im = FX3.wave.img, N = 12;
       ctx.save(); ctx.translate(f.x, f.y); ctx.scale(1, YK); ctx.rotate(f.ang);
       ctx.globalAlpha = k < 0.65 ? 0.95 : Math.max(0, (1 - k) / 0.35) * 0.95;
@@ -339,7 +339,7 @@ function heroGround(t) {
     }
   }
 }
-// «Меткость» работает — под ногами Эйры лежит зелёно-золотое кольцо (fx3_aura): на земле, под спрайтом, медленно вращается и дышит.
+// «Верный глаз» работает — под ногами Эйры лежит зелёно-золотое кольцо (fx3_aura): на земле, под спрайтом, медленно вращается и дышит.
 // Гаснет, когда враг ближе 350, и загорается снова плавно, за 0,3 с.
 {
   const _dp = drawPlayer; let a = 0, last = 0;
@@ -368,7 +368,7 @@ function heroOver(t) {
     fx3('shield', P.x, P.y - CH * 0.42 * HS(), s, s, 0.5, 0.5, 0.65 * Math.min(1, P.shieldT * 2));
   }
 }
-// кнопка пассивки: значок горит, пока Меткость работает, и гаснет, когда враг подошёл
+// кнопка пассивки: значок горит, пока Верный глаз работает, и гаснет, когда враг подошёл
 function heroButton(b) {
   if (HERO_ID !== 'archer' || b.id !== 'r') return false;
   if (!markOn()) { ctx.beginPath(); ctx.arc(b.x, b.y, b.r * 0.8, 0, 7); ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fill(); }

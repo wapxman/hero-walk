@@ -9,7 +9,7 @@ const dirTo = (e, x, y) => { const dx = x - e.x, dy = (y - e.y) / YK, m = Math.h
 // у элиты умение остаётся, у мини-боссов и босса — по одному простому, с заметным предупреждением (SOFT1_SK: что оставлено).
 // Полигон автопрогона проверяет все умения — для него смягчение выключается (window.NO_SOFT).
 const SOFT1 = () => { if (window.NO_SOFT || (window.NETC && NETC.on)) return false; const a = BAL.at(Math.max(1, wave)); return a.M === 1 && a.C === 1; };
-const SOFT1_SK = { mb_arbalest: ['Шрапнель'], mb_executioner: ['Плаха'], mb_bannerlord: ['Королевское копьё'], b_blackknight: [], tb_blackknight: [] };   // Чёрный Рыцарь: остаётся только «Таран» (bossmech.js)
+const SOFT1_SK = { mb_arbalest: ['Град болтов'], mb_executioner: ['Плаха'], mb_bannerlord: ['Королевское копьё'], b_blackknight: [], tb_blackknight: [] };   // Чёрный Рыцарь: остаётся только «Таран» (bossmech.js)
 // Первый круг вне сети (v101, план по мирам 21.11): каждый мир учит одной новой вещи — часть жёстких состояний на первом круге
 // убрана или смягчена, давление боссов подогнано (TUNE1). На втором круге, в сети и в полигоне автопрогона — всё как было.
 const FIRST = m => { if (window.NO_SOFT || (window.NETC && NETC.on)) return false; const a = BAL.at(Math.max(1, wave)); return a.C === 1 && (!m || a.M === m); };
@@ -21,7 +21,7 @@ const TUNE1 = {
   b_frostqueen: { cd: { 'Снежный скачок': 8, 'Ледяной взрыв': 6 }, cdk: 0.8, dm: 1.15 },
   b_mirrorlord: { swap: 0.22 },   // «Обмен отражений» за раз забирает не больше 22 % здоровья героя (было — всё до уровня босса: 95 % урона боя)
   b_skyjudge: { cdk: 0.7, dm: 1.2 },
-  b_voidmage: { cd: { 'Шаровая молния': 8 }, cdk: 0.8, dm: 1.15 },
+  b_voidmage: { cd: { 'Грозовой скачок': 8 }, cdk: 0.8, dm: 1.15 },
 };
 const tune1 = e => (FIRST() && TUNE1[e.type]) || null;
 const softRank = e => !e.boss && !e.mini && !e.elite && SOFT1();

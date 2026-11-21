@@ -21,7 +21,7 @@ with sync_playwright() as pw:
     clear = "for (const e of enemies) { e.hp = 0; e.dieT = 0; } enemies.length = 0; ROUND.queue.length = 0; ROUND.mini = null; P.maxHp = 5000; P.hp = 5000; STATUS.clear(); SK.S.hex = 0;"
     ok = lambda name, cond, info='': print(('OK   ' if cond else 'ПЛОХО ') + name, info)
 
-    # ---- мир 1: подсказка, фласка, заход с разных сторон, урон рядовых ----
+    # ---- мир 1: подсказка, склянка, заход с разных сторон, урон рядовых ----
     boot(1)
     r = E("(() => { const a = []; for (let i = 0; i < 5; i++) a.push(pickSpawn()); return [new Set(a.map(s => s.x + ':' + s.y)).size, SPAWNS.length, FIRST(1), SOFT1()]; })()")
     ok('мир 1: входы по очереди', r[0] == r[1] or r[0] == 5, r)
@@ -31,8 +31,8 @@ with sync_playwright() as pw:
     r = E("[!!document.querySelector('#hintRing.on'), document.querySelector('#hintRing') && document.querySelector('#hintRing').textContent, localStorage.getItem('hw_hint_ring')]")
     ok('мир 1: подсказка «Окружили — рывок!»', r[0] and r[2] == '1', r); p.screenshot(path=SH + '/klod_hint_dash.png')
     E("P.hp = P.maxHp * 0.4; SHOP.flasks.heal = 3;"); time.sleep(0.6)
-    r = E("[document.querySelector('#hFlask').classList.contains('low')]"); ok('фласка пульсирует при здоровье ≤ 50 %', r[0], r); p.screenshot(path=SH + '/klod_flask_pulse.png')
-    E("P.hp = P.maxHp"); time.sleep(0.5); ok('фласка не пульсирует при полном здоровье', not E("document.querySelector('#hFlask').classList.contains('low')"))
+    r = E("[document.querySelector('#hFlask').classList.contains('low')]"); ok('склянка пульсирует при здоровье ≤ 50 %', r[0], r); p.screenshot(path=SH + '/klod_flask_pulse.png')
+    E("P.hp = P.maxHp"); time.sleep(0.5); ok('склянка не пульсирует при полном здоровье', not E("document.querySelector('#hFlask').classList.contains('low')"))
     time.sleep(5); ok('подсказка гаснет', not E("!!document.querySelector('#hintRing.on')"))
     # копьё знаменосца без оглушения
     E(clear + " __say.length = 0; ROUND.queue = ['bogghoul']; ROUND.mini = null; spawnEnemyBase('mb_bannerlord'); const e = enemies[0]; e.mini = true; e.x = P.x + 400; e.y = P.y; window.__st = []; const sa = STATUS.add; STATUS.add = function (k) { __st.push(k); return sa.apply(this, arguments); };"); time.sleep(6)
@@ -65,13 +65,13 @@ with sync_playwright() as pw:
     time.sleep(0.5); p.screenshot(path=SH + '/klod_swap_warn.png'); time.sleep(2.5)
     r = E("[P.hp / P.maxHp, __say.filter(t => /Обмен|поменялось/.test(t))]"); ok('мир 7: обмен забирает не больше 22 % здоровья', 0.77 <= r[0] < 0.8, r)
 
-    # ---- мир 8: Рок ----
+    # ---- мир 8: Приговор Пепла ----
     boot(79); time.sleep(1)
-    force = "(() => { const e = enemies.find(e => e.boss); if (!e) return null; e.hp = e.max; P.maxHp = 9000; P.hp = 9000; STATUS.clear(); e.ccEnd = 0; e.sk = e.sk || SK.DEF[e.type].map(() => ({ cd: 99 })); const i = SK.DEF[e.type].findIndex(s => s.ph === 'Рок'); e.sk.forEach((s, j) => s.cd = j === i ? 0 : 99); e.mt1 = e.rg = 99; e.x = P.x + DX; e.y = P.y; e.speed = 0; __say.length = 0; return i; })()"
+    force = "(() => { const e = enemies.find(e => e.boss); if (!e) return null; e.hp = e.max; P.maxHp = 9000; P.hp = 9000; STATUS.clear(); e.ccEnd = 0; e.sk = e.sk || SK.DEF[e.type].map(() => ({ cd: 99 })); const i = SK.DEF[e.type].findIndex(s => s.ph === 'Приговор Пепла'); e.sk.forEach((s, j) => s.cd = j === i ? 0 : 99); e.mt1 = e.rg = 99; e.x = P.x + DX; e.y = P.y; e.speed = 0; __say.length = 0; return i; })()"
     E(force.replace('DX', '300')); time.sleep(1.2); p.screenshot(path=SH + '/klod_doom_warn.png'); s1 = E("P.ss.silence"); time.sleep(1.2); s2 = E("P.ss.silence")
-    ok('мир 8: «Рок» — сначала метка, потом безмолвие', not (s1 > 0) and s2 > 0, [s1, s2, E("__say.filter(t => /Рок/.test(t))")])
+    ok('мир 8: «Приговор Пепла» — сначала метка, потом безмолвие', not (s1 > 0) and s2 > 0, [s1, s2, E("__say.filter(t => /Приговор Пепла/.test(t))")])
     time.sleep(7); E(force.replace('DX', '300')); time.sleep(1.0); E("P.x -= 500; collide(P)"); time.sleep(1.5); s3 = E("P.ss.silence")
-    ok('мир 8: от «Рока» можно уйти', not (s3 > 0), [s3, E("__say.filter(t => /Рок/.test(t))")])
+    ok('мир 8: от «Рока» можно уйти', not (s3 > 0), [s3, E("__say.filter(t => /Приговор Пепла/.test(t))")])
 
     # ---- мир 9: кара ----
     boot(89); time.sleep(1)
@@ -83,7 +83,7 @@ with sync_playwright() as pw:
     r = E("(() => { const q = []; for (let i = 0; i < 30; i++) { wave = 96; nextWave(); q.push(...ROUND.queue); } wave = 97; nextWave(); const el = ROUND.queue.filter(t => /^el_/.test(t)).length; return [q.includes('v_warlock'), el]; })()")
     ok('мир 10: чернокнижник в волнах, элиты три', r[0] and r[1] == 3, r)
     E(clear + " for (const k in RCD) RCD[k] = 0; ROUND.queue = ['bogghoul']; spawnEnemyBase('v_warlock'); const e = enemies[0]; e.x = P.x + 350; e.y = P.y; e.speed = 0; e.atkCd = 99; window.__hp = P.hp; window.__fd = 55 * e.dm; __say.length = 0;"); time.sleep(1.0); p.screenshot(path=SH + '/klod_finger_mark.png'); time.sleep(3.0)
-    r = E("[__hp - P.hp, __fd, RCD.linken > 0, __say.filter(t => /Палец|отраж/.test(t))]"); ok('мир 10: Линка гасит «Палец смерти»', r[0] < r[1] * 0.5 and r[2], r)
+    r = E("[__hp - P.hp, __fd, RCD.linken > 0, __say.filter(t => /Палец|отраж/.test(t))]"); ok('мир 10: Линка гасит «Луч погибели»', r[0] < r[1] * 0.5 and r[2], r)
     E("SHOP.bag = []; SHOP.recompute(); P.maxHp = 5000; P.hp = 5000; window.__hp = P.hp; const e = enemies[0]; if (e && e.sk) { e.sk[0].cd = 0; e.atkCd = 99; }"); time.sleep(7)
     r = E("[__hp - P.hp, __fd]"); ok('мир 10: без Линки «Палец» бьёт', r[0] >= r[1] * 0.9, r)
     # ---- гибель → Междумирье → портал → карта → бой: игра не должна остаться на паузе (ошибка v101–v103) ----

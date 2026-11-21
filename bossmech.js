@@ -96,7 +96,7 @@ function forgegolem(e, dt, d) {
     return true;
   }
 }
-// ---------- 6. Королева Вьюги: Вьюга (стаки холода, на 5-м заморозка 2 с), Ледяная темница (заморозка 1,5 с) ----------
+// ---------- 6. Королева Вьюги: Вьюга (стаки холода, на 5-м заморозка 2 с), Ледяной плен (заморозка 1,5 с) ----------
 function frostqueen(e, dt, d) {
   e.bz = (e.bz == null ? 3 : e.bz) - dt; e.pr = (e.pr == null ? 7 : e.pr) - dt;
   if (e.act) return;
@@ -106,7 +106,7 @@ function frostqueen(e, dt, d) {
     return true;
   }
   if (e.pr <= 0 && d < 900) {
-    e.pr = 9 * bossCd(e); tag(e, 'Ледяная темница!', '#9fd8ff');
+    e.pr = 9 * bossCd(e); tag(e, 'Ледяной плен!', '#9fd8ff');
     startAct(e, 'cast2', 0.9, 0.5, () => warn(P.x, P.y, 110, 1.0, 26 * e.dm, { vfx: { img: vfxOf(e, 1), R: 110, dur: 1.6 }, onHitP: () => STATUS.add('freeze', 1.5) }));
     return true;
   }

@@ -1,4 +1,4 @@
-// Волны по кнопке, золото, магазин, фласки, предметы и дроп.
+// Волны по кнопке, золото, магазин, склянки, предметы и дроп.
 // Вся графика здесь — картинки из папки ui (нарисованы в ChatGPT); кодом выводится только текст.
 // Использует из combat.js: P, enemies, wave, spawnWave, say, gdist, rnd, pick, YK, CH, ctx, V.
 'use strict';
@@ -6,11 +6,11 @@
 const ICON = { heal: 0, frost: 1, swift: 2, power: 3, orb: 4, boots: 5, heart: 6, ring: 7, shield: 8,
   coin: 9, pouch: 10, chest: 11, swords: 12, skull: 13, bag: 14, lock: 15 };
 const FLASKS = [
-  { id: 'heal', name: 'Фласка лечения', desc: '+150 и 20 % здоровья', price: 40, key: '1' },   // настоящая цена — SHOP.flaskPrice (растёт с миром)
-  { id: 'frost', name: 'Фласка холода', desc: 'сброс перезарядки', price: 55, key: '2' },
-  { id: 'swift', name: 'Фласка скорости', desc: '+45% бега на 8 с', price: 35, key: '3' },
+  { id: 'heal', name: 'Склянка лечения', desc: '+150 и 20 % здоровья', price: 40, key: '1' },   // настоящая цена — SHOP.flaskPrice (растёт с миром)
+  { id: 'frost', name: 'Склянка холода', desc: 'сброс перезарядки', price: 55, key: '2' },
+  { id: 'swift', name: 'Склянка скорости', desc: '+45% бега на 8 с', price: 35, key: '3' },
   { id: 'power', name: 'Эликсир силы', desc: '+50% урона на 10 с', price: 60, key: '4' },
-  { id: 'mana', name: 'Фласка маны', desc: '+220 маны', price: 30, key: '5' },
+  { id: 'mana', name: 'Склянка маны', desc: '+220 маны', price: 30, key: '5' },
 ];
 ICON.mana = 'mana';   // своя картинка ui/i_mana.webp, а не клетка общего листа иконок
 const MANA_ICON = new Image(); MANA_ICON.src = 'ui/i_mana.webp' + V;
@@ -24,7 +24,7 @@ const ITEMS = [
 const MAXLVL = 3;
 const KILL_GOLD = { min: 6, war: 13, mag: 11, rog: 11, boss: 90 };
 const BASE_HP = 600;
-// фласка лечения (v87): 150 + 20 % здоровья, цена 40 + 10 за мир, с собой не больше 10, пить не чаще раза в секунду
+// склянка лечения (v87): 150 + 20 % здоровья, цена 40 + 10 за мир, с собой не больше 10, пить не чаще раза в секунду
 const HEAL = { max: 10, cd: 1 };
 
 const SHOP = {
@@ -120,10 +120,10 @@ const SHOP = {
   },
   addGold(n) { SHOP.gold += n; SHOP.refresh(); },
 
-  // ----- фласки -----
+  // ----- склянки -----
   use(id) {
     if (P.dead > 0 || !SHOP.flasks[id]) return;
-    if (SHOP.el && SHOP.el.pause && SHOP.el.pause.style.display === 'flex') return;   // в меню паузы фласки не пьются
+    if (SHOP.el && SHOP.el.pause && SHOP.el.pause.style.display === 'flex') return;   // в меню паузы склянки не пьются
     if (id === 'heal') { if (P.hp >= P.maxHp || performance.now() < (SHOP.healCdT || 0)) return; SHOP.healCdT = performance.now() + 1000 * HEAL.cd; const h = SHOP.healAmt(); P.hp = Math.min(P.maxHp, P.hp + h); say(P.x, P.y - CH * HS() * 1.1, '+' + h, '#7dff8a'); }
     else if (id === 'frost') { for (const k in P.cd) P.cd[k] = 0; say(P.x, P.y - CH * HS() * 1.1, 'Скиллы готовы', '#bfe6ff'); }
     else if (id === 'swift') { SHOP.buffs.swift = 8; say(P.x, P.y - CH * HS() * 1.1, 'Скорость!', '#a8ffb5'); }
@@ -159,7 +159,7 @@ const SHOP = {
   },
   closeShop() { SHOP.open = false; SHOP.refresh(); },
 
-  // ----- геймпад: Start — волна, Select — магазин, крестовина — фласки -----
+  // ----- геймпад: Start — волна, Select — магазин, крестовина — склянки -----
   padPrev: {},
   pad() {
     const gp = PADS[0];   // опрос геймпадов — один раз за кадр в index.html
@@ -270,12 +270,12 @@ SHOP.flaskPrice = f => BAL.price(f.id === 'heal' ? 40 + 5 * (BAL.mw(wave + 1) - 
   tr.lastChild.style.backgroundImage = U('h_bag');
   tap(mk('div', 'sq bg', tr), () => SHOP.togglePause());
   tr.lastChild.style.backgroundImage = U('h_pause');
-  // снизу: 6 ячеек сумки (фласки холода, скорости, силы и предметы) и фласка лечения
+  // снизу: 6 ячеек сумки (склянки холода, скорости, силы и предметы) и склянка лечения
   E.inv = mk('div', 'sh'); E.inv.id = 'hInv';
   E.slots = [];
   for (let i = 0; i < 6; i++) { const c = mk('div', 'hs bg', E.inv); tap(c, () => { if (c.use) SHOP.use(c.use); }); E.slots.push(c); }
   E.flask = mk('div', 'bg', E.inv, icon(ICON.heal) + '<b class="bg">0</b>'); E.flask.id = 'hFlask';
-  E.flask.title = 'Фласка лечения: +150 и 20 % здоровья, не чаще раза в секунду (клавиша 1)'; tap(E.flask, () => SHOP.use('heal'));
+  E.flask.title = 'Склянка лечения: +150 и 20 % здоровья, не чаще раза в секунду (клавиша 1)'; tap(E.flask, () => SHOP.use('heal'));
   // пауза: продолжить, музыка, редактор
   E.pause = mk('div', 'sh'); E.pause.id = 'hPause';
   for (const ev of ['touchstart', 'mousedown', 'pointerdown']) E.pause.addEventListener(ev, x => x.stopPropagation(), { passive: true });
@@ -284,7 +284,7 @@ SHOP.flaskPrice = f => BAL.price(f.id === 'heal' ? 40 + 5 * (BAL.mw(wave + 1) - 
   E.musBtn = mk('div', 'mb bg', E.pause); tap(E.musBtn, () => { musicToggle(); SHOP.pauseLabels(); });
   E.musNext = mk('div', 'mb bg', E.pause, 'Следующий трек'); tap(E.musNext, () => { musicNext(); SHOP.pauseLabels(); });
   if (location.host !== 'duelarena.app') tap(mk('div', 'mb bg', E.pause, 'Редактор'), () => { location.href = 'editor/'; });
-  E.tip = mk('div', 'tip', E.pause, 'ontouchstart' in window ? '' : 'WASD — движение, пробел — огонь, Q E F R — скиллы, 1–4 — фласки, Enter — волна, B — магазин, P — пауза, M — музыка');
+  E.tip = mk('div', 'tip', E.pause, 'ontouchstart' in window ? '' : 'WASD — движение, пробел — огонь, Q E F R — скиллы, 1–4 — склянки, Enter — волна, B — магазин, P — пауза, M — музыка');
   E.back = mk('div', 'sh'); E.back.id = 'shBack';
   for (const ev of ['touchstart', 'mousedown', 'pointerdown']) E.back.addEventListener(ev, x => x.stopPropagation(), { passive: true });
   const p = mk('div', 'bg', E.back); p.id = 'shPanel';
@@ -306,7 +306,7 @@ SHOP.flaskPrice = f => BAL.price(f.id === 'heal' ? 40 + 5 * (BAL.mw(wave + 1) - 
     E.title.querySelector('em').textContent = SHOP.gold;
     const nh = SHOP.flasks.heal;
     E.flask.lastChild.textContent = nh; E.flask.classList.toggle('off', !nh || performance.now() < (SHOP.healCdT || 0));
-    // сумка: сначала фласки (кроме лечения), потом предметы; ячейку перерисовываем, только если она поменялась
+    // сумка: сначала склянки (кроме лечения), потом предметы; ячейку перерисовываем, только если она поменялась
     const inv = [];
     for (const f of FLASKS) if (f.id !== 'heal' && SHOP.flasks[f.id]) inv.push({ ic: ICON[f.id], n: SHOP.flasks[f.id], use: f.id, t: f.name + ': ' + f.desc + ' (клавиша ' + f.key + ')' });
     for (const it of ITEMS) if (SHOP.items[it.id]) inv.push({ ic: ICON[it.id], n: ROM[SHOP.items[it.id]], t: it.name + ': ' + it.desc });

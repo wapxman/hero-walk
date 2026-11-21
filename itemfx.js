@@ -2,7 +2,7 @@
 // Перезарядки — в общем RCD (relics.js): кольцо и вспышку ячейки рисуют relicRings / relicFlash.
 'use strict';
 const ITEMFX = (() => {
-  // ward — короткая полная защита после Линки/Лотоса, rite — Кровавый обряд, linkenF/lotusF — вспышка значка сработавшего предмета, src — кто наложил жёсткое состояние
+  // ward — короткая полная защита после Сферы оберега и Зеркальной сферы, rite — Кровавый обряд, linkenF/lotusF — вспышка значка сработавшего предмета, src — кто наложил жёсткое состояние
   const T = { bkb: 0, aeon: 0, manta: 0, storm: 0, stormT: 0, unholy: 0, calm: 0, bashAt: 0, dash: null, ward: 0, rite: 0, linkenF: 0, lotusF: 0, src: null };
   const ZAPS = [], GLOWS = [];   // молнии { pts, t, dur } и вспышки { x, y, col, t, dur } — рисует combatOver
   const now = () => performance.now() / 1000;
@@ -17,9 +17,9 @@ const ITEMFX = (() => {
   const tagE = (e, t, c) => say(e.x, e.y - (e.ch && e.ch.ok ? e.ch.top * e.ch.U * e.sc : 80) - 20, t, c);
   const sayP = (t, c) => say(P.x, P.y - CH * HS() * 1.45, t, c);
   // картинки вспышек (v100, рисовал ChatGPT): щит Линки и отражение Лотоса
-  const FXI = {}; for (const k of ['linken_block', 'lotus_reflect']) { const im = new Image(); FXI[k] = im; im.src = 'fx/fx_' + k + '.webp' + (typeof V === 'string' ? V : ''); }
+  const FXI = {}; for (const k of ['linken_block', 'lotus_reflect']) { const im = new Image(); FXI[k] = im; im.src = 'fx/fx_' + (k === 'linken_block' ? 'ward_block' : k) + '.webp' + (typeof V === 'string' ? V : ''); }
   const flashAt = (x, y, col) => GLOWS.push({ x, y, col, t: 0, dur: 0.3 });
-  // жёсткие состояния: их ловят Аватар, Сфера Линкена и Мантия
+  // жёсткие состояния: их ловят Аватар, Сфера оберега и Мантия
   const rooted = () => P.slowT > 0 && P.slowK <= 0.05 ? P.slowT : 0;   // «Обездвижен» замедлением до нуля (корни боссов)
   const hard = () => { const s = P.ss, k = SK.S; return s.stun > 0 || s.freeze > 0 || s.silence > 0 || s.blind > 0 || k.bind > 0 || k.pin > 0 || k.hex > 0 || k.called > 0 || !!k.pull || k.sleep > 0 || rooted() > 0; };
   // снять плохие состояния; баффы (imm, rshield, noMiss, spd, щит лучницы) не трогаем; MOV-эффекты sk_defs короткие — остаются
@@ -56,21 +56,21 @@ const ITEMFX = (() => {
   const ACT = {   // false — некого бить, перезарядка не тратится
     blink(a, auto) { const [dx, dy] = auto ? away() : [P.face.x, P.face.y]; flashAt(P.x, P.y, '170,140,255'); P.x += dx * a.dist; P.y += dy * a.dist * YK; collide(P); flashAt(P.x, P.y, '170,140,255'); },
     force(a, auto) { const [dx, dy] = auto ? away() : [P.face.x, P.face.y]; T.dash = { vx: dx * a.dist / a.t, vy: dy * a.dist / a.t, t: a.t }; },
-    medal(a, auto) { const t = top(a.R, auto ? 1 : 0); if (!t) return false; t.medT = a.t; t.medA = a.amp; tagE(t, 'храбрость', '#dfe8ff'); },
+    medal(a, auto) { const t = top(a.R, auto ? 1 : 0); if (!t) return false; t.medT = a.t; t.medA = a.amp; tagE(t, 'метка', '#dfe8ff'); },
     midas(a) {
       const t = inR(a.R, e => rank(e) === 0 && !(e.k.rise && !e.risen) && !(e.k.reborn && !e.reborn)).sort((x, y) => gdist(P, x) - gdist(P, y))[0];
       if (!t) return false;
       const g = Math.round(a.gold * BAL.gold(Math.max(1, wave)));
       HIT.noLs = true; proc(t, t.hp / ((P.dmgMul || 1) * 0.35) + 1, '#ffd95e'); HIT.noLs = false;   // наверняка (броня копа ×0,35)
-      SHOP.addGold(g); gainXp(t.k.xp || 8); tagE(t, 'Мидас +' + g, '#ffd95e'); snd('coins', 0.7, 1.2);
+      SHOP.addGold(g); gainXp(t.k.xp || 8); tagE(t, 'Золото +' + g, '#ffd95e'); snd('coins', 0.7, 1.2);
     },
     heal(a) { if (P.hp >= P.maxHp) return false; const h = Math.round(a.hp + a.pct * P.maxHp); P.hp = Math.min(P.maxHp, P.hp + h); say(P.x, P.y - CH * HS() * 1.1, '+' + h, '#7dff8a'); flashAt(P.x, P.y, '125,255,138'); },
-    bkb(a) { T.bkb = a.t; purge(); sayP('Аватар!', '#ffd95e'); },
+    bkb(a) { T.bkb = a.t; purge(); sayP('Несокрушимость!', '#ffd95e'); },
     abyss(a, auto) { const t = top(a.R, auto ? 1 : 0); if (!t) return false; proc(t, a.dmg, '#c9a8ff'); if (t.hp > 0) stun(t, a.t); fx.push({ type: 'quake', x: t.x, y: t.y, t: 0, dur: 0.75, R: 120 }); tagE(t, 'Пролом!', '#c9a8ff'); snd('boss_slam', 0.5, 1.2); },
     manta(a) { purge(); T.manta = a.t; sayP('Иллюзии!', '#bfe6ff'); },
     shiva(a) { fx.push({ type: 'nova', x: P.x, y: P.y, t: 0, dur: 0.95, R: a.R }); for (const e of inR(a.R)) { proc(e, a.dmg, '#bfe6ff'); slow(e, a.slow, a.st); } snd('nova', 0.7); },
     storm(a) { T.storm = a.t; T.stormT = 0; },
-    unholy(a) { T.unholy = a.t; sayP('Ярость!', '#ff4a4a'); },
+    unholy(a) { T.unholy = a.t; sayP('Кровавая жажда!', '#ff4a4a'); },
     rite(a) { T.rite = a.t; sayP('Кровавый обряд!', '#ff4a4a'); flashAt(P.x, P.y, '255,60,60'); },
   };
   const AUTO = {   // когда срабатывают сами: только в бою, лечение Механизма — и между раундами
@@ -105,7 +105,7 @@ const ITEMFX = (() => {
     T.calm += dt;
     if (T.dash) { const d = T.dash, q = Math.min(dt, d.t); P.x += d.vx * q; P.y += d.vy * q * YK; collide(P); if ((d.t -= dt) <= 0) T.dash = null; }
     if (T.bkb > 0 || T.ward > 0) { purge(); immune(0.2); }
-    // Сфера лотоса: первое жёсткое состояние снимается и возвращается тому, кто его наложил (боссу и мини-боссу — на половину времени)
+    // Зеркальная сфера: первое жёсткое состояние снимается и возвращается тому, кто его наложил (боссу и мини-боссу — на половину времени)
     if (has('lotus') && !(RCD.lotus > 0) && hard()) {
       const s = P.ss, k = SK.S, im = Math.max(s.stun, s.freeze, k.bind, k.pin, k.sleep || 0, rooted()), si = Math.max(s.silence, k.hex);
       const e = T.src && now() - T.src.at < 4 && live(T.src.e) ? T.src.e : SK.lastCast && now() - SK.lastCast.at < 4 && live(SK.lastCast.e) ? SK.lastCast.e : null;
@@ -115,10 +115,10 @@ const ITEMFX = (() => {
         if (im > 0) e.stunT = Math.max(e.stunT || 0, Math.max(0.3, im * h)); if (si > 0) e.silT = Math.max(e.silT || 0, si * h); if (!(im > 0) && !(si > 0)) e.stunT = Math.max(e.stunT || 0, 0.5 * h);
         ZAPS.push({ pts: [{ x: P.x, y: P.y - CH * HS() * 0.6 }, { x: e.x, y: e.y }], t: 0, dur: 0.35 }); GLOWS.push({ x: e.x, y: e.y, col: '255,150,210', t: 0, dur: 0.5, R: 90, im: 'lotus_reflect', S: 150 }); tagE(e, 'отражено!', '#ffb0e0'); snd('hit', 0.3, 1.5); }
     }
-    // Сфера Линкена: первое жёсткое состояние снимается; вокруг героя — золотая вспышка щита (картинку рисует Клауди)
+    // Сфера оберега: первое жёсткое состояние снимается; вокруг героя — золотая вспышка щита (картинку рисует Клауди)
     if (has('linken') && !(RCD.linken > 0) && hard()) { purge(); T.ward = ALL.linken.pas.linken.imm; immune(T.ward); RCD.linken = ALL.linken.pas.cd; relicFlash('linken'); T.linkenF = 1.5;
       GLOWS.push({ x: P.x, y: P.y, col: '255,215,120', t: 0, dur: 0.7, R: 150, im: 'linken_block', hero: 1 }); click('linken'); }
-    const cm = pas('calm');   // Сердце Тарраска: 5 с без урона — +2 % здоровья в секунду
+    const cm = pas('calm');   // Сердце великана: 5 с без урона — +2 % здоровья в секунду
     if (cm && T.calm >= cm.after && P.hp < P.maxHp) { const h = cm.pct * P.maxHp * dt; P.hp = Math.min(P.maxHp, P.hp + h); T.calmAcc = (T.calmAcc || 0) + h; if ((T.calmT = (T.calmT || 0) + dt) >= 1) { say(P.x, P.y - CH * HS() * 1.1, '+' + Math.round(T.calmAcc), '#7dff8a'); T.calmT = 0; T.calmAcc = 0; } }
     for (const id of new Set(SHOP.bag)) {
       const au = ALL[id] && ALL[id].pas && ALL[id].pas.aura; if (!au) continue;
@@ -152,7 +152,7 @@ const ITEMFX = (() => {
     }
     if (off()) return;
     for (const id of new Set(SHOP.bag)) { const au = ALL[id] && ALL[id].pas && ALL[id].pas.aura; if (!au) continue;
-      if (au.burn) glow(P.x, P.y, au.R, au.R * YK, '255,150,60', 0.18 + 0.05 * Math.sin(t * 3));                                    // Сияние
+      if (au.burn) glow(P.x, P.y, au.R, au.R * YK, '255,150,60', 0.18 + 0.05 * Math.sin(t * 3));                                    // Солнечный клинок
       else if (au.slow && SHOP.phase === 'fight') glow(P.x, P.y, au.R, au.R * YK, '150,210,255', 0.1 + 0.03 * Math.sin(t * 2)); }   // холодная аура Шивы — чтобы было видно, что она работает
   }
   function drawOver(t) {
@@ -199,7 +199,7 @@ const ITEMFX = (() => {
   return { T, ZAPS, GLOWS, has, pas, onAtk, amp, evade, use, click, tick, purge, hard, drawGround, drawOver };
 })();
 
-// урон по герою: Аватар −30 %, Диск Эона, отсчёт «без урона» для Сердца Тарраска
+// урон по герою: Несокрушимость −30 %, Оберег рубежа, отсчёт «без урона» для Сердца Тарраска
 { const _hp = hurtPlayer;
   hurtPlayer = function (d, kind) {
     if (P.dead > 0) return;

@@ -124,7 +124,7 @@ const SK = (() => {
         rankAt = now; rankOf.set(L, now);
       }
       st.cd = ((tn && tn.cd && tn.cd[s.ph]) || s.cd) * (e.phase >= 3 ? 0.75 : 1);
-      SK.lastCast = { e, at: performance.now() / 1000 };   // кто последним начал умение (Сфера лотоса возвращает состояние ему)
+      SK.lastCast = { e, at: performance.now() / 1000 };   // кто последним начал умение (Зеркальная сфера возвращает состояние ему)
       if (s.ph) tag(e, s.ph + '!', s.col || '#ffd28a');
       if (s.pre) s.pre(e, d);   // предупреждение в момент начала замаха (v101)
       if (s.an) startAct(e, s.an, s.dur || 0.9, s.at || 0.5, () => s.cast(e, d));

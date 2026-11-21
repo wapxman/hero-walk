@@ -240,7 +240,7 @@ var NETC = { on: false };   // NETC.limboBack — вернуться из Меж
         if (v === P) { if (!(typeof LIMBO !== 'undefined' && LIMBO.on)) { P.dead = P.deadMax = 3; snd('hero_death', 0.75); } }
         else if (v && !v.hero) {
           v.dieT = 0; v.anim = 'die'; v.act = null; snd('enemy_death', v.boss ? 1 : 0.45);
-          if (e[2] === S.myId) { kills++; SHOP.onKill(v); }      // золото, сундук и фласки — тому, кто добил
+          if (e[2] === S.myId) { kills++; SHOP.onKill(v); }      // золото, сундук и склянки — тому, кто добил
         }
         else if (v) {
           v.dead = 1; snd(v.kind === 'archer' ? 'archer_death' : 'hero_death_1', 0.6);
@@ -256,7 +256,7 @@ var NETC = { on: false };   // NETC.limboBack — вернуться из Меж
         else if (sk === 2) { const tv = viewOf(a); if (tv) fx.push({ type: 'chains', e: tv, x: tv.x, y: tv.y, t: 0, dur: b / 100 + 0.45, h: (tv.ch ? tv.ch.top * tv.ch.U * (tv.sc || 1) : 170) }); snd('chains', 0.85); }
         else if (sk === 3) { zones.push({ type: 'hail', x: a, y: b, R: c, t: 3.2, tick: 1e9 }); snd('hail', 0.8); }
         else if (sk === 4) { if (ov && ov !== P) ov.ult = 1; snd('storm', 0.85); }
-        else if (sk === 5) { fx.push({ type: 'gust3', x: a, y: b, ang: c * Math.PI / 180, t: 0, dur: 900 / 1400 + 0.3 }); snd('archer_gust', 0.9); }   // Порыв ветра: полоса вперёд
+        else if (sk === 5) { fx.push({ type: 'gust3', x: a, y: b, ang: c * Math.PI / 180, t: 0, dur: 900 / 1400 + 0.3 }); snd('archer_gust', 0.9); }   // Шквал: полоса вперёд
         else if (sk === 8) { fx.push({ type: 'wave3', x: a, y: b, t: 0, dur: 0.55, R: c }); snd('archer_shield_break', 0.8); }   // взрыв щита листьев
         else if (sk === 6) snd('archer_shield_on', 0.85);
         else if (sk === 7) snd('archer_volley', 0.9);
@@ -337,7 +337,7 @@ var NETC = { on: false };   // NETC.limboBack — вернуться из Меж
   // магазин работает и в онлайне: золото и сумка — у игрока, а характеристики от предметов уходят на сервер
   const _recompute = SHOP.recompute;
   SHOP.recompute = function () { _recompute(); if (NETC.on) sendProg(); };
-  // фласки лечения, маны и холода применяет сервер; скорость и сила — бафф у игрока (уходит вместе с предметами)
+  // склянки лечения, маны и холода применяет сервер; скорость и сила — бафф у игрока (уходит вместе с предметами)
   const _use = SHOP.use;
   SHOP.use = function (id) {
     if (!NETC.on || (id !== 'heal' && id !== 'mana' && id !== 'frost')) return _use(id);

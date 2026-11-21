@@ -146,7 +146,7 @@ function say(x, y, txt, col) { texts.push({ x, y, txt, col: col || '#fff', t: 0 
 // ---------- кнопки ----------
 const BTN = [
   { id: 'atk', label: 'Огонь', key: 'Пробел', col: '150,200,255' },
-  { id: 'q', label: 'Нова', key: 'Q', col: '120,210,255' },
+  { id: 'q', label: 'Кольцо стужи', key: 'Q', col: '120,210,255' },
   { id: 'e', label: 'Оковы', key: 'E', col: '170,230,255' },
   { id: 'f', label: 'Град', key: 'F', col: '140,180,255' },
   { id: 'r', label: 'Буря', key: 'R', col: '200,160,255' },
@@ -269,7 +269,7 @@ function cast(id) {
     zones.push({ type: 'hail', x: c.x, y: c.y, R: 250 * HS(), t: 3.2, tick: 0, mul: skDmg('f') });
     snd('hail', 0.8);
   } else if (id === 'r') {
-    const agh = typeof ITEMFX !== 'undefined' && ITEMFX.pas('agh');   // Скипетр Аганима: Буря дольше и сильнее
+    const agh = typeof ITEMFX !== 'undefined' && ITEMFX.pas('agh');   // Скипетр древних: Буря дольше и сильнее
     P.ult = 5 + 0.2 * (skLv('r') - 1) + (agh ? agh.t : 0); P.ultTick = 0; P.ultMul = skDmg('r') * (agh ? agh.k : 1);   // звук бури длится те же 5 секунд
     snd('storm', 0.85);
   }
@@ -529,7 +529,7 @@ function nextWave() {
     const nr = Math.round(n * (a.M === 1 && a.C === 1 ? 0.15 : F1 === 6 && a.W >= 4 ? 0.35 : 0.25));   // в мире 1 стрелков меньше: больше простых ближних, которые берут в кольцо (v99)
     let RNG = R.rng;
     if (F1 === 6 && a.W >= 4) RNG = ['yeti', 'v_glacierlich', 'yeti', 'v_glacierlich', 'v_icejelly'];   // мир 6: чаще Йети и Лич ледника
-    if (off && a.M === 10 && KIND.v_warlock) RNG = R.rng.concat('v_warlock');                         // мир 10: чернокнижник замка, ушедший в Бездну («Палец смерти»)
+    if (off && a.M === 10 && KIND.v_warlock) RNG = R.rng.concat('v_warlock');                         // мир 10: чернокнижник замка, ушедший в Бездну («Луч погибели»)
     for (let i = 0; i < n - nr; i++) q.push(R.mel[(wave === 1 && i < 6 ? 0 : i) % R.mel.length]);
     for (let i = 0; i < nr; i++) q.push(RNG[i % RNG.length]);
     for (let i = q.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [q[i], q[j]] = [q[j], q[i]]; }
@@ -642,7 +642,7 @@ function updateEnemy(e, dt) {
     startAct(e, 'atk', 0.5, 0.55, () => {
       if (gdist(P, e) < k.reach + 34 && P.dead <= 0) {
         const hd = rnd(k.dmg[0], k.dmg[1]) * e.dm;
-        if (typeof ITEMFX !== 'undefined' && ITEMFX.evade()) say(P.x, P.y - CH * HS(), 'уклон', '#d0e8ff');   // Бабочка
+        if (typeof ITEMFX !== 'undefined' && ITEMFX.evade()) say(P.x, P.y - CH * HS(), 'уклон', '#d0e8ff');   // Крыло ветра
         else { hurtPlayer(hd);
         if (k.leech) { e.hp = Math.min(e.max, e.hp + hd * k.leech); say(e.x, e.y - 60, '+' + Math.round(hd * k.leech), '#e05a6a'); } }   // Пиявец пьёт кровь
         snd('enemy_melee', 0.5, rnd(0.9, 1.1));
@@ -718,7 +718,7 @@ function combatUpdate(dt) {
     // смерть офлайн — в Междумирье (limbo.js); в онлайне возрождает сервер
     if (P.dead <= 0) { P.dead = 0; if (typeof LIMBO !== 'undefined' && !(window.NETC && NETC.on)) LIMBO.enter(); else { P.hp = P.maxHp; P.mp = P.maxMp; P.x = SPAWN.x; P.y = SPAWN.y; } }
   } else {
-    // своего восстановления здоровья нет (v87): только фласки, предметы, победа над боссом мира и Междумирье
+    // своего восстановления здоровья нет (v87): только склянки, предметы, победа над боссом мира и Междумирье
     P.mp = Math.min(P.maxMp, P.mp + (P.mpRegen || MP_REGEN) * (SHOP.phase === 'rest' ? 3 : 1) * dt);   // между волнами мана копится втрое быстрее
     stepT -= dt;
     if (P.moving && stepT <= 0) { snd('step', P.running ? 0.22 : 0.14, rnd(0.94, 1.06)); stepT = P.running ? 0.33 : 0.55; }
@@ -759,7 +759,7 @@ function combatUpdate(dt) {
     if (s.own === 'p') {
       for (const e of enemies) {
         if (e.hp > 0 && e !== s.hitE && gdist(s, e) < e.rad + 16 * (s.sc || 1)) {
-          // пронзающая стрела Эйры (Меткость): не смотрит на щиты и броню, летит насквозь и бьёт ещё одного врага
+          // пронзающая стрела Эйры (Верный глаз): не смотрит на щиты и броню, летит насквозь и бьёт ещё одного врага
           if (s.trueShot) P.trueShot = true;
           HIT.atk = !s.sk && !s.ill;   // снаряд обычной атаки героя: полный вампиризм и проки предметов
           try { hurtEnemy(e, s.dmg); } finally { P.trueShot = false; HIT.atk = false; }
@@ -772,7 +772,7 @@ function combatUpdate(dt) {
         }
       }
     } else if (P.dead <= 0 && gdist(s, P) < 30 * HS() && typeof ITEMFX !== 'undefined' && ITEMFX.evade()) {
-      s.left = 0; say(P.x, P.y - CH * HS(), 'уклон', '#d0e8ff');   // Бабочка: снаряд мимо
+      s.left = 0; say(P.x, P.y - CH * HS(), 'уклон', '#d0e8ff');   // Крыло ветра: снаряд мимо
     } else if (P.dead <= 0 && gdist(s, P) < 30 * HS()) {
       hurtPlayer(s.dmg); s.left = 0;
       if (s.onHitP) s.onHitP(s);

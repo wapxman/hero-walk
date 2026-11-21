@@ -1,4 +1,4 @@
-// Сохранение забега (19.11): пройденные миры и волны, текущее место, золото, сумка, фласки.
+// Сохранение забега (19.11): пройденные миры и волны, текущее место, золото, сумка, склянки.
 // Уровень героя, очки, навыки и закалка кузницы сохраняет progress.js (progSave) — здесь вызываем его вместе.
 // Сохраняем после каждого раунда, при смене мира, при выходе в меню и когда приложение уходит в фон.
 // При запуске после выбора героя открывается карта «Путь героев»: коснуться медальона — продолжить там, где
@@ -97,7 +97,7 @@ const SAVE = (() => {
   };
   if (typeof applyWorld === 'function') { const _a = applyWorld; applyWorld = function (m) { _a(m); if (wave > 0) SAVE.save(); }; }
   addEventListener('pagehide', () => { if (wave > 0) SAVE.save(); });
-  // покупки, продажи, фласки, закрытие лавки — сразу сохраняем (приложение могут закрыть в любой момент)
+  // покупки, продажи, склянки, закрытие лавки — сразу сохраняем (приложение могут закрыть в любой момент)
   const after = (o, k) => { const f = o[k]; if (typeof f !== 'function') return; o[k] = function () { const r = f.apply(this, arguments); SAVE.save(); return r; }; };
   if (typeof buyItem === 'function') { const f = buyItem; buyItem = function (id) { const r = f(id); if (r) SAVE.save(); return r; }; }
   if (typeof sellItem === 'function') { const f = sellItem; sellItem = function (i) { const r = f(i); SAVE.save(); return r; }; }
@@ -139,7 +139,7 @@ SAVE.hook();
   cf.style.cssText = 'display:none;align-items:center;justify-content:center;z-index:70;font-family:system-ui';
   cf.innerHTML = '<div class="pn" style="text-align:center;gap:2vh;display:flex;flex-direction:column;align-items:center">' +
     '<div class="pl">НОВАЯ ИГРА</div><div style="font-size:2.6vh;max-width:70vh;line-height:1.4">Начать заново? Пройденные миры, уровень героя, золото, предметы, ' +
-    'прокачка и фласки будут стёрты.</div><div style="display:flex;gap:3vh"><div class="b" data-y>Начать заново</div><div class="b" data-n>Отмена</div></div></div>';
+    'прокачка и склянки будут стёрты.</div><div style="display:flex;gap:3vh"><div class="b" data-y>Начать заново</div><div class="b" data-n>Отмена</div></div></div>';
   document.body.appendChild(cf);
   const stop = e => e.stopPropagation();
   for (const ev of ['touchstart', 'mousedown']) cf.addEventListener(ev, stop, { passive: true });

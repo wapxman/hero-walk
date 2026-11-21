@@ -1,4 +1,4 @@
-// Мелочи по плану миров (v101, 21.11): заранее раскодированные листы злодеев, подсказка про рывок, пульс кнопки фласки.
+// Мелочи по плану миров (v101, 21.11): заранее раскодированные листы злодеев, подсказка про рывок, пульс кнопки склянки.
 // Подключается последним из боевых файлов. Использует: needChar, applyWorld, CHARS, KIND, ROSTER, SKSHEETS, SK, DASH, BTN, SHOP, P, enemies, gdist.
 'use strict';
 (() => {
@@ -98,7 +98,7 @@
     if (hintT > 0 && (hintT -= dt) <= 0 && el) el.classList.remove('on');
     if ((acc += dt) < 0.2) return; acc = 0;
     const fight = typeof SHOP !== 'undefined' && SHOP.phase === 'fight' && P.dead <= 0 && !(typeof LIMBO !== 'undefined' && LIMBO.on);
-    // ---------- 3. Кнопка фласки пульсирует, когда здоровья половина и меньше (и фласка есть) ----------
+    // ---------- 3. Кнопка склянки пульсирует, когда здоровья половина и меньше (и склянка есть) ----------
     const fl = document.getElementById('hFlask');
     if (fl) fl.classList.toggle('low', !!(fight && P.hp <= 0.5 * P.maxHp && SHOP.flasks.heal > 0));
     if (seen || !fight || typeof DASH === 'undefined' || (window.NETC && NETC.on) || P.cd.dash > 0 || DASH.why()) return;

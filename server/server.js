@@ -58,7 +58,7 @@ const HERO = {
 const PVP_DMG = 0.5;   // в дуэли урон по герою вдвое меньше, чтобы бой не кончался за секунды
 const SHOT_KIND = { ice: 1, arrow: 2, fire: 3, bolt: 4 };
 const SKILL = { nova: 1, chains: 2, hail: 3, storm: 4, gust: 5, shield: 6, volley: 7, burst: 8 };
-// Эйра (v85): Меткость — пока ни один враг не ближе 350: урон, дальность и пронзающие стрелы. Флаг уходит клиенту в p.focus.
+// Эйра (v85): Верный глаз — пока ни один враг не ближе 350: урон, дальность и пронзающие стрелы. Флаг уходит клиенту в p.focus.
 const markK = p => p.focus > 0 ? 1.12 + 0.02 * (skLv(p, 'r') - 1) : 1;
 const markRange = p => p.focus > 0 ? 1.10 + 0.01 * (skLv(p, 'r') - 1) : 1;
 // щит листьев лопнул или кончился: взрыв R 320 — урон, равный поглощённому, но не меньше 80
@@ -91,7 +91,7 @@ const hostile = (a, b) => a.team !== b.team;
 const alive = e => e.hp > 0 && !(e.dead > 0);
 
 // ---------- герой игрока ----------
-// характеристики: уровень, очки и предметы сумки (it — сумма предметов и действующие фласки, как SHOP.recompute)
+// характеристики: уровень, очки и предметы сумки (it — сумма предметов и действующие склянки, как SHOP.recompute)
 function heroStats(p) {
   const s = p.prog, st = s.st, h = HERO[p.kind], it = s.it;
   p.dmgMul = (1 + it.dmg) * (it.pow ? 1.5 : 1) * (1 + 0.015 * (s.lvl - 1)) * (1 + 0.006 * st.str);
@@ -254,7 +254,7 @@ function cast(r, p, id) {
   } else {
     const fk = markK(p);
     if (id === 'q') {
-      // Порыв ветра: полоса вперёд 900, ширина 140 → 320 — урон, немота, отброс от Эйры (чем ближе, тем дальше)
+      // Шквал: полоса вперёд 900, ширина 140 → 320 — урон, немота, отброс от Эйры (чем ближе, тем дальше)
       const t0 = nearest(r, p, 1100);
       let gx = p.face.x, gy = p.face.y;
       if (t0) { gx = t0.x - p.x; gy = (t0.y - p.y) / YK; const m = Math.hypot(gx, gy) || 1; gx /= m; gy /= m; p.row = runRow(t0.x - p.x, t0.y - p.y); }
@@ -636,7 +636,7 @@ function step(r) {
     if (p.kb) { const q = Math.min(DT, p.kb.t); p.x += p.kb.vx * q; p.y += p.kb.vy * q; p.kb.t -= DT; NET.collide(p); p.x = NET.qpos(p.x); p.y = NET.qpos(p.y); if (p.kb.t <= 0) p.kb = null; }
     if (p.shieldT > 0) { p.shieldT -= DT; if (p.shieldT <= 0) { if (p.kind === 'archer') shieldBurst(r, p); else p.shield = 0; } }
     if (p.kind === 'archer') {
-      p.focus = alive(p) && !targetsOf(r, p).some(e => gdist(p, e) < 350) ? 1 : 0;   // Меткость работает, пока враг не подошёл
+      p.focus = alive(p) && !targetsOf(r, p).some(e => gdist(p, e) < 350) ? 1 : 0;   // Верный глаз работает, пока враг не подошёл
       const v = p.volley;
       if (v && !alive(p)) p.volley = null;
       else if (v) {

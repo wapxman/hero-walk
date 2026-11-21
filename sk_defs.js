@@ -5,7 +5,7 @@
   const { F, img, proj, beam, line, mark, ring, ground, groundImg, zone, MOV, S, bind, pin, stun, hex, poisonStack, DEF, ON_HIT, dist, dirTo2, tag, cre, drawCre } = SK;
   const now = () => performance.now() / 1000;
   // v101, первый круг: жёсткие состояния босса не идут цепочкой — новое оглушение или безмолвие не раньше, чем через gap секунд
-  // после конца прошлого (Владыка Пепла: «Пепельная мгла» + «Рок» + «Удар магмой» убивали героя без предметов и рывка)
+  // после конца прошлого (Владыка Пепла: «Пепельная мгла» + «Приговор Пепла» + «Удар магмой» убивали героя без предметов и рывка)
   const ccFree = (e, gap) => !FIRST() || (now() > (e.ccEnd || 0) + (gap == null ? 2 : gap) && !(P.ss.stun > 0) && !(P.ss.silence > 0));
   const ccSet = (e, t) => { e.ccEnd = now() + t; };
   // замедление, которое слабеет до нуля за t секунд (k — начальная доля скорости)
@@ -104,13 +104,13 @@
   ];
 
   // ===================== Мир 1: Королевский замок =====================
-  // Чёрный Рыцарь: + Багровая кара, Вызов на поединок, Жажда битвы, Призрачная конница (щит и таран — как были)
+  // Чёрный Рыцарь: + Багровая кара, Поединок чести, Жажда битвы, Призрачная конница (щит и таран — как были)
   const HORSE = cre('b_blackknight', 'bk_horse');
   DEF.b_blackknight = [
     { ph: 'Багровая кара', col: '#ff5a5a', cd: 10, first: 2, an: 'bk_chaos_cast', dur: 0.8, at: 0.55,
       cast(e) { proj(e, { img: F('b_blackknight', 'bk_chaos'), sp: 600, left: 1200, w: 90, size: 130,
         onHit() { const k = Math.random(); hurtPlayer((30 + 60 * k) * e.dm); stun(1 + 1.5 * Math.random()); } }); } },
-    { ph: 'Вызов на поединок', col: '#ffd95e', cd: 14, first: 4.5, an: 'bk_call_cast', dur: 0.9, at: 0.5,
+    { ph: 'Поединок чести', col: '#ffd95e', cd: 14, first: 4.5, an: 'bk_call_cast', dur: 0.9, at: 0.5,
       cast(e) {   // круг 520: 2 с герой сам идёт к рыцарю и бьёт его; рыцарь 3 с в золотой броне (−40 % урона)
         groundImg(F('b_blackknight', 'bk_call'), e.x, e.y, 520, 1.2, { grow: 0.5 });
         e.dr = 3; MOV.push({ t: 0, dur: 3, update: (m, dt) => { e.dr = Math.max(0, e.dr - dt); } });
@@ -370,8 +370,8 @@
     { ph: 'Прыгучая горлянка', col: '#ffd95e', cd: 14, first: 5, an: 'tw_gourd_cast', dur: 0.8, at: 0.55, can: (e, d) => d < 800,
       cast(e) { SK.bounce(e, F('toadwitch', 'tw_gourd'), 650, 4, () => { hurtPlayer(20 * e.dm); stun(0.6); }, 10); } },
   ];
-  // Болотный упырь: Рваные раны — герой медленнее, злодеи лечатся от ударов по нему
-  DEF.bogghoul = [{ ph: 'Рваные раны', col: '#ff5a5a', cd: 12, first: 2, an: 'bg_cast', dur: 0.7, at: 0.6, can: (e, d) => d < 140,
+  // Болотный упырь: Гнилой укус — герой медленнее, злодеи лечатся от ударов по нему
+  DEF.bogghoul = [{ ph: 'Гнилой укус', col: '#ff5a5a', cd: 12, first: 2, an: 'bg_cast', dur: 0.7, at: 0.6, can: (e, d) => d < 140,
     cast(e) { if (dist(P, e) > 160) return; S.wounds = 5; mark({ img: F('bogghoul', 'bg_wounds'), dur: 5, at: SK.HEAD() * 0.55, size: 110, until: () => S.wounds <= 0 }); } }];
   // злодеи, бьющие героя с ранами, лечатся на 30 % нанесённого урона
   { const _hp = hurtPlayer; hurtPlayer = function (d, kind) { const hp0 = P.hp; _hp(d, kind); if (SK.S.wounds > 0 && !kind) { const near2 = enemies.find(o => o.dieT == null && SK.dist(o, P) < 160); if (near2) near2.hp = Math.min(near2.max, near2.hp + (hp0 - P.hp) * 0.3); } }; }
@@ -476,7 +476,7 @@
       MOV.push({ t: 0, dur: 2.1, update(m, dt) { held = m.t; glow.size = 60 + 70 * m.t; } });
       SK.channelFn(e, 'pk_cast', 2, { breakHits: 1, stop: fire }); } }];
   // ===================== Мир 8: Огненный вулкан (бес, пёс, культисты, призрак — как в мире 2) =====================
-  // Владыка Пепла: + Пепельная мгла, Выжженная земля, Удар магмой (пассив), Рок
+  // Владыка Пепла: + Пепельная мгла, Выжженная земля, Удар магмой (пассив), Приговор Пепла
   DEF.b_ashlord = [
     { ph: 'Пепельная мгла', col: '#8a8a8a', cd: 9, first: 2, an: 'al_void_cast', dur: 0.8, at: 0.55, can: (e, d) => d < 900,
       cast(e) { proj(e, { img: F('b_ashlord', 'al_void'), sp: 650, left: 1000, w: 90, size: 140, onHit() { hurtPlayer(40 * e.dm); if (ccFree(e)) { stun(0.8); ccSet(e, 0.8); } slowHero(0.5, 3); } }); } },
@@ -484,14 +484,14 @@
       cast(e) { ground({ img: SK.img(F('b_ashlord', 'al_scorch')), x: e.x, y: e.y, R: 300, dur: 10, follow: e, a: 0.8, rot: 0.1 });
         if (!e.scorchSp) { e.scorchSp = e.speed; e.speed *= 1.2; MOV.push({ t: 0, dur: 10, update(m, dt) { if (m.t + dt >= m.dur) { e.speed = e.scorchSp; e.scorchSp = 0; } } }); }
         zone({ x: e.x, y: e.y, R: 300, dur: 10, tick: 1, follow: e, onTick: () => hurtPlayer(10 * e.dm, 'fire'), update(z, dt) { e.hp = Math.min(e.max, e.hp + e.max * 0.01 * dt); } }); } },
-    { ph: 'Рок', col: '#ff3a1a', cd: 25, first: 8, an: 'al_doom_cast', dur: 0.9, at: 0.6, can: (e, d) => d < 900 && ccFree(e, 2),
+    { ph: 'Приговор Пепла', col: '#ff3a1a', cd: 25, first: 8, an: 'al_doom_cast', dur: 0.9, at: 0.6, can: (e, d) => d < 900 && ccFree(e, 2),
       cast(e) {
         const doom = () => { P.ss.rshield = 0; if (typeof P.shield === 'number') P.shield = 0; STATUS.add('silence', 6); ccSet(e, 6);
           mark({ img: F('b_ashlord', 'al_doom'), dur: 6, size: 130, every: 1, tick: () => hurtPlayer(15 * e.dm, 'fire') }); };
         if (!FIRST()) return doom();
         // v101, первый круг: метка «Рока» секунду растёт над героем — можно уйти от Владыки дальше 600 или проскочить рывком
-        const m = mark({ img: F('b_ashlord', 'al_doom'), dur: 1, size: 60 }); MOV.push({ t: 0, dur: 1, update(q) { m.size = 60 + 90 * Math.min(1, q.t); } }); SK.say2('Рок близко!', '#ff3a1a');
-        SK.later(() => { if (e.dieT != null || P.dead > 0) return; if (P.dashI > 0 || dist(P, e) > 600) { SK.say2('Рок прошёл мимо', '#b9ffcf'); return; } doom(); }, 1000); } },
+        const m = mark({ img: F('b_ashlord', 'al_doom'), dur: 1, size: 60 }); MOV.push({ t: 0, dur: 1, update(q) { m.size = 60 + 90 * Math.min(1, q.t); } }); SK.say2('Приговор Пепла близко!', '#ff3a1a');
+        SK.later(() => { if (e.dieT != null || P.dead > 0) return; if (P.dashI > 0 || dist(P, e) > 600) { SK.say2('Приговор Пепла прошёл мимо', '#b9ffcf'); return; } doom(); }, 1000); } },
   ];
   ON_HIT.b_ashlord = (e, n) => { if (n % 3) return; hurtPlayer(35 * e.dm, 'fire'); if (!ccFree(e)) return; stun(1); ccSet(e, 1); mark({ img: F('b_ashlord', 'al_bash'), dur: 0.6, at: SK.HEAD() * 0.5, size: 150 }); };
   // Саламандра-воин: Обсидиановая клетка
@@ -506,7 +506,7 @@
       cast(e) { if (dist(P, e) > 160) return; hurtPlayer(35 * e.dm); stun(1.5); mark({ img: F('salamander', 'sl_bash'), dur: 0.6, at: SK.HEAD() * 0.5, size: 150 }); } },
   ];
   // ===================== Мир 9: Небесный храм =====================
-  // Небесный Судья: + Страж из света, Сияние, Неприкосновенный (пассив), Ангел-хранитель
+  // Небесный Судья: + Страж из света, Сияние, Неприкосновенный (пассив), Небесный покров
   const SJ = SKSHEETS.b_skyjudge && SKSHEETS.b_skyjudge.a;
   if (SJ && SJ.spirit_float) {
     creChar('sk_spirit', { run: SJ.spirit_float, idle: SJ.spirit_float, atk: SJ.spirit_attack, die: SJ.spirit_float }, 1.8);
@@ -520,7 +520,7 @@
     { ph: 'Сияние', col: '#fff3c4', cd: 16, first: 5,
       cast(e) { e.untarget = 4; e.nextX2 = 1; mark({ img: F('b_skyjudge', 'sj_realm'), on: e, at: e.ch.top * e.ch.U * e.sc * 0.55, dur: 4, size: 320, add: 1, until: () => !(e.untarget > 0) });
         MOV.push({ t: 0, dur: 4, update() { if (e.act && e.act.anim === 'atk') e.untarget = 0; } }); } },
-    { ph: 'Ангел-хранитель', col: '#fff3c4', cd: 30, first: 9, an: 'sj_angel_cast', dur: 0.9, at: 0.6,
+    { ph: 'Небесный покров', col: '#fff3c4', cd: 30, first: 9, an: 'sj_angel_cast', dur: 0.9, at: 0.6,
       cast(e) { e.guard = 5; mark({ img: F('b_skyjudge', 'sj_angel'), on: e, at: e.ch.top * e.ch.U * e.sc * 1.1, dur: 5, size: 520 });
         MOV.push({ t: 0, dur: 5, update(m, dt) { e.guard = Math.max(0, e.guard - dt); } }); } },
   ];
@@ -540,10 +540,10 @@
     MOV.push({ t: 0, dur: 2.1, update(m) { if (SK.dist(e, P) < 300) slowHero(0.7, 0.2); e.act && (e.act.t = 2.2 - m.t); e.untarget = 2.2 - m.t; if (m.t + 1 / 60 >= m.dur && !m.done) { m.done = 1; e.hp = e.max; e.untarget = 0; e.act = null; e.anim = 'idle'; tag(e, 'Второе рождение!', '#fff3c4'); } } });
   };
   // ===================== Мир 10: Бездна =====================
-  // Архимаг Бездны: + Тёмное исцеление, Голем Бездны, Шаровая молния, Безмолвие Бездны
+  // Архимаг Бездны: + Тёмное исцеление, Голем Бездны, Грозовой скачок, Безмолвие Бездны
   if (golemChar('sk_golem_void', 'b_voidmage', 'golem_void_', 2.4)) KIND.sk_golem_void = { nm: 'Голем Бездны', ch: 'sk_golem_void', mel: 1, hp: 800, rad: 34, speed: 110, dmg: [30, 38], cd: 1.4, reach: 90, xp: 12, gold: 8, col: '#3a1a5a', sc: 1, pw: 1, life: 25 };
   DEF.b_voidmage = [
-    { ph: 'Шаровая молния', col: '#c9a8ff', cd: 12, first: 2, an: 'vm_ball_cast', dur: 0.6, at: 0.6, can: (e, d) => d < 900,
+    { ph: 'Грозовой скачок', col: '#c9a8ff', cd: 12, first: 2, an: 'vm_ball_cast', dur: 0.6, at: 0.6, can: (e, d) => d < 900,
       cast(e) { const [dx, dy, d] = dirTo2(e, P), tx = P.x + dx * 200, ty = P.y + dy * 200 * YK; let hit = false; e.untarget = 9; e.ball = 1;
         e.skMove = dt => { const [ux, uy, dd] = dirTo2(e, { x: tx, y: ty }), st = 1100 * dt; if (dd < st) { e.x = tx; e.y = ty; collide(e); e.skMove = null; e.untarget = 0; e.ball = 0; return; }
           e.x += ux * st; e.y += uy * st * YK; if (!hit && SK.dist(e, P) < 120) { hit = true; hurtPlayer(40 * e.dm); } }; } },
