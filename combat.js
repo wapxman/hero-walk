@@ -441,9 +441,13 @@ function drawHero() {
   if (RS && ((P.act && P.act.anim === 'atk') || (!P.act && P.rsUntil > P.heroT && (held.key || held.touch || held.mouse || held.pad)))) {
     if (P.act) { P.rsUntil = P.heroT + 0.7; if (P.act.row != null) P.rsRow = P.act.row; else P.rsRow = row; }
     anim = 'runshoot'; row = P.rsRow != null ? P.rsRow : row;
+    if (P.act && P.act !== P.rsAct) { P.rsAct = P.act; P.rsShot = P.heroT; }   // стрела вылетает в начале выстрела
     fi = Math.floor(P.heroT / ms('run') * (P.running ? 1 : 0.8)) % frames(c, 'runshoot');
     const v = inputVector(), ang = (90 + 45 * row) * Math.PI / 180;
-    if (v.m > 0.12 && (v.ax * Math.cos(ang) + v.ay * Math.sin(ang)) / v.m < -0.3) fi = frames(c, 'runshoot') - 1 - fi;
+    if (v.m > 0.12 && (v.ax * Math.cos(ang) + v.ay * Math.sin(ang)) / v.m < -0.3) fi = frames(c, 'runshoot') - 1 - fi;   // спиной вперёд: лук всё время на цель
+    // v102: бежит к цели или вбок — лист с полным выстрелом (runrel): кадр 0 в момент вылета стрелы, дальше рука к колчану, стрела,
+    // натяг; последние кадры (натяг) держатся до следующего выстрела
+    else if (HERO.mul.runrel) { anim = 'runrel'; fi = Math.max(0, Math.min(frames(c, 'runrel') - 1, Math.floor((P.heroT - (P.rsShot || 0)) / ms('runrel')))); }
   }
   else if (P.act || P.dead > 0) {}
   else if (P.moving) { anim = 'run'; fi = M ? Math.floor(P.heroT / ms('run') * (P.running ? 1 : 0.8)) % frames(c, 'run') : Math.floor(P.heroT * (P.running ? 9.5 : 7.5)) % 8; }

@@ -8,7 +8,7 @@
 const EIRA_ROW = (at, n, ms, rows) => ({ at: 'eira_' + at, n, ms, rows: rows || 8, foot: 344 });
 const ARCHER = { k: 0.8625, mul: { idle: EIRA_ROW('idle', 4, 230), run: EIRA_ROW('run', 6, 90), atk: EIRA_ROW('attack', 6, 85),
   wave: EIRA_ROW('wave', 6, 90), volley: EIRA_ROW('volley', 6, 95), shield: EIRA_ROW('shield', 6, 110), die: EIRA_ROW('death', 6, 170, 1),
-  runshoot: EIRA_ROW('runshoot', 6, 90) } };   // v101: бег со стрельбой — ноги бегут, лук натянут (лист Клауди); играет вместо стоячей атаки, пока Эйра бежит
+  runshoot: EIRA_ROW('runshoot', 6, 90), runrel: EIRA_ROW('runrel', 6, 100) } };   // runrel (v102): полный выстрел на бегу — выпуск, рука к колчану, стрела, натяг   // v101: бег со стрельбой — ноги бегут, лук натянут (лист Клауди); играет вместо стоячей атаки, пока Эйра бежит
 
 // hp — запас здоровья, range — дальность выстрела, cd — перезарядка скиллов, mana — их цена
 const HEROES = {
