@@ -10,7 +10,7 @@ const DASH = (function () {
   const D = { dist: 250, dur: 0.18, inv: 0.25, cd: 6 };
   const ICON = new Image(); ICON.src = 'ui/status/dash.webp' + V;
   const off = () => !!(window.NETC && NETC.on) || (typeof LIMBO !== 'undefined' && LIMBO.on);
-  BTN.push({ id: 'dash', label: 'Рывок', key: 'C', col: '255,220,140' });
+  BTN.push({ id: 'dash', label: 'Рывок', key: '⇧', col: '255,220,140' });   // v101: на клавиатуре — Shift (на C открывалось окно героя, и рывок с клавиши не работал)
   BTN_POS.dash = [48, 172, 33]; SK_CELL.dash = -9; CDMAX.dash = D.cd; MANA.dash = 0; P.cd.dash = 0;
   GANFAUL.mul.dash = GF_ROW('dash', 6, 45); ARCHER.mul.dash = EIRA_ROW('dash', 6, 45);
   // листы героя уже могли начать грузиться (loadMul идёт по списку один раз) — лист рывка догружаем сами
@@ -41,7 +41,7 @@ const DASH = (function () {
   {
     const _cast = cast;
     cast = function (id) { if (id === 'dash') return go(); return _cast(id); };
-    addEventListener('keydown', e => { if (e.code === 'KeyC' && !e.repeat) cast('dash'); });
+    addEventListener('keydown', e => { if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && !e.repeat) cast('dash'); });
     // кнопки в онлайне и в Междумирье нет
     const _lb = layoutButtons;
     layoutButtons = function () { _lb(); if (off()) { const b = BTN.find(b => b.id === 'dash'); b.x = b.y = -9999; } };

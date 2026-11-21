@@ -131,7 +131,8 @@
     { ph: 'Королевское копьё', col: '#ffd95e', cd: 12, an: 'cast1', dur: 0.7, at: 0.5, can: (e, d) => d < 900,
       cast(e) { proj(e, { img: V1(e), sp: 1100, left: 900, w: 100, size: 150,
         onHit(p) { hurtPlayer(60 * e.dm); const w = wallAhead(p.dx, p.dy, Math.max(60, p.left));
-          if (w > 0) { push(p.dx, p.dy, Math.max(0, w - 20), 0.2); stun(1.6); say2('пригвождён!', '#ffd95e'); } else { push(p.dx, p.dy, Math.min(p.left, 320), 0.3); stun(0.4); } } }); } },
+          const s1 = SOFT1();   // v101: в мире 1 на первом круге копьё только отталкивает — первое оглушение в игре ждёт в мире 2
+          if (w > 0) { push(p.dx, p.dy, Math.max(0, w - 20), 0.2); if (!s1) { stun(1.6); say2('пригвождён!', '#ffd95e'); } } else { push(p.dx, p.dy, Math.min(p.left, 320), 0.3); if (!s1) stun(0.4); } } }); } },
     { ph: 'Рыцарский круг', col: '#ffd95e', cd: 20, first: 6, an: 'cast2', dur: 0.8, at: 0.5, can: (e, d) => d < 380,
       cast(e) { const c = { x: e.x, y: e.y, R: 420 }; ring({ img: V2(e), x: c.x, y: c.y, R: 420, dur: 5.5, delay: 0.5 });
         MOV.push({ t: 0, dur: 5.5, acc: 0, update(m, dt) { if (m.t < 0.5) return;
@@ -195,7 +196,7 @@
   DEF.mb_crocodile = [
     { ph: 'Бросок из трясины', col: '#8a9a5a', cd: 11, can: (e, d) => d > 250 && d < 1000,
       cast(e) { const d0 = dist(P, e); charge(e, { an: 'cast1', wind: 1, sp: 950, turn: 0, max: Math.max(600, Math.min(1000, d0 + 150)), time: 1.3,
-        onHit(dx, dy) { hurtPlayer(45 * e.dm); stun(0.8); push(-dy, dx, 150, 0.25); } }); } },
+        onHit(dx, dy) { hurtPlayer(45 * e.dm); if (!FIRST()) stun(0.8); push(-dy, dx, 150, 0.25); }   /* v101: на первом круге у крокодила одно оглушение — «Костолом» */ }); } },
     { ph: 'Костолом', col: '#ff8a5a', cd: 16, first: 5, can: (e, d) => d < 170,
       cast(e) { stun(2.2); say2('схвачен!', '#ff8a5a'); let n = 0;
         channel(e, 'cast2', 2.2, { breakPct: 0.1, tick(dt, t) { if (n < 3 && t >= 0.5 + 0.7 * n) { n++; hurtPlayer(25 * e.dm); groundImg(V2(e), P.x, P.y, 220, 0.5); snd('boss_slam', 0.7, 1.1); } },

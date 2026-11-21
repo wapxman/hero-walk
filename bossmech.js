@@ -5,7 +5,7 @@
 'use strict';
 const BM = { zones: [], snakes: [], smoke: [], mirrors: [] };
 const vfxOf = (e, i) => e.ch.vfx && e.ch.vfx[i] ? e.ch.vfx[i].img : null;
-const bossCd = e => e.phase >= 3 ? 0.65 : e.phase >= 2 ? 0.82 : 1;
+const bossCd = e => (e.phase >= 3 ? 0.65 : e.phase >= 2 ? 0.82 : 1) * ((tune1(e) || {}).cdk || 1);
 // зона на земле: картинка, урон/эффект пока герой внутри (tick), тянет к центру (pull)
 function gzone(o) { BM.zones.push(Object.assign({ t: 0, dur: 4, tick: 0.5, acc: 0, R: 120, a: 0 }, o)); }
 // дым: облака дыма живут 8 с (SMOKE для Ока Ясности)
@@ -25,7 +25,7 @@ function blackknight(e, dt, d) {
     e.mt = 7 * bossCd(e); tag(e, 'Таран!', '#ffb36a');
     leapTo(e, P.x, P.y, 0.75, 120, 38 * e.dm, 'cast2');
     const img = vfxOf(e, 1), x = P.x, y = P.y;
-    SK.later(() => { if (img) spellFx({ img, x, y, R: 120, dur: 0.8 }); if (gdist(P, { x, y }) < 140) { STATUS.add('stun', 0.6); const [dx, dy] = dirTo(e, P.x, P.y); P.x += dx * 90; P.y += dy * 90 * YK; collide(P); } }, 760);
+    SK.later(() => { if (img) spellFx({ img, x, y, R: 120, dur: 0.8 }); if (gdist(P, { x, y }) < 140) { if (!SOFT1()) STATUS.add('stun', 0.6);   /* v101: в мире 1 на первом круге «Таран» только отталкивает */ const [dx, dy] = dirTo(e, P.x, P.y); P.x += dx * 90; P.y += dy * 90 * YK; collide(P); } }, 760);
     return true;
   }
 }
@@ -177,7 +177,8 @@ function skyjudge(e, dt, d) {
   }
   if (e.lt <= 0 && d < 950) {
     e.lt = 7 * bossCd(e); tag(e, 'Небесная кара!', '#fff3a0');
-    startAct(e, 'cast2', 1.0, 0.45, () => { for (let j = 0; j < 4; j++) { const a = rnd(0, 6.283), r = j ? rnd(90, 240) : 0; warn(P.x + Math.cos(a) * r, P.y + Math.sin(a) * r * YK, 105, 1.0 + j * 0.25, 40 * e.dm, { vfx: { img: vfxOf(e, 1), R: 105, dur: 0.8 }, onHitP: () => STATUS.add('stun', 0.8) }); } });
+    startAct(e, 'cast2', 1.0, 0.45, () => { const f1 = FIRST(), a0 = rnd(0, 6.283);   // v101, первый круг: шесть ударов — один в героя и пять кольцом вокруг (раньше 4 вразброс: бот не получил от Судьи ни одного удара)
+      for (let j = 0; j < (f1 ? 6 : 4); j++) { const a = f1 ? a0 + j * 1.2566 + rnd(-0.25, 0.25) : rnd(0, 6.283), r = j ? (f1 ? rnd(170, 240) : rnd(90, 240)) : 0; warn(P.x + Math.cos(a) * r, P.y + Math.sin(a) * r * YK, 105, 1.0 + j * 0.25, 40 * e.dm, { vfx: { img: vfxOf(e, 1), R: 105, dur: 0.8 }, onHitP: () => STATUS.add('stun', 0.8) }); } });
     return true;
   }
 }

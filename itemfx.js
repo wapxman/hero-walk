@@ -87,11 +87,14 @@ const ITEMFX = (() => {
     unholy: () => P.hp < 0.35 * P.maxHp && inR(600).length > 0,
     rite: () => P.hp < 0.5 * P.maxHp && inR(600).length > 0,
   };
+  // звук срабатывания предмета (v101): магия — 2, железо, щиты и оружие — 3, остальное — 1
+  const CLICK = { bkb: 2, manta: 2, rite: 2, unholy: 2, blink: 2, shiva: 2, lotus: 2, aeon: 2, abyss: 3, storm: 3, medal: 3, linken: 3 };
+  const click = k => { if (typeof play === 'function') play('item_click_' + (CLICK[k] || 1), 1); };
   function use(id, manual) {
     const it = ALL[id], a = it && it.act;
     if (!a || off() || (RCD[id] || 0) > 0 || (manual && SHOP.paused)) return;
     if (ACT[a.kind](a, !manual) === false) return;
-    RCD[id] = a.cd; relicFlash(id);
+    RCD[id] = a.cd; relicFlash(id); click(a.kind);
   }
   // ---------- каждый кадр ----------
   function tick(dt) {
@@ -106,7 +109,7 @@ const ITEMFX = (() => {
     if (has('lotus') && !(RCD.lotus > 0) && hard()) {
       const s = P.ss, k = SK.S, im = Math.max(s.stun, s.freeze, k.bind, k.pin, k.sleep || 0, rooted()), si = Math.max(s.silence, k.hex);
       const e = T.src && now() - T.src.at < 4 && live(T.src.e) ? T.src.e : SK.lastCast && now() - SK.lastCast.at < 4 && live(SK.lastCast.e) ? SK.lastCast.e : null;
-      purge(); T.ward = ALL.lotus.pas.lotus.imm; immune(T.ward); RCD.lotus = ALL.lotus.pas.cd; relicFlash('lotus'); T.lotusF = 1.5; T.src = null;
+      purge(); T.ward = ALL.lotus.pas.lotus.imm; immune(T.ward); RCD.lotus = ALL.lotus.pas.cd; relicFlash('lotus'); click('lotus'); T.lotusF = 1.5; T.src = null;
       GLOWS.push({ x: P.x, y: P.y, col: '255,150,210', t: 0, dur: 0.6, R: 150, im: 'lotus_reflect', hero: 1 });
       if (e) { const h = rank(e) >= 2 ? 0.5 : 1;
         if (im > 0) e.stunT = Math.max(e.stunT || 0, Math.max(0.3, im * h)); if (si > 0) e.silT = Math.max(e.silT || 0, si * h); if (!(im > 0) && !(si > 0)) e.stunT = Math.max(e.stunT || 0, 0.5 * h);
@@ -114,7 +117,7 @@ const ITEMFX = (() => {
     }
     // Сфера Линкена: первое жёсткое состояние снимается; вокруг героя — золотая вспышка щита (картинку рисует Клауди)
     if (has('linken') && !(RCD.linken > 0) && hard()) { purge(); T.ward = ALL.linken.pas.linken.imm; immune(T.ward); RCD.linken = ALL.linken.pas.cd; relicFlash('linken'); T.linkenF = 1.5;
-      GLOWS.push({ x: P.x, y: P.y, col: '255,215,120', t: 0, dur: 0.7, R: 150, im: 'linken_block', hero: 1 }); snd('hit', 0.25, 1.7); }
+      GLOWS.push({ x: P.x, y: P.y, col: '255,215,120', t: 0, dur: 0.7, R: 150, im: 'linken_block', hero: 1 }); click('linken'); }
     const cm = pas('calm');   // Сердце Тарраска: 5 с без урона — +2 % здоровья в секунду
     if (cm && T.calm >= cm.after && P.hp < P.maxHp) { const h = cm.pct * P.maxHp * dt; P.hp = Math.min(P.maxHp, P.hp + h); T.calmAcc = (T.calmAcc || 0) + h; if ((T.calmT = (T.calmT || 0) + dt) >= 1) { say(P.x, P.y - CH * HS() * 1.1, '+' + Math.round(T.calmAcc), '#7dff8a'); T.calmT = 0; T.calmAcc = 0; } }
     for (const id of new Set(SHOP.bag)) {
@@ -193,7 +196,7 @@ const ITEMFX = (() => {
     if (T.linkenF > 0) L.push(['linken', { t: T.linkenF }]); if (T.lotusF > 0) L.push(['lotus', { t: T.lotusF }]);
     return L;
   };
-  return { T, ZAPS, GLOWS, has, pas, onAtk, amp, evade, use, tick, purge, hard, drawGround, drawOver };
+  return { T, ZAPS, GLOWS, has, pas, onAtk, amp, evade, use, click, tick, purge, hard, drawGround, drawOver };
 })();
 
 // урон по герою: Аватар −30 %, Диск Эона, отсчёт «без урона» для Сердца Тарраска
@@ -207,7 +210,7 @@ const ITEMFX = (() => {
     if (P.hp < hp0) F.calm = 0;
     const a = ALL.aeon.pas;
     if (solo && ITEMFX.has('aeon') && !(RCD.aeon > 0) && P.hp > 0 && P.hp < a.aeon.below * P.maxHp) {
-      F.aeon = a.aeon.t; ITEMFX.purge(); P.ss.spd = Math.max(P.ss.spd, a.aeon.spd); RCD.aeon = a.cd; relicFlash('aeon');
+      F.aeon = a.aeon.t; ITEMFX.purge(); P.ss.spd = Math.max(P.ss.spd, a.aeon.spd); RCD.aeon = a.cd; relicFlash('aeon'); ITEMFX.click('aeon');
     }
   }; }
 // враги: оглушение, порча, храбрость

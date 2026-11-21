@@ -4,6 +4,10 @@
 (() => {
   const { F, img, proj, beam, line, mark, ring, ground, groundImg, zone, MOV, S, bind, pin, stun, hex, poisonStack, DEF, ON_HIT, dist, dirTo2, tag, cre, drawCre } = SK;
   const now = () => performance.now() / 1000;
+  // v101, первый круг: жёсткие состояния босса не идут цепочкой — новое оглушение или безмолвие не раньше, чем через gap секунд
+  // после конца прошлого (Владыка Пепла: «Пепельная мгла» + «Рок» + «Удар магмой» убивали героя без предметов и рывка)
+  const ccFree = (e, gap) => !FIRST() || (now() > (e.ccEnd || 0) + (gap == null ? 2 : gap) && !(P.ss.stun > 0) && !(P.ss.silence > 0));
+  const ccSet = (e, t) => { e.ccEnd = now() + t; };
   // замедление, которое слабеет до нуля за t секунд (k — начальная доля скорости)
   function fadingSlow(k, t) { MOV.push({ t: 0, dur: t, update: m => slowHero(k + (1 - k) * (m.t / m.dur), 0.15) }); }
   // яд по времени: dm в секунду, t секунд
@@ -299,7 +303,7 @@
   SK.bounce = bounce;
   // Кабан-громила: Топот — метка вокруг, затем ударная волна с оглушением
   DEF.boarbrute = [{ ph: 'Топот', col: '#ffb36a', cd: 10, first: 2, an: 'bb_cast', dur: 1.0, at: 0.65, can: (e, d) => d < 260,
-    cast(e) { groundImg(F('boarbrute', 'bb_wave'), e.x, e.y, 260, 0.9, { grow: 0.4 }); if (dist(P, e) < 260) { hurtPlayer(35 * e.dm); stun(1.2); } } }];
+    cast(e) { groundImg(F('boarbrute', 'bb_wave'), e.x, e.y, 260, 0.9, { grow: 0.4 }); if (dist(P, e) < 260) { hurtPlayer(35 * e.dm); if (FIRST()) slowHero(0.6, 1.5); else stun(1.2); } } }];   // v101: на первом круге — замедление (оглушение у рядовых начинается с мира 5)
   // Пугало-жнец: Серп на верёвке — зацепил, тянет к себе
   DEF.scarecrow = [{ ph: 'Серп на верёвке', col: '#d9b37a', cd: 12, first: 0.8, an: 'sc_cast', dur: 0.7, at: 0.5, can: (e, d) => d < 700,
     cast(e) { proj(e, { img: F('scarecrow', 'sc_sickle'), sp: 900, left: 700, w: 80, size: 110, spin: 14, rope: e,
@@ -345,7 +349,8 @@
   // Утопленник: Водяной столб — пузыри под героем, через 0,8 с столб воды
   const TORRENT = { ph: 'Водяной столб', col: '#7ad0ff', cd: 10, first: 2, an: 'dk_torrent_cast', dur: 0.8, at: 0.5, can: (e, d) => d < 700,
     cast(e) { const x = P.x, y = P.y; warn(x, y, 140, 0.8, 0);
-      SK.later(() => { if (e.dieT != null) return; groundImg(F('drownedknight', 'dk_torrent'), x, y, 140, 1.1); if (Math.hypot(P.x - x, (P.y - y) / YK) < 150) { hurtPlayer(45 * e.dm); stun(1); SK.later(() => slowHero(0.65, 2), 1000); } }, 800); } };
+      SK.later(() => { if (e.dieT != null) return; groundImg(F('drownedknight', 'dk_torrent'), x, y, 140, 1.1); if (Math.hypot(P.x - x, (P.y - y) / YK) < 150) { hurtPlayer(45 * e.dm);
+        if (FIRST() && !e.elite) slowHero(0.65, 2); else { stun(1); SK.later(() => slowHero(0.65, 2), 1000); } } }, 800); } };   // v101: у рядового на первом круге — только замедление, оглушение осталось у капитана
   DEF.drownedknight = [TORRENT];
   DEF.el_drowned = [TORRENT];
   // Утопленник-капитан: каждый 3-й удар — дуга волны (урон ×1,5)
@@ -353,7 +358,10 @@
   // Жабья ведьма: Жабье проклятие — герой 2,5 с лягушка
   const FROG = cre('toadwitch', 'tw_frog', VK * 0.9);
   const TOADHEX = { ph: 'Жабье проклятие', col: '#b9e37a', cd: 16, first: 2.5, an: 'tw_hex_cast', dur: 0.8, at: 0.55, can: (e, d) => d < 750,
-    cast(e) { const puff = () => mark({ img: F('toadwitch', 'tw_puff'), dur: 0.6, at: SK.HEAD() * 0.5, size: 170 }); puff(); hex(2.5, FROG, 0.8); SK.say2('ты — лягушка!', '#b9e37a'); SK.later(puff, 2500); } };
+    cast(e) { const puff = () => mark({ img: F('toadwitch', 'tw_puff'), dur: 0.6, at: SK.HEAD() * 0.5, size: 170 });
+      const go = t => { puff(); hex(t, FROG, 0.8); SK.say2('ты — лягушка!', '#b9e37a'); SK.later(puff, t * 1000); };
+      // v101, первый круг: проклятие летит видимым снарядом — от него можно уйти или проскочить рывком; лягушкой герой не дольше 1,5 с
+      if (FIRST()) proj(e, { img: F('toadwitch', 'tw_puff'), sp: 520, left: 950, w: 80, size: 120, spin: 4, onHit() { if (!(P.dashI > 0)) go(1.5); } }); else go(2.5); } };
   DEF.toadwitch = [TOADHEX];
   // Жабья матрона: Ядовитый пузырь и Прыгучая горлянка
   DEF.el_witch = [
@@ -440,9 +448,13 @@
     { ph: 'Зеркальные двойники', col: '#bfe6ff', cd: 20, first: 4.5,
       cast(e) { for (const s of [-1, 1]) { const c = summon('ml_clone', e.x + s * 140, e.y); c.clone = true; c.hp = c.max = 1; c.dm = e.dm * 0.25; c.cloneT = 8; mark({ img: F('b_mirrorlord', 'ml_clones'), on: { x: c.x, y: c.y }, at: 80, dur: 0.5, size: 200, add: 1 }); } } },
     { ph: 'Обмен отражений', col: '#e6e6ff', cd: 40, first: 9, an: 'ml_sunder_cast', dur: 0.9, at: 0.6, can: e => P.hp / P.maxHp > 0.4 && P.hp / P.maxHp > e.hp / e.max,
+      // v101, первый круг: обмен видно заранее (блеск на Лорде и значок «Метка» у героя на время замаха), рывок в момент луча спасает,
+      // за один обмен герой теряет не больше TUNE1.b_mirrorlord.swap своего здоровья
+      pre(e) { if (!FIRST()) return; mark({ img: F('b_mirrorlord', 'ml_blink'), on: e, at: e.ch.top * e.ch.U * e.sc * 0.6, dur: 0.9, size: 260, add: 1 }); if (typeof HSTAT !== 'undefined') HSTAT.show('mark', 0.9); },
       cast(e) { if (P.hp / P.maxHp <= e.hp / e.max) return;
+        const cap = (tune1(e) || {}).swap; if (cap && P.dashI > 0) { SK.say2('увернулся!', '#b9ffcf'); return; }
         SK.beam(e, { img: F('b_mirrorlord', 'ml_sunder'), dur: 0.6, w: 70, from: e.ch.top * e.ch.U * e.sc * 0.6 });
-        const ph = Math.max(0.25, e.hp / e.max), pe = Math.max(0.25, P.hp / P.maxHp); P.hp = Math.max(1, P.maxHp * ph); e.hp = Math.min(e.max * pe, e.hp + e.max * 0.3); SK.say2('здоровье поменялось!', '#e6e6ff'); } },   // v91: Лорд за один обмен возвращает не больше 30 % здоровья — иначе здорового героя он не выпускал из боя никогда
+        const ph = Math.max(0.25, e.hp / e.max), pe = Math.max(0.25, P.hp / P.maxHp); P.hp = Math.max(1, P.maxHp * ph, cap ? P.hp - cap * P.maxHp : 0); e.hp = Math.min(e.max * pe, e.hp + e.max * 0.3); SK.say2('здоровье поменялось!', '#e6e6ff'); } },   // v91: Лорд за один обмен возвращает не больше 30 % здоровья — иначе здорового героя он не выпускал из боя никогда
   ];
   KIND.ml_clone = Object.assign({}, KIND.b_mirrorlord, { nm: 'Двойник', boss: 0, spells: [], xp: 0, gold: 0 }); MECH.ml_clone = () => false;
   // двойники: живут 8 с, полупрозрачные; бьются с одного удара (sk.js: e.clone)
@@ -467,16 +479,21 @@
   // Владыка Пепла: + Пепельная мгла, Выжженная земля, Удар магмой (пассив), Рок
   DEF.b_ashlord = [
     { ph: 'Пепельная мгла', col: '#8a8a8a', cd: 9, first: 2, an: 'al_void_cast', dur: 0.8, at: 0.55, can: (e, d) => d < 900,
-      cast(e) { proj(e, { img: F('b_ashlord', 'al_void'), sp: 650, left: 1000, w: 90, size: 140, onHit() { hurtPlayer(40 * e.dm); stun(0.8); slowHero(0.5, 3); } }); } },
+      cast(e) { proj(e, { img: F('b_ashlord', 'al_void'), sp: 650, left: 1000, w: 90, size: 140, onHit() { hurtPlayer(40 * e.dm); if (ccFree(e)) { stun(0.8); ccSet(e, 0.8); } slowHero(0.5, 3); } }); } },
     { ph: 'Выжженная земля', col: '#ff6a2a', cd: 20, first: 5, an: 'cast2', dur: 0.8, at: 0.5,
       cast(e) { ground({ img: SK.img(F('b_ashlord', 'al_scorch')), x: e.x, y: e.y, R: 300, dur: 10, follow: e, a: 0.8, rot: 0.1 });
         if (!e.scorchSp) { e.scorchSp = e.speed; e.speed *= 1.2; MOV.push({ t: 0, dur: 10, update(m, dt) { if (m.t + dt >= m.dur) { e.speed = e.scorchSp; e.scorchSp = 0; } } }); }
         zone({ x: e.x, y: e.y, R: 300, dur: 10, tick: 1, follow: e, onTick: () => hurtPlayer(10 * e.dm, 'fire'), update(z, dt) { e.hp = Math.min(e.max, e.hp + e.max * 0.01 * dt); } }); } },
-    { ph: 'Рок', col: '#ff3a1a', cd: 25, first: 8, an: 'al_doom_cast', dur: 0.9, at: 0.6, can: (e, d) => d < 900,
-      cast(e) { P.ss.rshield = 0; if (typeof P.shield === 'number') P.shield = 0; STATUS.add('silence', 6);
-        mark({ img: F('b_ashlord', 'al_doom'), dur: 6, size: 130, every: 1, tick: () => hurtPlayer(15 * e.dm, 'fire') }); } },
+    { ph: 'Рок', col: '#ff3a1a', cd: 25, first: 8, an: 'al_doom_cast', dur: 0.9, at: 0.6, can: (e, d) => d < 900 && ccFree(e, 2),
+      cast(e) {
+        const doom = () => { P.ss.rshield = 0; if (typeof P.shield === 'number') P.shield = 0; STATUS.add('silence', 6); ccSet(e, 6);
+          mark({ img: F('b_ashlord', 'al_doom'), dur: 6, size: 130, every: 1, tick: () => hurtPlayer(15 * e.dm, 'fire') }); };
+        if (!FIRST()) return doom();
+        // v101, первый круг: метка «Рока» секунду растёт над героем — можно уйти от Владыки дальше 600 или проскочить рывком
+        const m = mark({ img: F('b_ashlord', 'al_doom'), dur: 1, size: 60 }); MOV.push({ t: 0, dur: 1, update(q) { m.size = 60 + 90 * Math.min(1, q.t); } }); SK.say2('Рок близко!', '#ff3a1a');
+        SK.later(() => { if (e.dieT != null || P.dead > 0) return; if (P.dashI > 0 || dist(P, e) > 600) { SK.say2('Рок прошёл мимо', '#b9ffcf'); return; } doom(); }, 1000); } },
   ];
-  ON_HIT.b_ashlord = (e, n) => { if (n % 3) return; hurtPlayer(35 * e.dm, 'fire'); stun(1); mark({ img: F('b_ashlord', 'al_bash'), dur: 0.6, at: SK.HEAD() * 0.5, size: 150 }); };
+  ON_HIT.b_ashlord = (e, n) => { if (n % 3) return; hurtPlayer(35 * e.dm, 'fire'); if (!ccFree(e)) return; stun(1); ccSet(e, 1); mark({ img: F('b_ashlord', 'al_bash'), dur: 0.6, at: SK.HEAD() * 0.5, size: 150 }); };
   // Саламандра-воин: Обсидиановая клетка
   DEF.salamander = [{ ph: 'Обсидиановая клетка', col: '#ff8a3a', cd: 14, first: 2.5, an: 'sl_cage_cast', dur: 0.8, at: 0.55, can: (e, d) => d < 700,
     cast(e) { ring({ img: F('salamander', 'sl_cage'), x: P.x, y: P.y, R: 150, dur: 3 }); hurtPlayer(20 * e.dm); } }];

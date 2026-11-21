@@ -10,6 +10,20 @@ const dirTo = (e, x, y) => { const dx = x - e.x, dy = (y - e.y) / YK, m = Math.h
 // Полигон автопрогона проверяет все умения — для него смягчение выключается (window.NO_SOFT).
 const SOFT1 = () => { if (window.NO_SOFT || (window.NETC && NETC.on)) return false; const a = BAL.at(Math.max(1, wave)); return a.M === 1 && a.C === 1; };
 const SOFT1_SK = { mb_arbalest: ['Шрапнель'], mb_executioner: ['Плаха'], mb_bannerlord: ['Королевское копьё'], b_blackknight: [], tb_blackknight: [] };   // Чёрный Рыцарь: остаётся только «Таран» (bossmech.js)
+// Первый круг вне сети (v101, план по мирам 21.11): каждый мир учит одной новой вещи — часть жёстких состояний на первом круге
+// убрана или смягчена, давление боссов подогнано (TUNE1). На втором круге, в сети и в полигоне автопрогона — всё как было.
+const FIRST = m => { if (window.NO_SOFT || (window.NETC && NETC.on)) return false; const a = BAL.at(Math.max(1, wave)); return a.C === 1 && (!m || a.M === m); };
+// босс: dm — множитель урона, cdk — множитель перезарядки старых приёмов (bossmech.js), cd — перезарядка умения по имени, off — выключенные умения
+const TUNE1 = {
+  b_plaguelord: { off: ['Крысиное проклятие'], cd: { 'Чумной туман': 9, 'Угольный голем': 18 }, cdk: 0.8, dm: 1.15 },   // превращение — тема мира 4
+  b_serpentqueen: { cd: { 'Бросок гадюки': 7 }, cdk: 0.85 },   // без прибавки урона: герой без предметов на ней и так гибнет
+  b_toadking: { cd: { 'Язык-крюк': 8, 'Болотный рывок': 10, 'Щупальца трясины': 13 }, cdk: 0.75, dm: 1.15 },
+  b_frostqueen: { cd: { 'Снежный скачок': 8, 'Ледяной взрыв': 6 }, cdk: 0.8, dm: 1.15 },
+  b_mirrorlord: { swap: 0.22 },   // «Обмен отражений» за раз забирает не больше 22 % здоровья героя (было — всё до уровня босса: 95 % урона боя)
+  b_skyjudge: { cdk: 0.7, dm: 1.2 },
+  b_voidmage: { cd: { 'Шаровая молния': 8 }, cdk: 0.8, dm: 1.15 },
+};
+const tune1 = e => (FIRST() && TUNE1[e.type]) || null;
 const softRank = e => !e.boss && !e.mini && !e.elite && SOFT1();
 const headY = e => e.y - (e.ch.ok ? e.ch.top * e.ch.U * e.sc : 80) - 26;
 function tag(e, t, c) { say(e.x, headY(e), t, c || '#ffb36a'); }

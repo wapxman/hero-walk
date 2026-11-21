@@ -32,7 +32,11 @@ function setArena(m, i, quiet) {
     curGround = src;
     // пока новая картинка грузится, экран закрыт затемнением (ARENA_COVER) — старая арена не мелькает и не подменяется рывком
     const g = new Image(); ARENA_COVER.on(src);
-    g.onload = () => { if (curGround === src) { img.ground = g; ARENA_COVER.off(src); } }; g.onerror = () => ARENA_COVER.off(src); g.src = src + V;
+    // v101: картинку сначала раскодируем (decode — не в основном потоке) и только потом показываем: раньше первый кадр новой арены
+    // раскодировал её сам и давал рывок в 100–300 мс в начале раунда
+    // затемнение снимаем через пару кадров после подмены: первый показ новой арены (загрузка в видеопамять) проходит под ним
+    const use = () => { if (curGround === src) { img.ground = g; setTimeout(() => ARENA_COVER.off(src), 70); } };
+    g.onload = () => { if (g.decode) g.decode().then(use, use); else use(); }; g.onerror = () => ARENA_COVER.off(src); g.src = src + V;
     if (!quiet) { P.x = HERO_SPAWN.x; P.y = HERO_SPAWN.y; collide(P); cam.ready = false; SHOP.drops.length = 0; }
   }
 }

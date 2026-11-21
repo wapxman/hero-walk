@@ -13,7 +13,7 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 const SFX_SETS = {
   hero_shot: 2, hit: 2, step: 7, nova: 2, chains: 1, hail: 2, storm: 1, hero_death: 2, coins: 2,
   enemy_melee: 2, enemy_arrow: 2, enemy_fireball: 2, enemy_death: 2, boss_slam: 2, boss_roar: 2,
-  wave_horn: 1, flask: 1,
+  wave_horn: 1, flask: 1, item_click: 3,   // item_click (v101, Клауди): 1 — сухой «чик», 2 — с магическим подъёмом, 3 — с металлическим звоном
 };
 // минимальный промежуток между повторами, сек: частые звуки в гуще боя не сливаются в кашу
 const SND_GAP = { hit: 0.05, step: 0.1, coins: 0.08, enemy_melee: 0.06, enemy_arrow: 0.05, enemy_fireball: 0.05, enemy_death: 0.05 };
@@ -435,6 +435,17 @@ function drawHero() {
   let anim = 'idle', fi = Math.floor(P.heroT / (M ? ms('idle') : 1 / 3)) % frames(c, 'idle'), row = runRow(P.face.x, P.face.y);
   if (P.dead > 0) { anim = 'die'; const dd = Math.max(0, (P.deadMax || 3) - P.dead); fi = M ? Math.floor(dd / ms('die')) : Math.floor(dd / 0.6 * frames(c, 'die')); }
   else if (P.act) { anim = P.act.anim; fi = Math.floor(P.act.t / P.act.dur * frames(c, anim)); if (P.act.row != null) row = P.act.row; }
+  // v101, бег со стрельбой (есть лист runshoot — пока только у Эйры): на бегу вместо стоячей атаки — ноги бегут в такт обычному бегу,
+  // лук смотрит на цель; бежит от цели — кадры идут назад (бег спиной вперёд). Между выстрелами, пока атака зажата, лук не опускается.
+  const RS = M && HERO.mul.runshoot && P.dead <= 0 && P.moving;
+  if (RS && ((P.act && P.act.anim === 'atk') || (!P.act && P.rsUntil > P.heroT && (held.key || held.touch || held.mouse || held.pad)))) {
+    if (P.act) { P.rsUntil = P.heroT + 0.7; if (P.act.row != null) P.rsRow = P.act.row; else P.rsRow = row; }
+    anim = 'runshoot'; row = P.rsRow != null ? P.rsRow : row;
+    fi = Math.floor(P.heroT / ms('run') * (P.running ? 1 : 0.8)) % frames(c, 'runshoot');
+    const v = inputVector(), ang = (90 + 45 * row) * Math.PI / 180;
+    if (v.m > 0.12 && (v.ax * Math.cos(ang) + v.ay * Math.sin(ang)) / v.m < -0.3) fi = frames(c, 'runshoot') - 1 - fi;
+  }
+  else if (P.act || P.dead > 0) {}
   else if (P.moving) { anim = 'run'; fi = M ? Math.floor(P.heroT / ms('run') * (P.running ? 1 : 0.8)) % frames(c, 'run') : Math.floor(P.heroT * (P.running ? 9.5 : 7.5)) % 8; }
   ctx.save(); ctx.translate(P.x, P.y); ctx.scale(u.scale, u.scale);
   if (P.dead > 0) ctx.globalAlpha = Math.min(1, P.dead / 0.8);
@@ -485,7 +496,8 @@ function spawnEnemyBase(type) {
     slowT: 0, slowK: 1, root: 0, dot: 0, atkCd: rnd(0.3, 1.2), flash: 0, bob: rnd(0, 6), slamCd: 2, quakeCd: 7, leapCd: 4, summonCd: 9, jump: 0,
     anim: 'run', animT: rnd(0, 1), runPh: rnd(0, 1), row: 2, act: null,
   };
-  if (k.boss) { e.hp = Math.round(e.hp * BAL.bossHp(wave)); e.dm *= BAL.bossDmg(wave); }
+  if (k.boss) { e.hp = Math.round(e.hp * BAL.bossHp(wave)); e.dm *= BAL.bossDmg(wave); const tn = typeof tune1 === 'function' && tune1(e); if (tn && tn.dm) e.dm *= tn.dm; }
+  else if (!el && typeof SOFT1 === 'function' && SOFT1()) e.dm *= 0.8;   // v101: рядовые мира 1 на первом круге бьют слабее — они учат рывку, а не убивают
   if (el) { e.hp = Math.round(e.hp * BAL.ELITE.hp); e.dm *= BAL.ELITE.dmg; e.sc *= BAL.ELITE.size; e.rad *= BAL.ELITE.size; }
   e.max = e.hp;
   e.draw = () => drawEnemy(e);
@@ -506,12 +518,19 @@ function nextWave() {
   if (ROUND.fin) needChar(CHARS[KIND[ROUND.fin].ch]);
   if (a.W === 10) q.push(R.boss);
   else {
-    const n = BAL.count(wave), nr = Math.round(n * (a.M === 1 && a.C === 1 ? 0.15 : 0.25));   // в мире 1 стрелков меньше: больше простых ближних, которые берут в кольцо (v99)
+    // правки состава по плану миров (v101): только вне сети; F1 — номер мира на первом круге, иначе 0
+    const off = !(window.NETC && NETC.on), F1 = typeof FIRST === 'function' && FIRST() ? a.M : 0;
+    const n = Math.round(BAL.count(wave) * (F1 === 7 && a.W >= 4 ? 1.15 : 1));   // мир 7: волны 4–9 чуть плотнее
+    const nr = Math.round(n * (a.M === 1 && a.C === 1 ? 0.15 : F1 === 6 && a.W >= 4 ? 0.35 : 0.25));   // в мире 1 стрелков меньше: больше простых ближних, которые берут в кольцо (v99)
+    let RNG = R.rng;
+    if (F1 === 6 && a.W >= 4) RNG = ['yeti', 'v_glacierlich', 'yeti', 'v_glacierlich', 'v_icejelly'];   // мир 6: чаще Йети и Лич ледника
+    if (off && a.M === 10 && KIND.v_warlock) RNG = R.rng.concat('v_warlock');                         // мир 10: чернокнижник замка, ушедший в Бездну («Палец смерти»)
     for (let i = 0; i < n - nr; i++) q.push(R.mel[(wave === 1 && i < 6 ? 0 : i) % R.mel.length]);
-    for (let i = 0; i < nr; i++) q.push(R.rng[i % R.rng.length]);
+    for (let i = 0; i < nr; i++) q.push(RNG[i % RNG.length]);
     for (let i = q.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [q[i], q[j]] = [q[j], q[i]]; }
     // элита выходит ближе к концу волны, когда рядовые уже потрёпаны
-    for (let i = 0; i < BAL.elites(wave); i++) q.splice(Math.floor(q.length * (0.55 + 0.3 * i)), 0, R.elite[(i + wave) % R.elite.length]);
+    const ne = BAL.elites(wave) + (F1 === 10 && a.W >= 7 ? 1 : 0);   // мир 10: в волнах 7–9 элиты больше
+    for (let i = 0; i < ne; i++) q.splice(Math.floor(q.length * (0.55 + 0.3 * i)), 0, R.elite[(i + wave) % R.elite.length]);
     // мини-босс в конце каждой части мира (волны 3, 6, 9) — выходит последним
     ROUND.mini = a.W % 3 === 0 ? miniOf(R, a.W) : null;
     if (ROUND.mini) q.push(ROUND.mini);
@@ -522,11 +541,29 @@ function nextWave() {
   say(P.x, P.y - CH * 1.3 * HS(), boss ? 'Волна ' + wave + ' — БОСС МИРА' : 'Волна ' + wave + (last ? '' : '  · дальше без передышки'), boss ? '#ff9a6a' : '#ffe9a8');
   if (wave > 1 && !boss) snd('wave_horn', 0.5, 1.1);
 }
+let spawnRR = 0;
 function pickSpawn() {
+  if (typeof SOFT1 === 'function' && SOFT1() && SPAWNS.length > 1) return SPAWNS[spawnRR++ % SPAWNS.length];   // v101: в мире 1 враги заходят со всех сторон по очереди — берут в кольцо
   let s = 0; for (const p of SPAWNS) s += p.w;
   let r = Math.random() * s;
   for (const p of SPAWNS) { r -= p.w; if (r <= 0) return p; }
   return SPAWNS[0];
+}
+// Мир 4 на первом круге (v101): на арене одновременно не больше двух злодеев с оглушением или превращением и не больше одной
+// Жабьей ведьмы — иначе контроль шёл цепочкой (225 из 707 смертей бота в 100 прогонах). Лишние ведьма и элита
+// ждут своей очереди (не дольше 10 с), состав волны не меняется. Мини-босс остаётся последним в очереди.
+const HARD4 = { toadwitch: 1, el_drowned: 1, el_witch: 1, mb_crocodile: 1 };
+function takeSpawn() {
+  const q = ROUND.queue;
+  if (typeof FIRST === 'function' && FIRST(4) && HARD4[q[0]]) {
+    let hard = 0, witch = 0; for (const e of enemies) if (e.dieT == null && e.hp > 0 && HARD4[e.type]) { hard++; if (e.type === 'toadwitch') witch++; }
+    const ok = t => !HARD4[t] || (hard < 2 && !(t === 'toadwitch' && witch));
+    if (!ok(q[0])) {
+      const i = q.findIndex(ok);   // вперёд выходит первый, кому можно; если таких нет — ждём, пока место освободится
+      if (i > 0 && !(ROUND.mini && i === q.length - 1)) q.unshift(q.splice(i, 1)[0]); else if ((ROUND.hold = (ROUND.hold || 0) + 1) < 8) return null;
+    }
+  }
+  ROUND.hold = 0; return q.shift();
 }
 // выпуск врагов из очереди и переход к следующей волне раунда
 function runTick(dt) {
@@ -535,7 +572,8 @@ function runTick(dt) {
     if (ROUND.relT <= 0 && enemies.length < MAX_ALIVE) {
       const sp = pickSpawn(), n = Math.min(ROUND.queue.length, 1 + Math.floor(Math.random() * 3));
       for (let i = 0; i < n; i++) {
-        spawnEnemy(ROUND.queue.shift()); const e = enemies[enemies.length - 1];
+        const t = takeSpawn(); if (!t) break;
+        spawnEnemy(t); const e = enemies[enemies.length - 1];
         e.x = sp.x + rnd(-70, 70); e.y = sp.y + rnd(-40, 40); collide(e);
       }
       ROUND.relT = rnd(0.9, 1.8) * (enemies.length > 10 ? 1.4 : 1);

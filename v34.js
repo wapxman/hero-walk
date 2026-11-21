@@ -122,7 +122,11 @@
     cast(e) { e.act = hold('cast1', 1.25); e.skBusy = 1.2; show('mark', 1);
       const w = warn(P.x, P.y, 60, 1, 0); MOV.push({ t: 0, dur: 1, update() { w.x = P.x; w.y = P.y; } });   // перекрестие идёт за героем
       after(1, e, () => { if (P.dead > 0) return; if (dist(P, e) > 700) { tag(e, 'промах', '#c0c0c0'); return; }
-        beam(e, { img: V1(e), dur: 0.35, w: 260, add: 1 }); hurtPlayer(55 * e.dm); snd('enemy_fireball', 0.6, 0.7); }); } }];
+        beam(e, { img: V1(e), dur: 0.35, w: 260, add: 1 }); snd('enemy_fireball', 0.6, 0.7);
+        // v101: в Бездне «Палец» ещё и оглушает на 0,6 с — Сфера Линкена и Сфера лотоса, если готовы, гасят и состояние, и удар; рывок в момент удара спасает как раньше
+        const ward = BAL.at(Math.max(1, wave)).M === 10 && !(P.dashI > 0) && typeof ITEMFX !== 'undefined' && ['linken', 'lotus'].some(id => ITEMFX.has(id) && !(RCD[id] > 0));
+        if (BAL.at(Math.max(1, wave)).M === 10) { if (typeof ITEMFX !== 'undefined') ITEMFX.T.src = { e, at: performance.now() / 1000 }; stun(0.6); }
+        if (ward) SK.say2('отражено!', '#ffd95e'); else hurtPlayer(55 * e.dm); }); } }];
 
   // ===================== Мир 2: Горящая деревня =====================
   DEF.v_batrider = [Object.assign({ ph: 'Липкий напалм', col: '#ff8a3a', cd: 8, can: (e, d) => d < 600,
