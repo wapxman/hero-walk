@@ -184,5 +184,5 @@ const STORE = (() => {
       interReady: () => true, showInterstitial: () => show('inter'), rewardedReady: () => true, showRewarded: tag => show('reward', tag) };
   }
 
-  return { cb, CFG, buy, get pro() { return pro; }, get native() { return !!B; }, get busy() { return busy; }, _st: st, _reset() { lastAd = -1e9; } };
+  return { cb, CFG, buy, freeze, get pro() { return pro; }, get native() { return !!B; }, get busy() { return busy; }, _st: st, _reset() { lastAd = -1e9; } };
 })();

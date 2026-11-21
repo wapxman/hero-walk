@@ -96,7 +96,13 @@
     ['Магазин', () => { hideMain(); SHOP.openShop(); }], ['Настройки', () => openSettings()]];
   for (const [t, fn] of MENU) tap(mk('div', 'b', btns, t), fn);
   mk('div', 'ver', main, 'v' + V.replace(/\D/g, ''));
-  function showMain() { main.style.display = 'block'; sel.style.display = 'none'; }
+  // музыка главного экрана — m7; с первым боем включается следующий трек
+  const MENU_TRACK = 6; let menuMus = false;
+  function menuMusic() {
+    if (typeof mus === 'undefined' || started) return; menuMus = true;
+    if (mus.el) { if (mus.i !== MENU_TRACK) { mus.i = MENU_TRACK; musicLoad(); } } else store('hw_mus_i', MENU_TRACK);
+  }
+  function showMain() { main.style.display = 'block'; sel.style.display = 'none'; menuMusic(); }
   function hideMain() { main.style.display = 'none'; }
   // магазин из меню: после закрытия — обратно в меню, пока бой не начат
   const _close = SHOP.closeShop;
@@ -104,7 +110,7 @@
   let started = false;
   sel.querySelector('.go').addEventListener('pointerdown', () => { started = true; });
   const _start = SHOP.startWave;
-  SHOP.startWave = function () { started = true; hideMain(); return _start.apply(this, arguments); };
+  SHOP.startWave = function () { started = true; hideMain(); if (menuMus) { menuMus = false; if (mus.el && mus.i === MENU_TRACK) musicNext(); } return _start.apply(this, arguments); };
 
   // ---------- настройки ----------
   const st = mk('div', 'mn', document.body); st.id = 'mSet'; block(st);
@@ -143,12 +149,16 @@
   setTimeout(() => { bgOk = true; if (timeUp) endSplash(); }, 10000);
   function endSplash() {
     timeUp = true; if (done || (!bgOk && !auto)) return; done = true;
-    sp.style.opacity = '0'; setTimeout(() => sp.remove(), 750);
-    if (auto) sel.style.display = 'flex'; else showMain();
+    // после лого игры — лого студии и (в первый запуск) вступление: cine.js; чёрная заставка уходит, когда они кончились
+    const fin = () => { sp.style.opacity = '0'; setTimeout(() => sp.remove(), 750); if (auto) sel.style.display = 'flex'; else showMain(); };
+    if (!auto && !back2menu && typeof CINE !== 'undefined') { sp.classList.remove('on'); CINE.boot(fin); } else fin();
   }
   const logo = new Image();
   logo.onload = () => { if (!back2menu) requestAnimationFrame(() => sp.classList.add('on')); };
-  logo.src = 'ui/logo.webp' + V;
+  // лого игры: своё из заставок Клауди (cine/logo_game.png), иначе прежнее
+  const LOGO = typeof CINE_FILES !== 'undefined' && CINE_FILES['logo_game.png'] ? 'cine/logo_game.png' : 'ui/logo.webp';
+  sp.firstChild.style.backgroundImage = 'url("' + LOGO + V + '")';
+  logo.src = LOGO + V;
   sp.addEventListener('pointerdown', endSplash);
   setTimeout(endSplash, auto || back2menu ? 50 : 2600);   // после «В главное меню» — сразу меню, без логотипа
 })();

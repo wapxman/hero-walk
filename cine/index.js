@@ -1,0 +1,2 @@
+// список заставок — пишет tools/cine_install.py, руками не править
+const CINE_FILES = {"logo_game.png": 1, "logo_paladium.mp4": 1, "intro.mp4": 1, "world_01": {"n": 3, "vo": 0}, "world_02": {"n": 3, "vo": 0}, "world_03": {"n": 3, "vo": 0}, "world_04": {"n": 3, "vo": 0}, "world_05": {"n": 3, "vo": 0}, "world_06": {"n": 3, "vo": 0}, "world_07": {"n": 3, "vo": 0}, "world_08": {"n": 3, "vo": 0}, "world_09": {"n": 3, "vo": 0}, "world_10": {"n": 3, "vo": 0}, "finale": {"n": 3, "vo": 0}};

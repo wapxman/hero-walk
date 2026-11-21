@@ -1,0 +1,206 @@
+// Заставки и рассказ (v108). Проигрыватель; сами картинки, видео и голос делает Клауди и кладёт в
+// night_19_11/cinema/game/, оттуда их переносит в игру tools/cine_install.py (папка cine/ и список cine/index.js).
+//   запуск:      лого игры (cine/logo_game.png) → лого студии (cine/logo_paladium.mp4) → [первый запуск: cine/intro.mp4] → главное меню
+//   «История»:   кнопка в главном меню — вступление ещё раз
+//   перед миром: при первом входе в мир N — cine/world_NN/1.webp, 2.webp, (3.webp) с медленным наездом и панорамой,
+//                голос cine/world_NN/vo.mp3 и субтитры cine/world_NN/text.json
+//   финал:       после босса мира 10 — cine/finale/ (то же устройство, что у мира; можно ещё finale.mp4)
+// Везде кнопка «Пропустить»; игра на это время стоит, музыка притушена (под видео — выключена).
+// text.json: { "lines": [ { "t": 0, "text": "…" }, { "t": 4.5, "text": "…" } ] } — t в секундах от начала голоса;
+// строка стоит на экране до следующей. Без голоса кадр держится CFG.slideSec секунд.
+// Проверка: ?cine=1 — показывать и под автопрогоном; CINE.reset() в консоли — забыть, что уже показано.
+'use strict';
+const CINE = (() => {
+  const CFG = { slideSec: 7, logoSec: 2.6, duckVoice: 0.25, fade: 0.9 };
+  const M = (typeof CINE_FILES !== 'undefined' && CINE_FILES) || {};      // что реально лежит в cine/ (пишет cine_install.py)
+  const FORCE = /[?&]cine=1/.test(location.search);
+  const OFF = !FORCE && (!!navigator.webdriver || /[?&](mode|auto)=/.test(location.search));   // автопрогон и ссылки проверки — без заставок
+  const KEY = 'hw_cine';
+  let seen = {}; try { seen = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {}
+  const mark = k => { seen[k] = 1; try { localStorage.setItem(KEY, JSON.stringify(seen)); } catch (e) {} };
+  const url = p => 'cine/' + p + (typeof V === 'string' ? V : '');
+  const online = () => !!((window.NETC && NETC.on) || (typeof TEAM !== 'undefined' && TEAM.on));
+  let on = false, duck = null, frozen = false;
+
+  // музыка: пока идёт заставка, громкость держим сами
+  if (typeof musicUpdate === 'function') {
+    const _mu = musicUpdate;
+    musicUpdate = function () {
+      if (duck == null || !mus.el || !mus.g || !AC) return _mu();
+      const v = MUS_VOL * duck; if (mus.v != null && Math.abs(v - mus.v) < 0.004) return;
+      mus.v = v; mus.g.gain.setTargetAtTime(v, AC.currentTime, 0.25);
+    };
+  }
+  function setDuck(v) {
+    duck = v;
+    try { if (v != null && mus.g && AC) { mus.v = MUS_VOL * v; mus.g.gain.setTargetAtTime(mus.v, AC.currentTime, 0.25); } } catch (e) {}
+  }
+  function freeze(f) {
+    if (f === frozen || typeof STORE === 'undefined') return;      // пауза — общим счётчиком store.js: её не снимут меню, карта и загрузка арены
+    frozen = f; STORE.freeze(f);
+  }
+
+  const css = document.createElement('style');
+  css.textContent = `
+  #cine { position: fixed; inset: 0; z-index: 80; background: #000; display: none; overflow: hidden; opacity: 0; transition: opacity .6s; }
+  #cine.on { opacity: 1; }
+  #cine video, #cine .sl { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #cine video { object-fit: contain; background: #000; }
+  #cine .sl { background: center / cover no-repeat; opacity: 0; transition: opacity ${CFG.fade}s; will-change: transform, opacity; }
+  #cine .sl.on { opacity: 1; }
+  #cine .lg { position: absolute; inset: 0; background: center / contain no-repeat; margin: 12vh 20vw; opacity: 0; transform: scale(.94); transition: opacity 1s, transform 2.6s ease-out; }
+  #cine .lg.on { opacity: 1; transform: scale(1); }
+  #cine .sub { position: absolute; left: 8vw; right: 8vw; bottom: 7vh; text-align: center; color: #fff; font: 3.6vh/1.35 Georgia, 'Times New Roman', serif;
+    text-shadow: 0 0 .8vh #000, 0 .2vh .4vh #000, 0 0 2vh #000; opacity: 0; transition: opacity .35s; pointer-events: none; }
+  #cine .sub.on { opacity: 1; }
+  #cine .shade { position: absolute; left: 0; right: 0; bottom: 0; height: 34vh; background: linear-gradient(transparent, rgba(0,0,0,.75)); pointer-events: none; }
+  #cine .skip { position: absolute; right: 3vh; top: 3vh; padding: 1.3vh 2.6vh; border-radius: 1.2vh; background: rgba(10,14,22,.6); border: .2vh solid rgba(255,255,255,.45);
+    color: #fff; font: bold 2.5vh system-ui, sans-serif; cursor: pointer; user-select: none; z-index: 2; }
+  #cine .skip:active { transform: scale(.95); }
+  #mMain .b.story { position: absolute; right: 3vh; top: 14vh; width: 46vh; }`;
+  document.head.appendChild(css);
+  let R = null;
+  function root() {
+    if (!R) {
+      R = document.createElement('div'); R.id = 'cine'; document.body.appendChild(R);
+      for (const ev of ['pointerdown', 'touchstart', 'mousedown', 'click', 'keydown']) R.addEventListener(ev, e => e.stopPropagation());
+    }
+    R.innerHTML = ''; R.style.display = 'block'; void R.offsetWidth; R.classList.add('on');
+    return R;
+  }
+  function hide(fast) {
+    if (!R) return Promise.resolve();
+    R.classList.remove('on');
+    return new Promise(r => setTimeout(() => { R.style.display = 'none'; R.innerHTML = ''; r(); }, fast ? 0 : 600));
+  }
+  function skipBtn(parent, fn) {
+    const b = document.createElement('div'); b.className = 'skip'; b.textContent = 'Пропустить'; parent.appendChild(b);
+    b.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); fn(); });
+    return b;
+  }
+  const el = (cls, parent) => { const d = document.createElement('div'); d.className = cls; parent.appendChild(d); return d; };
+  // один сеанс: игра стоит, клавиша Esc / Enter / пробел = «Пропустить»
+  async function session(fn) {
+    if (on) return; on = true; freeze(true);
+    let skip = null; const key = e => { if (['Escape', 'Enter', 'Space'].includes(e.code) && skip) { e.stopPropagation(); e.preventDefault(); skip(); } };
+    addEventListener('keydown', key, true);
+    try { await fn(f => { skip = f; }); } catch (e) {}
+    removeEventListener('keydown', key, true);
+    setDuck(null); freeze(false); on = false;
+  }
+
+  // ---------- картинка-логотип ----------
+  function logo(file, sec) {
+    return new Promise(done => {
+      const r = root(), l = el('lg', r), im = new Image(); let over = false;
+      const end = () => { if (over) return; over = true; done(); };
+      im.onload = () => { l.style.backgroundImage = 'url("' + im.src + '")'; requestAnimationFrame(() => l.classList.add('on')); setTimeout(end, sec * 1000); };
+      im.onerror = end; im.src = url(file);
+      r.addEventListener('pointerdown', end, { once: true });
+    });
+  }
+  // ---------- видео ----------
+  function video(file, setSkip) {
+    return new Promise(done => {
+      const r = root(), v = document.createElement('video'); let over = false;
+      const end = () => { if (over) return; over = true; try { v.pause(); } catch (e) {} done(); };
+      v.playsInline = true; v.setAttribute('playsinline', ''); v.preload = 'auto'; v.src = url(file);
+      v.addEventListener('ended', end); v.addEventListener('error', end);
+      r.appendChild(v); skipBtn(r, end); if (setSkip) setSkip(end);
+      setDuck(0);
+      // в браузере видео со звуком без нажатия запускать нельзя — тогда идём без звука; в приложении звук разрешён
+      v.play().catch(() => { v.muted = true; v.play().catch(end); });
+      setTimeout(() => { if (!over && v.readyState < 2) end(); }, 8000);       // файл не грузится — не держим игрока
+    });
+  }
+  // ---------- рассказ: картинки с наездом, голос, субтитры ----------
+  const MOVES = [['scale(1.0) translate(0,0)', 'scale(1.14) translate(-2%,-1.5%)'], ['scale(1.14) translate(2%,1%)', 'scale(1.02) translate(-1%,0)'],
+    ['scale(1.04) translate(-2%,1%)', 'scale(1.16) translate(1.5%,-1%)']];
+  function slides(dir, n, setSkip) {
+    return new Promise(async done => {
+      const r = root(); let over = false, timers = [], au = null;
+      const end = () => { if (over) return; over = true; timers.forEach(clearTimeout); if (au) { try { au.pause(); } catch (e) {} } done(); };
+      skipBtn(r, end); if (setSkip) setSkip(end);
+      let lines = [];
+      try { const j = await fetch(url(dir + '/text.json')).then(x => x.ok ? x.json() : null); lines = (j && j.lines) || []; } catch (e) {}
+      // голос: длительность рассказа = длительность голоса; без голоса — CFG.slideSec на кадр
+      let total = n * CFG.slideSec;
+      if (!M[dir] || M[dir].vo !== 0) {
+        au = new Audio(); au.preload = 'auto'; au.src = url(dir + '/vo.mp3');
+        const d = await new Promise(res => { au.addEventListener('loadedmetadata', () => res(au.duration), { once: true }); au.addEventListener('error', () => res(0), { once: true }); setTimeout(() => res(0), 5000); });
+        if (over) return;
+        if (d > 1 && isFinite(d)) total = d + 1.2; else au = null;
+      }
+      if (lines.length) total = Math.max(total, lines[lines.length - 1].t + 3);
+      const per = total / n, layers = [];
+      for (let i = 0; i < n; i++) { const s = el('sl', r); s.style.backgroundImage = 'url("' + url(dir + '/' + (i + 1) + '.webp') + '")'; layers.push(s); }
+      el('shade', r); const sub = el('sub', r);
+      const show = i => {
+        const s = layers[i], mv = MOVES[i % MOVES.length];
+        s.style.transition = 'none'; s.style.transform = mv[0]; void s.offsetWidth;
+        s.style.transition = 'opacity ' + CFG.fade + 's, transform ' + (per + CFG.fade + 0.5) + 's linear'; s.style.transform = mv[1];
+        s.classList.add('on'); if (i > 0) layers[i - 1].classList.remove('on');
+      };
+      setDuck(CFG.duckVoice);
+      for (let i = 0; i < n; i++) timers.push(setTimeout(() => show(i), i * per * 1000));
+      for (let i = 0; i < lines.length; i++) {
+        timers.push(setTimeout(() => { sub.classList.remove('on'); setTimeout(() => { if (!over) { sub.textContent = lines[i].text; sub.classList.add('on'); } }, 180); }, Math.max(0, lines[i].t) * 1000));
+      }
+      if (au) au.play().catch(() => {});
+      timers.push(setTimeout(end, total * 1000));
+    });
+  }
+
+  // ---------- что показывать ----------
+  const has = k => !!M[k];
+  const nSlides = k => (M[k] && M[k].n) || 0;
+  // запуск игры: лого игры показывает заставка меню (menu.js), здесь — лого студии → (первый запуск) вступление; потом done() — меню
+  function boot(done) {
+    if (OFF || on || (!has('logo_paladium.mp4') && (!has('intro.mp4') || seen.intro))) return done();
+    session(async setSkip => {
+      if (has('logo_paladium.mp4')) await video('logo_paladium.mp4', setSkip);
+      if (has('intro.mp4') && !seen.intro) { mark('intro'); await video('intro.mp4', setSkip); }
+      done(); await hide();
+    });
+  }
+  function intro() { if (!has('intro.mp4') || on) return; session(async setSkip => { await video('intro.mp4', setSkip); await hide(); }); }
+  function world(n, then) {
+    const k = 'world_' + String(n).padStart(2, '0');
+    if (OFF || online() || seen[k] || !nSlides(k) || on) return then();
+    mark(k);
+    session(async setSkip => { await slides(k, nSlides(k), setSkip); await hide(); }).then(then);
+  }
+  function finale(then) {
+    if (OFF || online() || seen.finale || on || (!nSlides('finale') && !has('finale.mp4'))) return then();
+    mark('finale');
+    session(async setSkip => { if (nSlides('finale')) await slides('finale', nSlides('finale'), setSkip); if (has('finale.mp4')) await video('finale.mp4', setSkip); await hide(); }).then(then);
+  }
+
+  // перед первым боем мира — рассказ этого мира (только первый круг)
+  if (typeof SHOP !== 'undefined') {
+    const _sw = SHOP.startWave;
+    SHOP.startWave = function () {
+      const a = arguments, go = () => _sw.apply(SHOP, a);
+      if (on) return;
+      if (OFF || SHOP.phase !== 'rest' || P.dead > 0 || SHOP.transit || wave % BAL.WAVES !== 0 || wave >= BAL.WAVES * BAL.WORLDS || (typeof LIMBO !== 'undefined' && LIMBO.on)) return go();
+      world(wave / BAL.WAVES + 1, go);
+    };
+  }
+  // после босса мира 10 — финал (до карты перехода)
+  if (typeof PATHMAP !== 'undefined') {
+    const _show = PATHMAP.show;
+    PATHMAP.show = function (o) {
+      const self = this, next = () => _show.call(self, o);
+      if (!o || o.mode === 'select' || wave !== BAL.WAVES * BAL.WORLDS) return next();
+      finale(next);
+    };
+  }
+  // кнопка «История» в главном меню
+  (function () {
+    const m = document.querySelector('#mMain'); if (!m || !has('intro.mp4')) return;
+    const b = document.createElement('div'); b.className = 'b story'; b.textContent = 'История'; m.appendChild(b);
+    b.addEventListener('pointerdown', e => { e.stopPropagation(); intro(); });
+  })();
+
+  return { boot, intro, world, finale, CFG, get on() { return on; }, reset() { seen = {}; try { localStorage.removeItem(KEY); } catch (e) {} } };
+})();
