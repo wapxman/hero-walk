@@ -81,7 +81,7 @@ const RECIPES = {
   linken: { nm: 'Сфера Линкена', ic: 69, from: ['rring', 'vitality', 'wizard'], st: { hp: 250, mp: 100, sk: 0.1, hpr: 5, mpr: 2.5 }, rc: 2350, ds: 'Отражение чар: раз в 15 с снимает первое жёсткое состояние', pas: { linken: { imm: 0.5 }, cd: 15 } },
   abyssal: { nm: 'Бездонный клинок', ic: 70, from: ['basher', 'vitality'], st: { dmg: 0.22, hp: 300 }, rc: 1650, ds: 'Оглушение 15 % — 1 с и +40; Пролом: 2 с и 150 урона, перезарядка 25 с', pas: { bash: { ch: 0.15, t: 1, dmg: 40, icd: 1 } }, act: { cd: 25, kind: 'abyss', t: 2, dmg: 150, R: 500 } },
   manta: { nm: 'Мантия иллюзий', ic: 71, from: ['yasha', 'vitality'], st: { as: 0.2, spd: 0.12, dmg: 0.1, hp: 150 }, rc: 2100, ds: 'Иллюзии: снимает состояния, 2 копии на 8 с, перезарядка 40 с', act: { cd: 40, kind: 'manta', t: 8, n: 2, k: 0.3, off: 70 } },
-  shiva: { nm: 'Покров Шивы', ic: 72, from: ['tshield', 'mystic'], st: { arm: 0.18, sk: 0.15, mp: 150 }, rc: 1900, ds: 'Холодная аура −15 % скорости врагам в 450; Ледяная волна 90 урона и замедление вдвое на 4 с (сама — когда рядом трое врагов или сильный враг), перезарядка 25 с', pas: { aura: { R: 450, slow: 0.85 } }, act: { cd: 25, kind: 'shiva', R: 500, dmg: 90, slow: 0.5, st: 4 } },
+  shiva: { nm: 'Покров Шивы', ic: 72, from: ['tshield', 'mystic'], st: { arm: 0.18, sk: 0.15, mp: 150 }, rc: 1900, ds: 'Аура: враги рядом на 15 % медленнее. Ледяная волна (сама, когда рядом трое врагов или сильный): 90 урона, замедление вдвое на 4 с, раз в 25 с', pas: { aura: { R: 450, slow: 0.85 } }, act: { cd: 25, kind: 'shiva', R: 500, dmg: 90, slow: 0.5, st: 4 } },
   agh: { nm: 'Скипетр Аганима', ic: 73, from: ['wizard', 'ogreaxe', 'alacrity'], st: { hp: 150, mp: 150, sk: 0.1, as: 0.1 }, rc: 1950, ds: 'Скипетр: Буря на 2 с дольше и +30 % урона; Меткость лучницы: +15 % пронзающих стрел', pas: { agh: { t: 2, k: 1.3, pierce: 0.15 } } },
   radiance: { nm: 'Сияние', ic: 74, from: ['demonedge', 'claymore'], st: { dmg: 0.35 }, rc: 2100, ds: 'Ожог: враги в 320 получают 25 урона в секунду', pas: { aura: { R: 320, burn: 25 } } },
   vajra: { nm: 'Ваджра', ic: 75, from: ['maelstrom', 'hyper'], st: { dmg: 0.18, as: 0.3 }, rc: 1600, ds: 'Цепная молния 30 % — 40 урона 5 целям; Громовой щит 8 с, перезарядка 30 с', pas: { chain: { ch: 0.3, dmg: 40, n: 5, R: 350 } }, act: { cd: 30, kind: 'storm', t: 8, every: 0.6, dmg: 40, R: 400 } },
@@ -89,10 +89,10 @@ const RECIPES = {
   tarrasque: { nm: 'Сердце Тарраска', ic: 77, from: ['reaver', 'vitality'], st: { hp: 650, hpr: 4 }, rc: 2800, ds: 'Кровь титана: 5 с без урона — +2 % здоровья в секунду', pas: { calm: { after: 5, pct: 0.02 } } },
   octarine: { nm: 'Октариновое ядро', ic: 78, from: ['mystic', 'vitality', 'crystal'], st: { sk: 0.2, cd: 0.18, hp: 250, mp: 250 }, rc: 5800, ds: 'Вампиризм умений 10 %', pas: { spl: 0.1 } },
   // ---- v99: два дорогих предмета (иконки и эффекты рисует Клауди — night_19_11/items3; пока стоят иконки Линки и Октаринового ядра) ----
-  lotus: { nm: 'Сфера лотоса', ic: 69, from: ['linken', 'tshield'], st: { hp: 350, mp: 150, arm: 0.12, sk: 0.12, hpr: 6, mpr: 3 }, rc: 3500,
-    ds: 'Отражение: раз в 15 с первое жёсткое состояние снимается и возвращается злодею, который его наложил (боссу и мини-боссу — на половину времени)', pas: { lotus: { imm: 0.5 }, cd: 15 } },
-  bloodstone: { nm: 'Кровавый камень', ic: 78, from: ['octarine', 'vitality'], st: { sk: 0.3, cd: 0.2, hp: 400, mp: 350, mpr: 3 }, rc: 4000,
-    ds: 'Вампиризм умений 20 %; Кровавый обряд: 5 с вампиризм умений вдвое больше (сам — при здоровье ниже половины, если враги рядом), перезарядка 40 с', pas: { spl: 0.2 }, act: { cd: 40, kind: 'rite', t: 5, k: 2 } },
+  lotus: { nm: 'Сфера лотоса', ic: 69, img: 'ui/item_lotus.webp', from: ['linken', 'tshield'], st: { hp: 350, mp: 150, arm: 0.12, sk: 0.12, hpr: 6, mpr: 3 }, rc: 3500,
+    ds: 'Отражение: раз в 15 с жёсткое состояние снимается и возвращается злодею (боссу — вдвое короче)', pas: { lotus: { imm: 0.5 }, cd: 15 } },
+  bloodstone: { nm: 'Кровавый камень', ic: 78, img: 'ui/item_bloodstone.webp', from: ['octarine', 'vitality'], st: { sk: 0.3, cd: 0.2, hp: 400, mp: 350, mpr: 3 }, rc: 4000,
+    ds: 'Вампиризм умений 20 %. Кровавый обряд (сам, при здоровье ниже половины): 5 с вампиризм вдвое, раз в 40 с', pas: { spl: 0.2 }, act: { cd: 40, kind: 'rite', t: 5, k: 2 } },
   satanic: { nm: 'Сатаник', ic: 79, from: ['vdagger', 'reaver', 'claymore'], st: { dmg: 0.28, hp: 450, ls: 0.15 }, rc: 8050, ds: 'Нечестивая ярость: +50 % вампиризма на 5 с, перезарядка 35 с', act: { cd: 35, kind: 'unholy', t: 5, ls: 0.5, cap: 0.75 } },
 };
 // множитель цен из редактора баланса (BAL.price; при 1 цены — как записаны выше)
@@ -231,9 +231,9 @@ SHOP.led = { earn: 0, items: 0, relics: 0, flasks: 0, forge: 0, sold: 0 };
   const _sb = SHOP.buy; SHOP.buy = function (kind) { const g = SHOP.gold, r = _sb.apply(this, arguments); if (SHOP.gold < g) SHOP.led[kind === 'flask' ? 'flasks' : 'items'] += g - SHOP.gold; return r; };
   const _si = sellItem; sellItem = function (i) { const g = SHOP.gold, r = _si(i); if (SHOP.gold > g) SHOP.led.sold += SHOP.gold - g; return r; };
   if (SHOP.el && SHOP.el.pause) {
-    const d = document.createElement('div'); d.className = 'tip'; d.style.cssText = 'opacity:.9;color:#ffe9a8'; SHOP.el.pause.appendChild(d);
+    const d = document.createElement('div'); d.className = 'tip'; d.style.cssText = 'position:absolute;left:calc(2vw + var(--sal, 0px));top:17vh;text-align:left;font-size:2.7vh;line-height:1.55;color:#ffe9a8;text-shadow:0 .2vh .4vh #000'; SHOP.el.pause.appendChild(d);   // слева вверху: внизу строку не было видно под кнопками
     const _rf = SHOP.refresh; SHOP.refresh = function () { const r = _rf.apply(this, arguments), L = SHOP.led, f = n => Math.round(n).toLocaleString('ru-RU');
-      d.textContent = 'Золото за забег: получено ' + f(L.earn + L.sold) + ' · предметы ' + f(L.items + L.relics) + ' · фласки ' + f(L.flasks) + ' · кузница ' + f(L.forge); return r; };
+      d.innerHTML = '<b>Золото за забег</b><br>получено: ' + f(L.earn + L.sold) + '<br>предметы: ' + f(L.items + L.relics) + '<br>фласки: ' + f(L.flasks) + '<br>кузница: ' + f(L.forge); return r; };
   }
 }
 // реген здоровья от предметов
@@ -276,17 +276,18 @@ SHOP.pick = (function (orig) {
   .ci.own::after { content: '✓'; position: absolute; right: .25em; top: .1em; color: #8dff9a; font-weight: bold; font-size: .9em; }
   #shInfo { position: absolute; left: 61%; top: 17.5%; width: 33%; height: 60%; display: flex; flex-direction: column; align-items: center; text-align: center; }
   #shInfo .nm { font-size: 1.25em; font-weight: bold; color: #ffe27a; }
-  #shInfo .ds { font-size: .82em; opacity: .92; margin: .2em 0 .4em; min-height: 2.2em; }
+  #shInfo .ds { font-size: .82em; opacity: .92; margin: .2em 0 .4em; min-height: 2.2em; flex-shrink: 0; }
   .tree { display: flex; flex-direction: column; align-items: center; gap: .15em; }
   .tree .row { display: flex; gap: .5em; justify-content: center; }
   .tree .ci { width: 3.5em; height: 3.8em; }
   .tree .ci.big { width: 4.6em; height: 5em; }
-  .tree .ar { width: 1.3em; height: 2em; background: ${U('arrow')} center / contain no-repeat; }
+  .tree .ar { width: 1.3em; height: 1.45em; background: ${U('arrow')} center / contain no-repeat; }
   .tree .sub { display: flex; flex-direction: column; align-items: center; }
   .tree .sub .row .ci { width: 2.6em; height: 2.8em; }
-  #shInfo .inn { font-size: .78em; opacity: .85; margin-top: .4em; }
+  #shInfo .inn { font-size: .78em; opacity: .85; margin-top: .15em; }
   #shInfo .use { display: flex; gap: .35em; flex-wrap: wrap; justify-content: center; margin-top: .2em; }
-  #shInfo .use .ci { width: 2.8em; height: 3em; }
+  #shInfo .use .ci { width: 2.3em; height: 2.5em; }
+  #shInfo > .bg, #shInfo .tree, #shInfo .use { flex-shrink: 0; }   /* кнопку «Купить» и дерево не сплющивать, когда строк много */
   #shBuy { margin-top: auto; width: 13em; height: 3em; background-image: ${U('btn_green')}; display: flex; align-items: center; justify-content: center; gap: .3em; font-weight: bold; color: #ffe27a; }
   #shBuy .ic { width: 1.1em; height: 1.1em; }
   #shBuy.no { filter: grayscale(1) brightness(.7); }
@@ -361,7 +362,7 @@ SHOP.pick = (function (orig) {
       cost = SHOP.flaskPrice(f); can = SHOP.gold >= cost && !(f.id === 'heal' && SHOP.flasks.heal >= 10); label = 'Купить';
     } else {
       const id = ui.sel, it = ALL[id];
-      mk('div', 'nm', info, it.nm); mk('div', 'ds', info, it.relic ? (statText(it.st) ? statText(it.st) + '; ' : '') + it.ds + ' · против: ' + it.boss : itemText(it));
+      mk('div', 'nm', info, it.nm); { const ds = mk('div', 'ds', info, it.relic ? (statText(it.st) ? statText(it.st) + '; ' : '') + it.ds + ' · против: ' + it.boss : itemText(it)); if (ds.textContent.length > 110) ds.style.fontSize = '.72em'; }   // длинное описание — мельче, иначе наезжает на картинку
       info.appendChild(tree(id, 0));
       if (USED_IN[id]) {
         mk('div', 'inn', info, 'Входит в:');

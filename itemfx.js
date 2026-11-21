@@ -16,6 +16,8 @@ const ITEMFX = (() => {
   const top = (R, min) => inR(R, e => rank(e) >= min).sort((a, b) => rank(b) - rank(a) || gdist(P, a) - gdist(P, b))[0];
   const tagE = (e, t, c) => say(e.x, e.y - (e.ch && e.ch.ok ? e.ch.top * e.ch.U * e.sc : 80) - 20, t, c);
   const sayP = (t, c) => say(P.x, P.y - CH * HS() * 1.45, t, c);
+  // картинки вспышек (v100, рисовал ChatGPT): щит Линки и отражение Лотоса
+  const FXI = {}; for (const k of ['linken_block', 'lotus_reflect']) { const im = new Image(); FXI[k] = im; im.src = 'fx/fx_' + k + '.webp' + (typeof V === 'string' ? V : ''); }
   const flashAt = (x, y, col) => GLOWS.push({ x, y, col, t: 0, dur: 0.3 });
   // жёсткие состояния: их ловят Аватар, Сфера Линкена и Мантия
   const rooted = () => P.slowT > 0 && P.slowK <= 0.05 ? P.slowT : 0;   // «Обездвижен» замедлением до нуля (корни боссов)
@@ -105,14 +107,14 @@ const ITEMFX = (() => {
       const s = P.ss, k = SK.S, im = Math.max(s.stun, s.freeze, k.bind, k.pin, k.sleep || 0, rooted()), si = Math.max(s.silence, k.hex);
       const e = T.src && now() - T.src.at < 4 && live(T.src.e) ? T.src.e : SK.lastCast && now() - SK.lastCast.at < 4 && live(SK.lastCast.e) ? SK.lastCast.e : null;
       purge(); T.ward = ALL.lotus.pas.lotus.imm; immune(T.ward); RCD.lotus = ALL.lotus.pas.cd; relicFlash('lotus'); T.lotusF = 1.5; T.src = null;
-      GLOWS.push({ x: P.x, y: P.y, col: '255,150,210', t: 0, dur: 0.6, R: 150 });
+      GLOWS.push({ x: P.x, y: P.y, col: '255,150,210', t: 0, dur: 0.6, R: 150, im: 'lotus_reflect', hero: 1 });
       if (e) { const h = rank(e) >= 2 ? 0.5 : 1;
         if (im > 0) e.stunT = Math.max(e.stunT || 0, Math.max(0.3, im * h)); if (si > 0) e.silT = Math.max(e.silT || 0, si * h); if (!(im > 0) && !(si > 0)) e.stunT = Math.max(e.stunT || 0, 0.5 * h);
-        ZAPS.push({ pts: [{ x: P.x, y: P.y - CH * HS() * 0.6 }, { x: e.x, y: e.y }], t: 0, dur: 0.35 }); tagE(e, 'отражено!', '#ffb0e0'); snd('hit', 0.3, 1.5); }
+        ZAPS.push({ pts: [{ x: P.x, y: P.y - CH * HS() * 0.6 }, { x: e.x, y: e.y }], t: 0, dur: 0.35 }); GLOWS.push({ x: e.x, y: e.y, col: '255,150,210', t: 0, dur: 0.5, R: 90, im: 'lotus_reflect', S: 150 }); tagE(e, 'отражено!', '#ffb0e0'); snd('hit', 0.3, 1.5); }
     }
     // Сфера Линкена: первое жёсткое состояние снимается; вокруг героя — золотая вспышка щита (картинку рисует Клауди)
     if (has('linken') && !(RCD.linken > 0) && hard()) { purge(); T.ward = ALL.linken.pas.linken.imm; immune(T.ward); RCD.linken = ALL.linken.pas.cd; relicFlash('linken'); T.linkenF = 1.5;
-      GLOWS.push({ x: P.x, y: P.y, col: '255,215,120', t: 0, dur: 0.6, R: 150 }); snd('hit', 0.25, 1.7); }
+      GLOWS.push({ x: P.x, y: P.y, col: '255,215,120', t: 0, dur: 0.7, R: 150, im: 'linken_block', hero: 1 }); snd('hit', 0.25, 1.7); }
     const cm = pas('calm');   // Сердце Тарраска: 5 с без урона — +2 % здоровья в секунду
     if (cm && T.calm >= cm.after && P.hp < P.maxHp) { const h = cm.pct * P.maxHp * dt; P.hp = Math.min(P.maxHp, P.hp + h); T.calmAcc = (T.calmAcc || 0) + h; if ((T.calmT = (T.calmT || 0) + dt) >= 1) { say(P.x, P.y - CH * HS() * 1.1, '+' + Math.round(T.calmAcc), '#7dff8a'); T.calmT = 0; T.calmAcc = 0; } }
     for (const id of new Set(SHOP.bag)) {
@@ -165,7 +167,13 @@ const ITEMFX = (() => {
         ctx.stroke();
       }
     }
-    for (const g of GLOWS) { const R = g.R || 90, k = g.R ? 0.6 + 0.4 * g.t / g.dur : 1; glow(g.x, g.y - CH * HS() * 0.5, R * k, R * k, g.col, 0.7 * (1 - g.t / g.dur)); }
+    for (const g of GLOWS) { const R = g.R || 90, k = g.R ? 0.6 + 0.4 * g.t / g.dur : 1, q = g.t / g.dur, im = g.im && FXI[g.im];
+      const gx = g.hero ? P.x : g.x, gy = (g.hero ? P.y : g.y) - CH * HS() * 0.5;   // вспышка на герое идёт за ним
+      if (im && im.complete && im.naturalWidth) {   // картинка: быстро вырастает, держится и гаснет; под ней — слабое свечение
+        glow(gx, gy, R * k, R * k, g.col, 0.35 * (1 - q));
+        const S = (g.S || CH * HS() * 1.9) * (0.75 + 0.3 * Math.min(1, q * 4)), a = q < 0.6 ? 1 : (1 - q) / 0.4;
+        ctx.save(); ctx.globalAlpha *= Math.max(0, a); ctx.drawImage(im, gx - S / 2, gy - S / 2, S, S); ctx.restore();
+      } else glow(gx, gy, R * k, R * k, g.col, 0.7 * (1 - q)); }
     if (!off()) {
       const y = P.y - CH * HS() * 0.5, R = 95 * HS(), p = 1 + 0.06 * Math.sin(t * 7);
       if (T.bkb > 0) glow(P.x, y, R * p, R * p, '255,210,90', 0.4);
