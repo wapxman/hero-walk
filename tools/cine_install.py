@@ -6,8 +6,9 @@
 Что ждём в night_19_11/cinema/game/:
   logo_game.png, logo_paladium.mp4, intro.mp4
   world_01 … world_10 / 1.webp, 2.webp, (3.webp), vo.mp3, text.json     (картинки можно .png/.jpg — переведу в webp)
-  finale / 1.webp, 2.webp, (3.webp), vo.mp3, text.json;  finale.mp4 — по желанию
-  text.json: { "lines": [ { "t": 0, "text": "…" }, { "t": 4.5, "text": "…" } ] }   t — секунды от начала голоса
+  finale / 1.webp … N.webp (сколько нужно), vo.mp3, text.json;  finale.mp4 — по желанию
+  text.json: { "lines": [ { "t": 0, "text": "…" }, { "t": 4.5, "text": "…" } ] }   t — секунды от начала голоса;
+             необязательное "slide": N — с этой строки показывать картинку N
 Видео перекодируются в H.264 не больше 1080p со звуком AAC; картинки — в webp не шире 1920.
 В игру пишется список cine/index.js — по нему проигрыватель знает, что есть."""
 import sys, os, json, shutil, subprocess, io
@@ -70,6 +71,11 @@ def stub():
 def video(name):
     s = os.path.join(SRC, name)
     if not os.path.exists(s): return 0
+    # уже H.264 + AAC не больше 1080p — не пережимаем (качество то же), только переносим начало файла вперёд, чтобы сразу играл
+    pr = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'stream=codec_name,height', '-of', 'csv=p=0', s], capture_output=True, text=True).stdout.split()
+    codecs = {x.split(',')[0] for x in pr}; hs = [int(x.split(',')[1]) for x in pr if ',' in x and x.split(',')[1].isdigit()]
+    if 'h264' in codecs and codecs <= {'h264', 'aac'} and hs and max(hs) <= 1088:
+        return 1 if ff('-i', s, '-c', 'copy', '-movflags', '+faststart', os.path.join(DST, name)) else 0
     ok = ff('-i', s, '-vf', "scale='min(1920,iw)':'min(1080,ih)':force_original_aspect_ratio=decrease,pad=ceil(iw/2)*2:ceil(ih/2)*2", '-c:v', 'libx264', '-profile:v', 'high', '-level', '4.1',
             '-pix_fmt', 'yuv420p', '-crf', '23', '-preset', 'slow', '-r', '30', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', os.path.join(DST, name))
     return 1 if ok else 0
@@ -92,7 +98,7 @@ def install():
         d = os.path.join(SRC, w); n = 0
         if not os.path.isdir(d): rep.append((w, 'нет папки')); continue
         os.makedirs(os.path.join(DST, w), exist_ok=True)
-        for i in (1, 2, 3):
+        for i in range(1, 31):
             f = next((os.path.join(d, '%d%s' % (i, e)) for e in ('.webp', '.png', '.jpg', '.jpeg') if os.path.exists(os.path.join(d, '%d%s' % (i, e)))), None)
             if not f: break
             pic(f, os.path.join(DST, w, '%d.webp' % i)); n = i
@@ -102,7 +108,9 @@ def install():
         if os.path.exists(os.path.join(d, 'text.json')):
             try:
                 j = json.load(io.open(os.path.join(d, 'text.json'), encoding='utf-8-sig'))
-                L = [{'t': float(x['t']), 'text': str(x['text'])} for x in (j['lines'] if isinstance(j, dict) else j)]
+                L = [dict({'t': float(x['t']), 'text': str(x['text'])}, **({'slide': int(x['slide'])} if x.get('slide') is not None else {})) for x in (j['lines'] if isinstance(j, dict) else j)]
+                bad = [x['slide'] for x in L if 'slide' in x and not os.path.exists(os.path.join(DST, w, '%d.webp' % x['slide']))]
+                if bad: rep.append((w, 'в text.json slide %s, а таких картинок нет' % bad))
                 L.sort(key=lambda x: x['t']); lines = len(L)
                 json.dump({'lines': L}, io.open(os.path.join(DST, w, 'text.json'), 'w', encoding='utf-8'), ensure_ascii=False)
             except Exception as e: rep.append((w, 'text.json не читается: %s' % e))

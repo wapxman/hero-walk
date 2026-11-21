@@ -6,8 +6,9 @@
 //                голос cine/world_NN/vo.mp3 и субтитры cine/world_NN/text.json
 //   финал:       после босса мира 10 — cine/finale/ (то же устройство, что у мира; можно ещё finale.mp4)
 // Везде кнопка «Пропустить»; игра на это время стоит, музыка притушена (под видео — выключена).
-// text.json: { "lines": [ { "t": 0, "text": "…" }, { "t": 4.5, "text": "…" } ] } — t в секундах от начала голоса;
-// строка стоит на экране до следующей. Без голоса кадр держится CFG.slideSec секунд.
+// text.json: { "lines": [ { "t": 0, "text": "…", "slide": 1 }, { "t": 4.5, "text": "…", "slide": 2 } ] } — t в секундах от начала голоса;
+// строка стоит на экране до следующей. slide (необязательно) — с этой строки показывать картинку с таким номером;
+// без slide время делится между картинками поровну. Без голоса кадр держится CFG.slideSec секунд.
 // Проверка: ?cine=1 — показывать и под автопрогоном; CINE.reset() в консоли — забыть, что уже показано.
 'use strict';
 const CINE = (() => {
@@ -50,7 +51,7 @@ const CINE = (() => {
   #cine .sl.on { opacity: 1; }
   #cine .lg { position: absolute; inset: 0; background: center / contain no-repeat; margin: 12vh 20vw; opacity: 0; transform: scale(.94); transition: opacity 1s, transform 2.6s ease-out; }
   #cine .lg.on { opacity: 1; transform: scale(1); }
-  #cine .sub { position: absolute; left: 8vw; right: 8vw; bottom: 7vh; text-align: center; color: #fff; font: 3.6vh/1.35 Georgia, 'Times New Roman', serif;
+  #cine .sub { position: absolute; left: 7vw; right: 7vw; bottom: 5vh; text-align: center; color: #fff; font: 3.3vh/1.35 Georgia, 'Times New Roman', serif;
     text-shadow: 0 0 .8vh #000, 0 .2vh .4vh #000, 0 0 2vh #000; opacity: 0; transition: opacity .35s; pointer-events: none; }
   #cine .sub.on { opacity: 1; }
   #cine .shade { position: absolute; left: 0; right: 0; bottom: 0; height: 34vh; background: linear-gradient(transparent, rgba(0,0,0,.75)); pointer-events: none; }
@@ -132,21 +133,27 @@ const CINE = (() => {
         if (d > 1 && isFinite(d)) total = d + 1.2; else au = null;
       }
       if (lines.length) total = Math.max(total, lines[lines.length - 1].t + 3);
-      const per = total / n, layers = [];
+      // когда какая картинка: если у строк есть поле slide — картинка i встаёт в момент первой строки со slide = i
+      // (абзацы разной длины — картинка не уезжает от текста); без поля — время делится поровну
+      let at = [];
+      if (lines.some(l => l.slide != null)) { for (const l of lines) { const i = (l.slide | 0) - 1; if (i >= 0 && i < n && at[i] == null) at[i] = Math.max(0, l.t); } if (at[0] == null) at[0] = 0; }
+      else for (let i = 0; i < n; i++) at[i] = i * total / n;
+      const order = at.map((t, i) => [t, i]).filter(x => x[0] != null).sort((a, b) => a[0] - b[0]), layers = [];
+      let cur = -1;
       for (let i = 0; i < n; i++) { const s = el('sl', r); s.style.backgroundImage = 'url("' + url(dir + '/' + (i + 1) + '.webp') + '")'; layers.push(s); }
       el('shade', r); const sub = el('sub', r);
-      const show = i => {
+      const show = (i, per) => {
         const s = layers[i], mv = MOVES[i % MOVES.length];
         s.style.transition = 'none'; s.style.transform = mv[0]; void s.offsetWidth;
         s.style.transition = 'opacity ' + CFG.fade + 's, transform ' + (per + CFG.fade + 0.5) + 's linear'; s.style.transform = mv[1];
-        s.classList.add('on'); if (i > 0) layers[i - 1].classList.remove('on');
+        s.classList.add('on'); if (cur >= 0 && cur !== i) layers[cur].classList.remove('on'); cur = i;
       };
       setDuck(CFG.duckVoice);
-      for (let i = 0; i < n; i++) timers.push(setTimeout(() => show(i), i * per * 1000));
+      order.forEach(([t, i], k) => timers.push(setTimeout(() => show(i, (k + 1 < order.length ? order[k + 1][0] : total) - t), t * 1000)));
       for (let i = 0; i < lines.length; i++) {
         timers.push(setTimeout(() => { sub.classList.remove('on'); setTimeout(() => { if (!over) { sub.textContent = lines[i].text; sub.classList.add('on'); } }, 180); }, Math.max(0, lines[i].t) * 1000));
       }
-      if (au) au.play().catch(() => {});
+      if (au) { r._au = au; au.play().catch(() => {}); }      // r._au — для проверки (tools/cine_check.py)
       timers.push(setTimeout(end, total * 1000));
     });
   }
