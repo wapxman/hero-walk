@@ -14,11 +14,13 @@ if [ "$1" != "--no-test" ]; then
   rm -f tests_last.log; echo "автопрогон зелёный"
 fi
 cd ../hero-walk-apk
+# с v107 сборка идёт через Gradle (реклама AdMob и покупки Google Play — библиотеки Google); ID — в hero-walk-apk/store.properties
+gbuild() { JAVA_HOME=/c/Java/jdk-17 /c/Gradle/gradle-8.13/bin/gradle -q :app:assembleRelease -PgameVersion=$V && cp app/build/outputs/apk/release/app-release.apk "$1"; }
 sed -i -E "s/android:versionCode=\"[0-9]+\"/android:versionCode=\"$V\"/; s/android:versionName=\"1\.0\.[0-9]+\"/android:versionName=\"1.0.$V\"/" AndroidManifest.xml
 rm -rf assets/www && mkdir -p assets/www
 (cd ../hero-walk && git archive HEAD) | tar -x -C assets/www
 rm -rf assets/www/apk assets/www/tests assets/www/tools assets/www/server assets/www/*.md assets/www/dbg.png   # служебное в APK не идёт
-bash build.sh ../hero-walk/apk/DuelArena-v$V.apk > /tmp/apk_a.log 2>&1 || { tail -20 /tmp/apk_a.log; exit 1; }
+gbuild ../hero-walk/apk/DuelArena-v$V.apk > /tmp/apk_a.log 2>&1 || { tail -20 /tmp/apk_a.log; exit 1; }
 sed -i 's#<head>#<head><script>window.ALL_WORLDS=1</script>#' assets/www/index.html
-bash build.sh ../hero-walk/apk/DuelArena-v$V-test-all-worlds.apk > /tmp/apk_b.log 2>&1 || { tail -20 /tmp/apk_b.log; exit 1; }
+gbuild ../hero-walk/apk/DuelArena-v$V-test-all-worlds.apk > /tmp/apk_b.log 2>&1 || { tail -20 /tmp/apk_b.log; exit 1; }
 ls -la ../hero-walk/apk/ | grep "v$V"
