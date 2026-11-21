@@ -50,7 +50,7 @@ def stub():
     font = 'C\\:/Windows/Fonts/georgiab.ttf'
     if need('logo_paladium.mp4'):
         ff('-f', 'lavfi', '-i', 'color=c=black:s=1920x1080:d=5:r=30', '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=stereo', '-shortest', '-t', '5',
-           '-vf', "drawtext=fontfile='%s':text='PALADIUM':fontcolor=white:fontsize=150:x=(w-text_w)/2:y=(h-text_h)/2:alpha='if(lt(t,1),t,if(gt(t,4),5-t,1))'" % font,
+           '-vf', "drawtext=fontfile='%s':text='PALLADIUM':fontcolor=white:fontsize=150:x=(w-text_w)/2:y=(h-text_h)/2:alpha='if(lt(t,1),t,if(gt(t,4),5-t,1))'" % font,
            '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', os.path.join(SRC, 'logo_paladium.mp4')) and made.append('logo_paladium.mp4')
     if need('intro.mp4'):
         ff('-f', 'lavfi', '-i', 'color=c=0x0b0f18:s=1920x1080:d=6:r=30', '-f', 'lavfi', '-i', 'anullsrc=r=44100:cl=stereo', '-shortest', '-t', '6',
