@@ -753,6 +753,9 @@ function onMessage(c, data, isBin) {
   if (!isBin) {
     let m; try { m = JSON.parse(data.toString()); } catch (e) { return; }
     if (!m || typeof m !== 'object') return;
+    // «Вместе» (v104): бой ведут сами клиенты, сервер только сводит двоих в комнату и пересылает их сообщения (net/team.js)
+    if (m.t === 'join' && m.mode === 'team') return teamJoin(c, m);
+    if (c.team) { if (m.t === 'tm') for (const x of c.team.clients) if (x !== c && x.ws.readyState === 1) send(x, data.toString()); return; }
     if (m.t === 'join') {
       leave(c);
       if (m.proto !== NET.PROTO) {
@@ -805,7 +808,29 @@ function onMessage(c, data, isBin) {
     if (data.byteLength >= 5) c.player.interp = v.getUint16(3);   // на сколько мс в прошлом клиент показывает чужих
   }
 }
+// ---------- «Вместе»: комнаты на двоих, сервер — только почтальон ----------
+const teams = new Map();
+function teamJoin(c, m) {
+  leave(c);
+  const want = m.room ? String(m.room).slice(0, 6) : null;
+  let r = want ? teams.get(want) : [...teams.values()].find(x => !x.private && x.clients.length === 1);
+  if (r && r.clients.length >= 2) return c.ws.send(JSON.stringify({ t: 'error', msg: 'комната заполнена' }));
+  if (!r) { let code = want; while (!code || teams.has(code)) code = String(1000 + Math.floor(Math.random() * 9000)); r = { code, clients: [], private: !!want }; teams.set(code, r); }
+  const me = { hero: String(m.hero || 'mage').slice(0, 12), name: String(m.name || 'Игрок').slice(0, 16), v: String(m.v || '').slice(0, 8) };
+  c.team = r; c.tinfo = me; r.clients.push(c);
+  const other = r.clients.find(x => x !== c);
+  c.ws.send(JSON.stringify({ t: 'tjoined', room: r.code, host: !other, peer: other ? other.tinfo : null }));
+  if (other && other.ws.readyState === 1) other.ws.send(JSON.stringify({ t: 'tpeer', peer: me }));
+  log('team join', r.code, me.name, me.hero, 'игроков', r.clients.length);
+}
+function teamLeave(c) {
+  const r = c.team; if (!r) return;
+  r.clients = r.clients.filter(x => x !== c); c.team = null;
+  for (const x of r.clients) if (x.ws.readyState === 1) x.ws.send(JSON.stringify({ t: 'tleft' }));
+  if (!r.clients.length && teams.get(r.code) === r) teams.delete(r.code);
+}
 function leave(c) {
+  teamLeave(c);
   const r = c.room;
   if (!r) return;
   r.clients.delete(c); if (c.player) r.ents.delete(c.player.id);

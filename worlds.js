@@ -19,9 +19,9 @@ const ARENA_COVER = (() => {
   const hold = () => { if (!held && !window.BOT && !(window.NETC && NETC.on) && typeof SHOP !== 'undefined' && !SHOP.paused) { SHOP.paused = true; held = true; } };   // бот автопрогона шагает игру сам — ему пауза не нужна
   function on(src) { if (src) wait = src; clearTimeout(timer); el.style.transition = 'none'; el.style.display = 'block'; el.style.opacity = '1'; if (src) hold();
     timer = setTimeout(() => off(wait), 8000); }   // картинка не пришла — не держим экран закрытым вечно
-  function off(src) { if (src && wait && src !== wait) return; wait = null; clearTimeout(timer); if (held) { held = false; SHOP.paused = false; }
+  function off(src) { if (src && wait && src !== wait) return; wait = null; clearTimeout(timer); if (held) { held = false; if (!(typeof PATHMAP !== 'undefined' && PATHMAP.on)) SHOP.paused = false; }   // открыта карта пути — паузу держит она
     void el.offsetWidth; el.style.transition = 'opacity .35s'; el.style.opacity = '0'; timer = setTimeout(() => { el.style.display = 'none'; }, 380); }
-  return { on, off, settle() { if (!wait && el.style.display !== 'none' && el.style.opacity === '1') off(); }, get busy() { return !!wait; } };
+  return { on, off, settle() { if (!wait && el.style.display !== 'none' && el.style.opacity === '1') off(); }, get busy() { return !!wait; }, get held() { return held; } };
 })();
 // арена части мира: картинка земли меняется, раскладка остаётся (ARENAS в data.js)
 let ARENA_I = 0;

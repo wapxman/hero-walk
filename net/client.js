@@ -20,7 +20,7 @@ var NETC = { on: false };   // NETC.limboBack — вернуться из Меж
 
   const S = { ws: null, mode: 'single', myId: 0, room: '', seq: 0, pending: [], latch: 0, acc: 0, known: new Map(), views: new Map(),
     clk: 0, clkOk: false, newest: 0, interp: 3, jit: 0, lastArr: 0, rtt: 0, pingT: 0, err: { x: 0, y: 0 }, prev: null, cur: null, names: {}, status: '' };
-  NETC.S = S;
+  NETC.S = S; S.url = SERVER;
 
   // ---------- выбор режима на экране выбора героя ----------
   (function modeUI() {
@@ -53,6 +53,10 @@ var NETC = { on: false };   // NETC.limboBack — вернуться из Меж
     // «В бой» в онлайн-режиме сначала подключается к серверу
     sel.querySelector('.go').addEventListener('pointerdown', e => {
       if (S.mode === 'single') return;
+      if (S.mode === 'coop' && window.TEAM) {   // v104: «Вместе» — обычная игра у каждого, сервер только пересылает (net/team.js)
+        if (TEAM.on) return;                     // уже в комнате: кнопка работает как в одиночной (ведущий выбирает главу)
+        e.stopImmediatePropagation(); TEAM.connect(code.value.trim()); return;
+      }
       e.stopImmediatePropagation();
       connect(S.mode, code.value.trim());
     }, true);

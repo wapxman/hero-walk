@@ -751,6 +751,11 @@ function combatUpdate(dt) {
     }
     const step = s.sp * dt;
     s.x += s.dx * step; s.y += s.dy * step * YK; s.left -= step;
+    if (s.ghost) {   // «Вместе»: выстрел напарника или чужого злодея — только картинка, гаснет у цели
+      if (s.ghost === 1) { for (const e of enemies) if (e.hp > 0 && gdist(s, e) < e.rad + 16) { s.left = 0; break; } }
+      else if (typeof TEAM !== 'undefined' && TEAM.pv.on && Math.hypot(s.x - TEAM.pv.x, (s.y - TEAM.pv.y) / YK) < 30 * HS()) s.left = 0;
+      continue;
+    }
     if (s.own === 'p') {
       for (const e of enemies) {
         if (e.hp > 0 && e !== s.hitE && gdist(s, e) < e.rad + 16 * (s.sc || 1)) {

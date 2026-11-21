@@ -393,7 +393,7 @@ const PATHMAP = (() => {
       if (o.mode === 'select') { const p = at(st.anim.from), q = at(t1); cam = { z: 2.2, fx: (p.x + q.x) / 2, fy: (p.y + q.y) / 2 }; }
       cv.style.display = 'block'; PATHMAP.on = true; last = performance.now(); goBtn();
       // пока открыта карта, герой не ходит и не колдует (клавиши и кнопки не доходят до боя)
-      if (typeof SHOP !== 'undefined') { st.wasPaused = prevPaused != null ? prevPaused : SHOP.paused; SHOP.paused = true; } held.key = held.touch = held.mouse = false;
+      if (typeof SHOP !== 'undefined') { st.wasPaused = prevPaused != null ? prevPaused : (SHOP.paused && !(typeof ARENA_COVER !== 'undefined' && ARENA_COVER.held)); SHOP.paused = true;   /* v104: пауза затемнения арены — не пауза игрока (после Междумирья игра оставалась на паузе) */ } held.key = held.touch = held.mouse = false;
       raf = requestAnimationFrame(tick);
     },
     // положение на пути по сквозному номеру волны: глава мира и доля пройденных раундов

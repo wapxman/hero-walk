@@ -86,4 +86,8 @@ with sync_playwright() as pw:
     r = E("[__hp - P.hp, __fd, RCD.linken > 0, __say.filter(t => /Палец|отраж/.test(t))]"); ok('мир 10: Линка гасит «Палец смерти»', r[0] < r[1] * 0.5 and r[2], r)
     E("SHOP.bag = []; SHOP.recompute(); P.maxHp = 5000; P.hp = 5000; window.__hp = P.hp; const e = enemies[0]; if (e && e.sk) { e.sk[0].cd = 0; e.atkCd = 99; }"); time.sleep(7)
     r = E("[__hp - P.hp, __fd]"); ok('мир 10: без Линки «Палец» бьёт', r[0] >= r[1] * 0.9, r)
+    # ---- гибель → Междумирье → портал → карта → бой: игра не должна остаться на паузе (ошибка v101–v103) ----
+    boot(1); E("P.hp = 1; hurtPlayer(1e9)"); time.sleep(5); E("LIMBO.leave()"); time.sleep(4)
+    if E("PATHMAP.on"): p.keyboard.press('Enter')
+    time.sleep(6); r = E("[SHOP.phase, !!SHOP.paused, enemies.length, LIMBO.on]"); ok('после Междумирья бой идёт, паузы нет', r[0] == 'fight' and not r[1] and r[2] > 0 and not r[3], r)
     print('ошибки:', errs[:6]); b.close()
