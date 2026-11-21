@@ -211,7 +211,7 @@ function riftTeleport() {
 // ---------- копия героя — вид врага ----------
 KIND.mirrorcopy = { nm: 'Отражение героя', ch: 'mirrorcopy', rng: 1, hp: 900, rad: 22, speed: 140, dmg: [28, 36], cd: 1.1, want: 480, shot: 760, pcol: '170,220,255', xp: 60, gold: 40, col: '#8aa0c0', elite: 0 };
 if (GANFAUL && GANFAUL.mul) {
-  const mul = {}; for (const n in GANFAUL.mul) { const a = GANFAUL.mul[n]; mul[n] = { at: a.at, n: a.n, ms: a.ms, rows: a.rows, foot: a.foot }; }
+  const mul = {}; for (const n in GANFAUL.mul) { if (n === 'runshoot' || n === 'runrel') continue; const a = GANFAUL.mul[n]; mul[n] = { at: a.at, n: a.n, ms: a.ms, rows: a.rows, foot: a.foot }; }
   CHARS.mirrorcopy = { lazy: 1, U: 100, top: 2.3, k: GANFAUL.k, mul, tint: 'grayscale(0.9) brightness(1.5) contrast(1.1)', at: 'mirrorcopy' };
 }
 KIND.mirrorcopy.sc = 1; KIND.mirrorcopy.pw = 1;

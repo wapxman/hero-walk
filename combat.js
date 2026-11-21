@@ -401,7 +401,8 @@ let HERO = { pre: 'hero_', U: 118, zc: 0.9, cell: 400,
 // Рост — как у прежней модели (k подобран по высоте фигуры). Каждому скиллу — своя анимация.
 const GF_ROW = (at, n, ms, rows) => ({ at: 'gf_' + at, n, ms, rows: rows || 8, foot: 344 });
 const GANFAUL = { k: 0.8173, mul: { idle: GF_ROW('idle', 4, 230), run: GF_ROW('run', 6, 95), atk: GF_ROW('attack', 6, 85),
-  nova: GF_ROW('nova', 6, 95), chains: GF_ROW('chains', 6, 95), hail: GF_ROW('hail', 6, 110), storm: GF_ROW('storm', 6, 120), die: GF_ROW('death', 6, 170, 1) } };
+  nova: GF_ROW('nova', 6, 95), chains: GF_ROW('chains', 6, 95), hail: GF_ROW('hail', 6, 110), storm: GF_ROW('storm', 6, 120), die: GF_ROW('death', 6, 170, 1),
+  runshoot: GF_ROW('runshoot', 6, 95), runrel: GF_ROW('runrel', 6, 100) } };   // v103: бег со стрельбой и замах на бегу — как у Эйры (drawHero)
 // листы героя грузятся только у выбранного героя (heroes.js вызывает loadHero)
 function loadHero(H) {
   if (H.mul) return loadMul(H);
