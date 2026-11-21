@@ -14,8 +14,8 @@
 <link rel="icon" type="image/png" sizes="192x192" href="ui/app/icon-192.png">
 <link rel="manifest" href="manifest.json">
 <!-- заставка и фон меню грузятся первыми, до остальных картинок игры -->
-<link rel="preload" as="image" href="ui/logo.webp?v=104">
-<link rel="preload" as="image" href="ui/menu_bg.webp?v=104">
+<link rel="preload" as="image" href="ui/logo.webp?v=105">
+<link rel="preload" as="image" href="ui/menu_bg.webp?v=105">
 <style>
   * { margin:0; padding:0; }
   /* вырез экрана и полоска «Домой»: отступы одним местом, остальной интерфейс берёт var(--sal) и т. д., код — SAFE */
@@ -54,12 +54,12 @@
   Storage.prototype.removeItem = function (k) { rem.call(this, k); if (this === window.localStorage && /^hw_/.test(k)) try { B.remove(k); } catch (e) {} };
 })();
 </script>
-<script src="data.js?v=104"></script>
-<script src="chars/atlas.js?v=104"></script>
-<script src="chars/villains.js?v=104"></script>
-<script src="chars/skills.js?v=104"></script>
+<script src="data.js?v=105"></script>
+<script src="chars/atlas.js?v=105"></script>
+<script src="chars/villains.js?v=105"></script>
+<script src="chars/skills.js?v=105"></script>
 <script>
-const V = '?v=104';
+const V = '?v=105';
 const cv = document.getElementById('c');
 const ctx = cv.getContext('2d');
 // Чёткость: холст рисуется не больше чем в 2 точки на точку экрана. Если телефон не успевает
@@ -499,36 +499,36 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 </script>
-<script src="roster.js?v=104"></script>
-<script src="combat.js?v=104"></script>
-<script src="shop.js?v=104"></script>
-<script src="heroes.js?v=104"></script>
-<script src="progress.js?v=104"></script>
-<script src="worlds.js?v=104"></script>
-<script src="pathmap.js?v=104"></script>
-<script src="mapfx.js?v=104"></script>
-<script src="arenafx.js?v=104"></script>
-<script src="ui/locfx/locfx.js?v=104"></script>
-<script src="locfx.js?v=104"></script>
-<script src="limbo.js?v=104"></script>
-<script src="enemies.js?v=104"></script>
-<script src="items.js?v=104"></script>
-<script src="relics.js?v=104"></script>
-<script src="bossmech.js?v=104"></script>
-<script src="sk.js?v=104"></script>
-<script src="sk_defs.js?v=104"></script>
-<script src="mini.js?v=104"></script>
-<script src="v34.js?v=104"></script>
-<script src="status.js?v=104"></script>
-<script src="dash.js?v=104"></script>
-<script src="itemfx.js?v=104"></script>
-<script src="tune.js?v=104"></script>
-<script src="bossvo_map.js?v=104"></script>
-<script src="bossvo.js?v=104"></script>
-<script src="net/shared.js?v=104"></script>
-<script src="net/client.js?v=104"></script>
-<script src="net/team.js?v=104"></script>
-<script src="menu.js?v=104"></script>
-<script src="save.js?v=104"></script>
+<script src="roster.js?v=105"></script>
+<script src="combat.js?v=105"></script>
+<script src="shop.js?v=105"></script>
+<script src="heroes.js?v=105"></script>
+<script src="progress.js?v=105"></script>
+<script src="worlds.js?v=105"></script>
+<script src="pathmap.js?v=105"></script>
+<script src="mapfx.js?v=105"></script>
+<script src="arenafx.js?v=105"></script>
+<script src="ui/locfx/locfx.js?v=105"></script>
+<script src="locfx.js?v=105"></script>
+<script src="limbo.js?v=105"></script>
+<script src="enemies.js?v=105"></script>
+<script src="items.js?v=105"></script>
+<script src="relics.js?v=105"></script>
+<script src="bossmech.js?v=105"></script>
+<script src="sk.js?v=105"></script>
+<script src="sk_defs.js?v=105"></script>
+<script src="mini.js?v=105"></script>
+<script src="v34.js?v=105"></script>
+<script src="status.js?v=105"></script>
+<script src="dash.js?v=105"></script>
+<script src="itemfx.js?v=105"></script>
+<script src="tune.js?v=105"></script>
+<script src="bossvo_map.js?v=105"></script>
+<script src="bossvo.js?v=105"></script>
+<script src="net/shared.js?v=105"></script>
+<script src="net/client.js?v=105"></script>
+<script src="net/team.js?v=105"></script>
+<script src="menu.js?v=105"></script>
+<script src="save.js?v=105"></script>
 </body>
 </html>

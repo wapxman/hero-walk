@@ -13,6 +13,7 @@ const HSTAT = (function () {
     ['blind', 'Дым', 0], ['slow', 'Замедление', 0], ['poison', 'Яд', 0], ['burn', 'Горение', 0], ['cold', 'Холод', 0], ['bleed', 'Кровотечение', 0],
     ['shred', 'Снятие брони', 0], ['weak', 'Ослабление', 0], ['mark', 'Метка', 0], ['fear', 'Страх', 0], ['curse', 'Проклятие', 0],
     ['shield', 'Щит', 1], ['haste', 'Ускорение', 1], ['immune', 'Защита', 1], ['clarity', 'Ясность', 1],
+    ['coop_shield', 'Щит напарника', 1], ['coop_frost', 'Ледяной разгон', 1],   // «Вместе»: помощь напарника (net/team.js)
   ];
   const MAX = 8, DIR = 'ui/status/';
   const X = {};                                   // HSTAT.show: имя → { t, n, pct }
@@ -47,6 +48,7 @@ const HSTAT = (function () {
     haste: () => timed('haste', P.ss.spd),
     immune: () => timed('immune', ...Object.values(P.ss.imm)),
     clarity: () => timed('clarity', P.ss.noMiss),
+    coop_shield: () => timed('coop_shield'), coop_frost: () => timed('coop_frost'),
   };
   function NET_F(n) { return typeof NET !== 'undefined' && NET[n] || 0; }
 

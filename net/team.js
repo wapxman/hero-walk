@@ -233,7 +233,7 @@ var TEAM = { on: false, host: false, peer: null };
   let myAnim = ['idle', 0, 0], drawingPeer = false;
   function heroMsg() {
     return { k: 'h', x: Math.round(P.x), y: Math.round(P.y), hp: Math.round(P.hp), mx: Math.round(P.maxHp), d: P.dead > 0 ? 1 : 0, l: inLimbo() ? 1 : 0, a: myAnim[0], f: myAnim[1], r: myAnim[2], hu: P.hurt > 0.17 ? 1 : 0, lv: P.lvl,
-      sh: (typeof P.shield === 'number' && P.shield > 0) || P.ss.rshield > 0 ? 1 : 0, ul: P.ult > 0 ? 1 : 0 };
+      sh: (typeof P.shield === 'number' && P.shield > 0) || P.ss.rshield > 0 || B.shield ? 1 : 0, ul: P.ult > 0 ? 1 : 0 };
   }
   function onHero(m) {
     if (!PV.on) { PV.x = m.x; PV.y = m.y; }
@@ -271,8 +271,92 @@ var TEAM = { on: false, host: false, peer: null };
     if (L.length) send({ k: 'sh', L });
   }
 
+  // ---------- помощь напарнику (v105): отдельная кнопка, видна, пока рядом живой напарник ----------
+  // Эйра — «Щит напарнику»: щит листьев на союзника (гасит урон, снимает путы, в конце взрыв). Ganfaul — «Ледяной разгон»:
+  // напарнику на 6 с +25 % к бегу и скорости атаки, его выстрелы замедляют. Иконки — Клауди (ui/status/coop_*.webp).
+  const HELP = { archer: { b: 'shield', nm: 'Щит напарнику', cd: 18, mana: 60, icon: 'coop_shield' }, mage: { b: 'frost', nm: 'Ледяной разгон', cd: 20, mana: 70, icon: 'coop_frost' } };
+  const helpOf = () => HELP[HERO_ID] || HELP.mage;
+  const ICON = {}; for (const k of ['coop_shield', 'coop_frost']) { ICON[k] = new Image(); ICON[k].src = 'ui/status/' + k + '.webp' + V; }
+  const B = { shield: null, frost: 0 };   // что сейчас на мне от напарника
+  T.buffs = B;
+  const helpOn = () => T.on && peerShown() && !PV.dead && P.dead <= 0 && !inLimbo();
+  function helpGo() {
+    const h = helpOf();
+    if (!helpOn() || P.cd.help > 0 || (typeof SHOP !== 'undefined' && SHOP.paused)) return false;
+    if (P.mp < h.mana) { say(P.x, P.y - CH * HS() * 1.2, 'Мало маны', '#9fc8ff'); return false; }
+    if (typeof STATUS !== 'undefined' && STATUS.mute && STATUS.mute()) return false;
+    P.mp -= h.mana; P.cd.help = h.cd * (P.cdMul || 1); CDMAX.help = h.cd; MANA.help = h.mana;
+    send({ k: 'buff', b: h.b, lvl: P.lvl });
+    sayRaw(PV.x, PV.y - CH * HS() * 1.5, h.nm, '#b9ffcf');
+    if (typeof play === 'function') play('item_click_2', 0.9);
+    return true;
+  }
+  T.help = helpGo;
+  T.onBuff = function (m) {
+    if (P.dead > 0 || inLimbo()) return;
+    if (m.b === 'shield') {
+      B.shield = { hp: Math.round(150 + 0.25 * P.maxHp), t: 6, lvl: m.lvl || 1 };
+      if (P.sk) { P.sk.bind = 0; P.sk.pin = 0; } if (P.slowT > 0 && P.slowK <= 0.05) P.slowT = 0;   // путы снимаются
+      if (typeof HSTAT !== 'undefined') HSTAT.show('coop_shield', 6);
+      sayRaw(P.x, P.y - CH * HS() * 1.4, 'Щит от напарника', '#b9ffcf'); if (typeof play === 'function') play('item_click_2', 0.9);
+    } else if (m.b === 'frost') {
+      B.frost = 6; SHOP.recompute(); if (P.ss) P.ss.spd = Math.max(P.ss.spd || 0, 6);
+      if (typeof HSTAT !== 'undefined') HSTAT.show('coop_frost', 6);
+      sayRaw(P.x, P.y - CH * HS() * 1.4, 'Ледяной разгон', '#bfe6ff'); if (typeof play === 'function') play('item_click_2', 0.9);
+    }
+  };
+  function shieldEnd() {   // конец щита: взрыв по злодеям рядом
+    const s = B.shield; if (!s) return; B.shield = null;
+    if (typeof HSTAT !== 'undefined') HSTAT.show('coop_shield', 0);
+    fx.push({ type: 'nova', x: P.x, y: P.y, t: 0, dur: 0.6, R: 220 });
+    for (const e of enemies) if (e.hp > 0 && e.dieT == null && gdist(P, e) < 220 + e.rad) hurtEnemy(e, (60 + 6 * s.lvl) / (P.dmgMul || 1), '#b9ffcf');
+    snd('nova', 0.5, 1.4);
+  }
+  function helpHooks() {
+    BTN.push({ id: 'help', label: 'Помощь', key: 'V', col: '160,255,190' });
+    BTN_POS.help = [38, 264, 28]; SK_CELL.help = -9; CDMAX.help = helpOf().cd; MANA.help = helpOf().mana; P.cd.help = 0;
+    const _cast = cast; cast = function (id) { if (id === 'help') return helpGo(); return _cast(id); };
+    addEventListener('keydown', e => { if (e.code === 'KeyV' && !e.repeat) cast('help'); });
+    const _lb = layoutButtons;
+    layoutButtons = function () { _lb(); const b = BTN.find(b => b.id === 'help'); if (b && !helpOn()) b.x = b.y = -9999; };
+    const _ui = combatUI;
+    combatUI = function () {
+      if (helpOn()) {
+        layoutButtons(); const b = BTN.find(b => b.id === 'help'), d = b.r * 1.7, ic = ICON[helpOf().icon];
+        MANA.help = helpOf().mana; CDMAX.help = helpOf().cd;
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.r * 0.94, 0, 7); ctx.fillStyle = 'rgba(14,20,32,0.88)'; ctx.fill();
+        ctx.lineWidth = Math.max(2, b.r * 0.09); ctx.strokeStyle = '#7fe6a0'; ctx.stroke();
+        if (ic.complete && ic.naturalWidth) ctx.drawImage(ic, b.x - d / 2, b.y - d / 2, d, d);
+      }
+      _ui();
+    };
+    // щит напарника гасит урон
+    const _hp = hurtPlayer;
+    hurtPlayer = function (d, kind) {
+      const s = B.shield;
+      if (s && d > 0 && P.dead <= 0) { const a = d * (P.armMul || 1); if (a <= s.hp) { s.hp -= a; sayRaw(P.x, P.y - CH * HS(), 'щит', '#b9ffcf'); return; } d -= s.hp / (P.armMul || 1); shieldEnd(); }
+      return _hp(d, kind);
+    };
+    // разгон: бег и атака +25 %, выстрелы замедляют и светятся голубым
+    const _rc = SHOP.recompute;
+    SHOP.recompute = function () { const r = _rc.apply(this, arguments); if (B.frost > 0) P.atkSpd *= 1.25; return r; };   // бег ускоряет общее состояние «Ускорение» (P.ss.spd)
+    const _ds2 = drawShot;
+    drawShot = function (s) { if (s.ice && typeof glowImg === 'function') { const R = 26; ctx.save(); ctx.globalAlpha = 0.75; ctx.globalCompositeOperation = 'lighter'; ctx.drawImage(glowImg('150,215,255'), s.x - R, s.y - (s.h || 40) - R, R * 2, R * 2); ctx.restore(); } return _ds2(s); };
+    const _ho2 = typeof heroOver === 'function' ? heroOver : null;
+    if (_ho2) heroOver = function (t) { _ho2(t); if (B.shield && P.dead <= 0 && typeof fx3 === 'function') fx3('shield', P.x, P.y - CH * 0.42 * HS(), 230 * HS(), 230 * HS(), 0.5, 0.5, 0.6); };
+  }
+  function helpTick(dt) {
+    if (B.shield && (B.shield.t -= dt) <= 0) shieldEnd();
+    if (B.frost > 0) {
+      B.frost -= dt;
+      for (const s of shots) if (s.own === 'p' && !s.ghost && !s.ice) { s.ice = 1; const f = s.onHit; s.onHit = e => { slow(e, 0.6, 2); if (f) f(e); }; }
+      if (B.frost <= 0) { B.frost = 0; SHOP.recompute(); }
+    }
+  }
+
   // ---------- встраивание в игру (один раз, при первом входе в «Вместе») ----------
   function hooks() {
+    helpHooks();
     // ведомый волны не выпускает
     const _rt = runTick; runTick = function (dt) { if (T.on && !T.host) return; T.inWave = true; try { return _rt(dt); } finally { T.inWave = false; } };
     const _spw = spawnWave; spawnWave = function () { if (T.on && !T.host) { ROUND.endW = roundEnd(wave + 1); wave++; ROUND.queue = ['_']; ROUND.fin = null; ROUND.mini = null; return; } return _spw(); };
@@ -315,7 +399,7 @@ var TEAM = { on: false, host: false, peer: null };
     combatUpdate = function (dt) {
       _cu(dt);
       if (!T.on) return;
-      announce();
+      announce(); helpTick(dt);
       if (PV.on) { const f = 1 - Math.exp(-dt * 12); PV.x += (PV.tx - PV.x) * f; PV.y += (PV.ty - PV.y) * f; }
     };
     // гибель: поле у меня очищается (как в одиночной), а мои злодеи переходят к живому напарнику; вернулся — прошу показать поле заново
