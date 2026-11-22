@@ -117,7 +117,7 @@ const STORE = (() => {
     if (busy) return;
     const a = arguments, go = () => { busy = false; revived = false; return _sw.apply(SHOP, a); };
     if (BOT || online() || SHOP.phase !== 'rest' || P.dead > 0 || SHOP.transit || !adsZone() || pro) return go();
-    if (!st.gate) { busy = true; gate(() => { busy = false; SHOP.startWave(); }); return; }
+    if (!st.gate) { busy = true; gate(() => go()); return; }      // v114: сразу в бой (раньше звали SHOP.startWave заново — и снова открывалась карта миров)
     if (!B || now() - lastAd < CFG.gapSec || !call('interReady')) return go();
     busy = true; lastAd = now();
     ad('inter', '', () => go());
