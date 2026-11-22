@@ -12,7 +12,7 @@
 // Проверка: ?cine=1 — показывать и под автопрогоном; CINE.reset() в консоли — забыть, что уже показано.
 'use strict';
 const CINE = (() => {
-  const CFG = { intro: false, slideSec: 7, logoSec: 2.6, duckVoice: 0.25, fade: 0.9 };
+  const CFG = { intro: true, slideSec: 7, logoSec: 2.6, duckVoice: 0.25, fade: 0.9 };
   const M = (typeof CINE_FILES !== 'undefined' && CINE_FILES) || {};      // что реально лежит в cine/ (пишет cine_install.py)
   const FORCE = /[?&]cine=1/.test(location.search);
   const OFF = !FORCE && (!!navigator.webdriver || /[?&](mode|auto)=/.test(location.search));   // автопрогон и ссылки проверки — без заставок
@@ -163,10 +163,10 @@ const CINE = (() => {
   const nSlides = k => (M[k] && M[k].n) || 0;
   // запуск игры: лого игры показывает заставка меню (menu.js), здесь — лого студии → (первый запуск) вступление; потом done() — меню
   function boot(done) {
-    if (OFF || on || (!has('logo_paladium.mp4') && (!has('intro.mp4') || seen.intro))) return done();
+    if (OFF || on || (!has('logo_paladium.mp4') && (!has('intro.mp4') || seen.intro2))) return done();
     session(async setSkip => {
       if (has('logo_paladium.mp4')) await video('logo_paladium.mp4', setSkip);
-      if (has('intro.mp4') && !seen.intro) { mark('intro'); await video('intro.mp4', setSkip); }
+      if (has('intro.mp4') && !seen.intro2) { mark('intro2'); await video('intro.mp4', setSkip); }
       done(); await hide();
     });
   }

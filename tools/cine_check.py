@@ -89,7 +89,7 @@ with sync_playwright() as pw:
 
     # второй запуск: вступления уже нет
     cx = br.new_context(viewport={'width': 1280, 'height': 720}); p = cx.new_page()
-    cx.add_init_script("localStorage.setItem('hw_cine', JSON.stringify({ intro: 1 }))")
+    cx.add_init_script("localStorage.setItem('hw_cine', JSON.stringify({ intro2: 1 }))")
     p.goto(URL + '?v=%d&cine=1&allworlds' % int(time.time()), timeout=120000)
     s = wait(p, lambda s: s['video'] == 'logo_paladium.mp4' and s['t'] > 0.3, 60)
     s2 = wait(p, lambda s: not s['on'] and s['menu'] == 'block', 20)
