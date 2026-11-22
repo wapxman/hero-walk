@@ -25,6 +25,11 @@
   body { position:fixed; inset:0; }
   /* запуск (v97): экран закрыт, пока не готова заставка — иначе на секунду видны арена и выбор героя (убирает menu.js) */
   #boot { position:fixed; inset:0; z-index:40; background:#000; }
+  /* долгая загрузка (v113): через секунду на чёрном экране появляется тонкое колечко ожидания */
+  #boot::after { content:''; position:absolute; left:50%; top:50%; width:5vh; height:5vh; margin:-2.5vh; border-radius:50%; border:.35vh solid rgba(255,255,255,.14);
+    border-top-color:rgba(255,255,255,.6); opacity:0; animation:bootSpin 1s linear infinite, bootIn .5s 1.2s forwards; }
+  @keyframes bootSpin { to { transform:rotate(360deg); } }
+  @keyframes bootIn { to { opacity:1; } }
   #safeProbe { position:fixed; visibility:hidden; pointer-events:none; padding:var(--sat) var(--sar) var(--sab) var(--sal); }
   canvas { display:block; width:100vw; height:100dvh; }
   #hud { display:none; }
