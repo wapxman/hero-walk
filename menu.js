@@ -1,4 +1,11 @@
-// Вход в игру: заставка с логотипом → главное меню (Играть, Онлайн, Герои, Магазин, Настройки) → выбор героя.
+// Вход в игру: заставка с логотипом → главное меню → выбор героя.
+// Схема экранов (v113):
+//   запуск: лого игры → лого студии (оба пропускаются касанием) → главное меню; больше лого нигде не повторяются
+//   главное меню: [«Продолжить» — только если есть сохранение, первая и подсвеченная], «Новая игра», «Онлайн», «Герои», «Магазин»,
+//                 «Настройки»; справа сверху — «PRO» и «История» (вступление ещё раз)
+//   «Новая игра»: [есть сохранение — вопрос «Начать заново?»] → выбор героя → «В бой» → вступление («Пропустить») → рассказ мира 1 → бой
+//   «Продолжить»: карта миров с фишкой на месте остановки → бой; без лого и вступления
+//   пауза → «В главное меню»: главное меню без лого; «Продолжить» оттуда — та же точка (раунд, на котором вышли)
 // Все картинки нарисованы в ChatGPT: ui/logo.webp, ui/menu_bg.webp, ui/card_mage.webp, ui/card_archer.webp;
 // кнопки и таблички — прежние ui/h_button.webp и ui/h_plaque.webp. Кодом выводится только текст.
 // Экран выбора героя (#hSel из heroes.js) переделан в большие карточки; режимы онлайна — из net/client.js.
@@ -26,10 +33,13 @@
   #mSplash.on i { opacity: 1; transform: scale(1); }
   #mMain { background: #05080e ${U('menu_bg')} center / cover no-repeat; display: none; }
   #mMain .logo { position: absolute; left: 4vw; top: 2vh; width: min(34vw, 54vh); aspect-ratio: 3 / 2; background: ${U('logo')} center / contain no-repeat; }
-  #mMain .btns { position: absolute; left: 6vw; top: 40vh; display: flex; flex-direction: column; gap: 1.2vh; }
+  #mMain .btns { position: absolute; left: 6vw; top: 39.5vh; display: flex; flex-direction: column; gap: 1.2vh; }
   #mMain .b { width: 40vh; height: 9vh; background: ${U('h_button')} center / 100% 100% no-repeat; display: flex; align-items: center; justify-content: center;
     font: bold 3.3vh system-ui; color: #ffe9a8; letter-spacing: .06em; transition: transform .12s; }
   #mMain .b:active { transform: scale(.96); }
+  #mMain .btns .b { height: 8.5vh; }
+  #mMain .btns .b.hl { color: #fff7cf; filter: brightness(1.22) drop-shadow(0 0 1.5vh rgba(255,226,122,.8)); transform: scale(1.07); transform-origin: left center; margin-bottom: .5vh; }
+  #mMain .btns .b.hl:active { transform: scale(1.02); }
   #mMain .ver { position: absolute; right: 2vh; bottom: 1.6vh; font-size: 1.7vh; opacity: .7; }
   #mSet { display: none; align-items: center; justify-content: center; background: rgba(3,6,12,.72); z-index: 13; }
   #mSet .pn { width: min(92vw, 84vh); padding: 3vh 4vh 3.4vh; border-radius: 2.4vh; background: rgba(10,22,40,.92); border: .4vh solid rgba(160,190,230,.4);
@@ -77,7 +87,9 @@
   const modes = sel.querySelector('.modes'), modeBtns = modes ? [...modes.querySelectorAll('.md')] : [];
   const plaque = sel.querySelector('.pl');
   // режим экрана выбора: play — одиночная игра, online — дуэль или кооператив, view — просто посмотреть героев
+  // new — «Новая игра»: как play, но после «В бой» идёт вступление и сразу мир 1 (save.js), без карты миров
   function openSelect(kind) {
+    window.NEWGAME = kind === 'new'; if (kind === 'new') { kind = 'play'; if (typeof CINE !== 'undefined') CINE.preload('intro.mp4'); }
     hideMain(); sel.style.display = 'flex';
     plaque.textContent = kind === 'view' ? 'ГЕРОИ' : 'ВЫБЕРИ ГЕРОЯ';
     const go = sel.querySelector('.go'); go.style.display = kind === 'view' ? 'none' : 'flex';
@@ -102,7 +114,8 @@
     if (typeof mus === 'undefined' || started) return; menuMus = true;
     if (mus.el) { if (mus.i !== MENU_TRACK) { mus.i = MENU_TRACK; musicLoad(); } } else store('hw_mus_i', MENU_TRACK);
   }
-  function showMain() { main.style.display = 'block'; sel.style.display = 'none'; menuMusic(); }
+  function showMain() { window.NEWGAME = false; main.style.display = 'block'; sel.style.display = 'none'; menuMusic(); }
+  window.MENU = { openSelect, showMain };
   function hideMain() { main.style.display = 'none'; }
   // магазин из меню: после закрытия — обратно в меню, пока бой не начат
   const _close = SHOP.closeShop;
@@ -144,13 +157,17 @@
   const auto = /[?&](mode|auto)=/.test(location.search);    // ссылки проверки онлайна идут сразу в игру
   let done = false, bgOk = false, timeUp = false;
   let back2menu = false; try { back2menu = sessionStorage.getItem('hw_tomenu') === '1'; sessionStorage.removeItem('hw_tomenu'); } catch (e) {}
+  // «Новая игра» при имеющемся сохранении стирает прогресс и перезагружает страницу — после неё сразу выбор героя, без лого и меню
+  let newgame = false; try { newgame = sessionStorage.getItem('hw_newgame') === '1'; sessionStorage.removeItem('hw_newgame'); } catch (e) {}
+  if (newgame) back2menu = true;
+  window.BOOT_KIND = auto ? 'auto' : newgame ? 'new' : back2menu ? 'menu' : '';   // '' — обычный запуск с лого (cine.js заранее грузит лого студии)
   // фон меню грузим заранее: заставка не уходит, пока его нет (иначе меню секунду стоит на тёмном фоне, потом фон «впрыгивает»)
   const bg = new Image(); bg.onload = bg.onerror = () => { bgOk = true; if (timeUp) endSplash(); }; bg.src = 'ui/menu_bg.webp' + V;
   setTimeout(() => { bgOk = true; if (timeUp) endSplash(); }, 10000);
   function endSplash() {
     timeUp = true; if (done || (!bgOk && !auto)) return; done = true;
     // после лого игры — лого студии и (в первый запуск) вступление: cine.js; чёрная заставка уходит, когда они кончились
-    const fin = () => { sp.style.opacity = '0'; setTimeout(() => sp.remove(), 750); if (auto) sel.style.display = 'flex'; else showMain(); };
+    const fin = () => { sp.style.opacity = '0'; setTimeout(() => sp.remove(), 750); if (auto) sel.style.display = 'flex'; else if (newgame) openSelect('new'); else showMain(); };
     if (!auto && !back2menu && typeof CINE !== 'undefined') { sp.classList.remove('on'); CINE.boot(fin); } else fin();
   }
   const logo = new Image();

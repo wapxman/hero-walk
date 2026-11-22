@@ -88,7 +88,7 @@ async def extra(br, res):
         async def start():
             p = await boot(ctx, 'allworlds', bag)
             await p.add_script_tag(path=os.path.join(ROOT, 'balance_model.js')); await p.add_script_tag(path=os.path.join(ROOT, 'tools', 'balance_bot.js'))
-            await p.evaluate("(() => { const m = [...document.querySelectorAll('#mMain .b')].find(b => /Играть|Продолжить/.test(b.textContent)); m.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); })()"); await asyncio.sleep(1)
+            await p.evaluate("(() => { const m = [...document.querySelectorAll('#mMain .b')].find(b => /Играть|Продолжить|Новая игра/.test(b.textContent)); m.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); })()"); await asyncio.sleep(1)
             if await p.evaluate("getComputedStyle(document.getElementById('hSel')).display") != 'none': await p.evaluate("document.querySelector('#hSel .go').dispatchEvent(new PointerEvent('pointerdown'))")
             await asyncio.sleep(1.5); return p
         p = await boot(ctx, 'allworlds', bag)

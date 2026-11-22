@@ -89,6 +89,7 @@ const STORE = (() => {
     if (W.style.display !== 'flex') freeze(true);
     W.style.display = 'flex';
   }
+  addEventListener('keydown', e => { if ((W && W.style.display === 'flex') || wait) e.stopPropagation(); }, true);   // пока окно или реклама — клавиши до игры не доходят
   function close() { if (W && W.style.display === 'flex') { W.style.display = 'none'; freeze(false); } }
   function toast(t) {
     if (!T) { T = document.createElement('div'); T.id = 'stToast'; document.body.appendChild(T); }
