@@ -90,6 +90,7 @@ const SAVE = (() => {
       if (!direct && !ready && !net() && typeof PATHMAP !== 'undefined' && !PATHMAP.on && !/[?&](mode|auto)=/.test(location.search) && !(window.NETC && NETC.S && NETC.S.mode !== 'single')) { begin(); return; }
       if (direct || net() || !ready || typeof PATHMAP === 'undefined' || PATHMAP.on || (typeof LIMBO !== 'undefined' && LIMBO.on)) return real.apply(this, arguments);
       if (SHOP.phase !== 'rest' || P.dead > 0) return;
+      if (typeof STORE !== 'undefined' && STORE.busy) return;      // ждём рекламу перед раундом (store.js) — бой начнётся сам, карту поверх не открываем (v115)
       // после босса карта уже показала переход в новую главу — второй раз подряд её не открываем: «В бой» сразу начинает бой (v99)
       if (SHOP.mapShown) { SHOP.mapShown = false; return real.apply(this, arguments); }
       if (SHOP.open) SHOP.closeShop();

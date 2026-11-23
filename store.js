@@ -14,7 +14,7 @@
 // Проверка в браузере без APK: ?fakestore — поддельный мост (реклама — серая заглушка на 1,5 с), ?fakestore=pro — с PRO.
 'use strict';
 const STORE = (() => {
-  const CFG = { freeWorlds: 2, gapSec: 120, safetySec: 300 };
+  const CFG = { freeWorlds: 2, gapSec: 120, safetySec: 120, showSec: 4 };   // showSec — сколько ждём, что реклама открылась (v115)
   const FAKE = /[?&]fakestore/.test(location.search);
   const B = window.DuelStore || (FAKE && !/fakestore=web/.test(location.search) ? fakeBridge() : null);   // ?fakestore=web — как на сайте, но окна видны и под автопрогоном
   const BOT = !!navigator.webdriver && !FAKE;          // автопрогон: окна не показываем, иначе он встанет
@@ -47,13 +47,18 @@ const STORE = (() => {
   // ---------- ответы приложения ----------
   function cb(kind, ok, tag) {
     if (kind === 'pro') { if (ok) { if (!pro) toast('PRO куплен — рекламы больше не будет'); pro = true; refreshMenu(); } const w = wait; if (w && w.kind === 'pro') { wait = null; w.done(!!ok); } return; }
+    if (kind === 'shown') { if (wait) { wait.shown = true; clearTimeout(wait.t0); } return; }      // приложение: реклама открылась на экране
     const w = wait; if (!w || w.kind !== kind) return;
-    wait = null; clearTimeout(w.timer); mute(false); w.done(!!ok);
+    wait = null; clearTimeout(w.timer); clearTimeout(w.t0); mute(false); w.done(!!ok);
   }
   // показать рекламу и дождаться ответа; если ответа нет слишком долго — идём дальше, игра не должна зависнуть
   function ad(kind, tag, done) {
     mute(true);
     wait = { kind, done, timer: setTimeout(() => cb(kind, 0, tag), CFG.safetySec * 1000) };
+    // v115: реклама могла не открыться и не ответить (на телефоне Создателя так не стартовала волна 100: игра ждала ответа 5 минут,
+    // а «Начать волну» только открывала карту). Не открылась за showSec — идём дальше без неё. Открылась — приложение шлёт 'shown',
+    // а если страницу закрыло чужое окно (document.hidden), значит реклама на экране — тоже ждём её конца.
+    const w = wait; w.t0 = setTimeout(function chk() { if (wait !== w || w.shown) return; if (document.hidden) { w.t0 = setTimeout(chk, 2000); return; } cb(kind, 0, tag); }, CFG.showSec * 1000);
     call(kind === 'inter' ? 'showInterstitial' : 'showRewarded', tag);
   }
 
@@ -174,10 +179,11 @@ const STORE = (() => {
 
   // ---------- поддельный мост для проверки в браузере ----------
   function fakeBridge() {
-    let p = /fakestore=pro/.test(location.search);
+    let p = /fakestore=pro/.test(location.search); const silent = /fakestore=silent/.test(location.search);   // silent — реклама «готова», но не открывается и не отвечает
     const log = window.FAKE_ADS = [];
     const show = (kind, tag) => {
-      log.push(kind + (tag ? ':' + tag : ''));
+      log.push(kind + (tag ? ':' + tag : '')); if (silent) return;
+      setTimeout(() => STORE.cb('shown', 1, ''), 200);
       const d = document.createElement('div'); d.id = 'stFake'; d.textContent = 'РЕКЛАМА (' + kind + ')'; document.body.appendChild(d);
       setTimeout(() => { d.remove(); STORE.cb(kind, 1, tag); }, 1500);
     };

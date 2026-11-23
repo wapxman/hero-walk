@@ -1,27 +1,27 @@
 """Бот проходит настоящую игру в ускоренном времени и печатает, как шёл забег (см. tools/balance_bot.js).
 Нужен локальный сервер игры: python ../hero-walk-apk/dev_server.py . 8765
-Запуск: python tools/balance_bot.py [--waves 100] [--hero archer] [--k hp=1,dmg=1,...] [--out file.json]"""
+Запуск: python tools/balance_bot.py [--waves 100] [--hero archer] [--k hp=1,dmg=1,...] [--out file.json] [--nodash] [--armor 2.5 — урон по герою ×2,5: «невнимательный игрок»]"""
 import sys, os, json, time, argparse
-sys.stdout.reconfigure(encoding='utf-8')
+sys.stdout.reconfigure(encoding='utf-8', line_buffering=True)
 from playwright.sync_api import sync_playwright
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ap = argparse.ArgumentParser(); ap.add_argument('--waves', type=int, default=100); ap.add_argument('--from', dest='frm', type=int, default=0); ap.add_argument('--hero', default='')
 ap.add_argument('--k', default=''); ap.add_argument('--out', default=''); ap.add_argument('--url', default='http://localhost:8765/'); ap.add_argument('--lvl', type=int, default=0)
-ap.add_argument('--build', default='1,1,1'); ap.add_argument('--nodash', action='store_true')
+ap.add_argument('--build', default='1,1,1'); ap.add_argument('--nodash', action='store_true'); ap.add_argument('--q', default=''); ap.add_argument('--armor', type=float, default=1)   # --q hard=dmg:1.2 — добавка к адресу игры
 A = ap.parse_args()
 K = {k: float(v) for k, v in (x.split('=') for x in A.k.split(',') if x)}
 with sync_playwright() as pw:
     b = pw.chromium.launch(headless=True); p = b.new_page(viewport={'width': 640, 'height': 360})
     errs = []; p.on('pageerror', lambda e: errs.append(str(e)[:300]))
-    p.goto(A.url + '?v=%d&mode=play' % int(time.time())); time.sleep(3)
+    p.goto(A.url + '?v=%d&mode=play%s' % (int(time.time()), '&' + A.q if A.q else '')); time.sleep(3)
     p.evaluate("() => { for (const k of Object.keys(localStorage)) if (/^hw_(run|prog|mapt)_/.test(k)) localStorage.removeItem(k); }")
-    p.goto(A.url + '?v=%d&mode=play' % int(time.time())); time.sleep(3)
+    p.goto(A.url + '?v=%d&mode=play%s' % (int(time.time()), '&' + A.q if A.q else '')); time.sleep(3)
     p.mouse.click(320, 180)
     if A.hero: p.evaluate("id => setHero(id)", A.hero)
     p.evaluate("document.querySelector('#hSel .go').dispatchEvent(new PointerEvent('pointerdown'))"); time.sleep(2)
     p.evaluate("k => { if (BAL.tune) BAL.tune(k); }", K)
     p.add_script_tag(path=os.path.join(ROOT, 'balance_model.js')); p.add_script_tag(path=os.path.join(ROOT, 'tools', 'balance_bot.js'))
-    p.evaluate("a => { BOT.maxWave = a[0]; BOT.opt.build = a[2]; BOT.opt.dash = !a[4]; if (a[1]) { wave = a[1]; } if (a[3]) { P.lvl = a[3]; P.stp = 3 * (a[3] - 1); P.sp = a[3] - 1; } }", [A.waves, A.frm, [float(x) for x in A.build.split(',')], A.lvl, A.nodash])
+    p.evaluate("a => { BOT.maxWave = a[0]; BOT.opt.build = a[2]; BOT.opt.dash = !a[4]; BOT.opt.armor = a[5]; if (a[1]) { wave = a[1]; } if (a[3]) { P.lvl = a[3]; P.stp = 3 * (a[3] - 1); P.sp = a[3] - 1; } }", [A.waves, A.frm, [float(x) for x in A.build.split(',')], A.lvl, A.nodash, A.armor])
     t0 = time.time(); shown = 0
     while True:
         st = p.evaluate("BOT.run(6000)")

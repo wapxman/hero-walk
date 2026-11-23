@@ -374,6 +374,14 @@ const PATHMAP = (() => {
     on: false, NAMES, NODES, ARENA_NAMES, TMAX, at, ground: [], sky: [],
     scr(t) { const g = geo(), p = at(t); return [g.X(p.x) / DPR, g.Y(p.y) / DPR]; },   // где точка пути на экране (для проверок)
     preload,
+    // для проверок (tools/wave100_check.py): выбрать на открытой карте главу c (j — пункт после волн 3, 6, 9: 0, 1, 2) — то же, что касание точки
+    pickAt(c, j) {
+      if (!st || !st.select) return false;
+      const t = c - 1 + (j == null ? 0 : STEPS[j]); if (j == null ? c > st.select.open : t > st.select.openT + 1e-3) return false;
+      const home = Math.abs(t - st.t1) < 1e-3;
+      st.anim = { from: st.tok, to: t, at: st.age, dur: 0.5 }; st.cur = c; st.selJ = j == null ? null : j; st.selW = home ? null : (c - 1) * WV + (j == null ? 0 : (j + 1) * 3); goBtn();
+      return true;
+    },
     show(o) {
       if (!cv) mk();
       // карта уже открыта (выбор главы поверх перехода между мирами) — не запоминать «пауза» от прошлого показа и не плодить второй цикл

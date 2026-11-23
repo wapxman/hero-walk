@@ -16,13 +16,13 @@ const LFX = (() => {
     const d = LOCFX.defs[id], o = IMG[id] = { ok: false };
     const im = new Image();
     im.onload = () => {
-      if (d.blend === 'mask') {   // один раз переводим лист в цвет с альфой по яркости
+      if (d.blend === 'mask') try {   // один раз переводим лист в цвет с альфой по яркости (v115: если холст читать нельзя — как в оболочке iPhone с её адресом app:// — берём лист как есть)
         const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
         const g = c.getContext('2d'); g.drawImage(im, 0, 0);
         const px = g.getImageData(0, 0, c.width, c.height), a = px.data, [r, gg, b] = maskCol(id);
         for (let i = 0; i < a.length; i += 4) { const l = Math.max(a[i], a[i + 1], a[i + 2]) * (a[i + 3] / 255); a[i] = r; a[i + 1] = gg; a[i + 2] = b; a[i + 3] = l; }
         g.putImageData(px, 0, 0); o.src = c;
-      } else o.src = im;
+      } catch (e) { o.src = im; } else o.src = im;
       o.ok = true;
     };
     im.src = 'ui/locfx/' + id + '.webp' + V0;

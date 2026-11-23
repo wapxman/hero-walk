@@ -1,6 +1,6 @@
 #!/bin/bash
 # Сборка APK: bash tools/build_apk.sh        (версия берётся из index.html: const V = '?v=NN')
-# 1) автопрогон tools/autotest.py — если красный, APK не собирается;
+# 1) автопрогон tools/autotest.py и проверка волны 100 tools/wave100_check.py — если красные, APK не собирается;
 # 2) в APK идёт то, что закоммичено (git archive HEAD), поэтому сначала коммит;
 # 3) два файла в apk/: обычный и test-all-worlds (все 10 миров открыты);
 # 4) с ключом --play — ещё и AAB для Google Play: apk/play/game-vNN.aab (не выкладывается, только собирается).
@@ -13,6 +13,9 @@ if [ -n "$(git status --porcelain)" ]; then echo "есть незакоммич�
 if [ "$1" != "--no-test" ]; then
   PYTHONIOENCODING=utf-8 python tools/autotest.py > tests_last.log 2>&1 || { tail -30 tests_last.log; rm -f tests_last.log; echo "АВТОПРОГОН КРАСНЫЙ — APK не собран (отчёт: tests/report_v$V/report.md)"; exit 1; }
   rm -f tests_last.log; echo "автопрогон зелёный"
+  # v115: волна 100 и финальный босс стартуют (сайт, приложение с рекламой и с молчащей рекламой, вход через «Продолжить»)
+  PYTHONIOENCODING=utf-8 python tools/wave100_check.py > tests_w100.log 2>&1 || { cat tests_w100.log; rm -f tests_w100.log; echo "ПРОВЕРКА ВОЛНЫ 100 КРАСНАЯ — APK не собран"; exit 1; }
+  rm -f tests_w100.log; echo "волна 100 стартует"
 fi
 cd ../hero-walk-apk
 W=gamedata/src/main/assets/www   # файлы игры для APK и для набора Google Play

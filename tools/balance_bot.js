@@ -155,6 +155,7 @@
       if (LIMBO.on) { B.deaths++; if (B.cur) { B.cur.deaths++; if (B.cur.deaths >= 6) { B.cur.stuck = 1; B.stuck++; } } hpPrev = P.maxHp;
         const stuck = B.cur && B.cur.stuck; LIMBO.leave();
         if (stuck) { for (const e of enemies) e.hp = 0; enemies.length = 0; ROUND.queue.length = 0; ROUND.fin = null; wave = ROUND.endW; } }
+      else if (SHOP.phase === 'rest' && SHOP.transit) { /* переход в новый мир (worlds.js ждёт 1,4 с настоящего времени) — «Начать волну» пока не работает, ждём */ }
       else if (SHOP.phase === 'rest' && P.dead <= 0 && !(SHOP.restT > 0.05)) {
         for (const d of SHOP.drops) if (!d.gone) { d.gone = true; SHOP.pick(d); }   // после раунда игрок обходит поле и собирает выпавшее
         end();
