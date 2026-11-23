@@ -15,7 +15,8 @@ import sys, os, json, shutil, subprocess, io
 sys.stdout.reconfigure(encoding='utf-8')
 from PIL import Image
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
-SRC = r'C:\Users\User\Desktop\night_19_11\cinema\game'
+SRC = r'C:\Users\User\Desktop\night_19_11\cinema\story_book\game'      # v116: книга «Сердце Разлома» — ролики вместо слайдов
+OLD = r'C:\Users\User\Desktop\night_19_11\cinema\game'                  # прежний пакет: оттуда берём лого студии, если в новом его нет
 DST = os.path.join(ROOT, 'cine')
 STUB_MARK = '_заглушки.txt'
 WORLDS = ['world_%02d' % i for i in range(1, 11)] + ['finale']
@@ -70,6 +71,7 @@ def stub():
 
 def video(name):
     s = os.path.join(SRC, name)
+    if not os.path.exists(s): s = os.path.join(OLD, name)
     if not os.path.exists(s): return 0
     # уже H.264 + AAC не больше 1080p — не пережимаем (качество то же), только переносим начало файла вперёд, чтобы сразу играл
     pr = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'stream=codec_name,height', '-of', 'csv=p=0', s], capture_output=True, text=True).stdout.split()
@@ -91,12 +93,12 @@ def install():
     os.makedirs(DST); files = {}; rep = []
     s = os.path.join(SRC, 'logo_game.png')
     if os.path.exists(s):
-        im = Image.open(s); im.thumbnail((1600, 1600)); im.save(os.path.join(DST, 'logo_game.png'), optimize=True); files['logo_game.png'] = 1
-    for v in ('logo_paladium.mp4', 'intro.mp4', 'finale.mp4'):
+        import logo_cut; logo_cut.cut(s, os.path.join(DST, 'logo_game.webp')); files['logo_game.webp'] = 1      # v116: чёрный фон вокруг логотипа снят (tools/logo_cut.py) — он стоит и в главном меню
+    for v in ['logo_paladium.mp4', 'intro.mp4', 'finale.mp4'] + ['world_%02d.mp4' % i for i in range(1, 11)]:      # v116: world_NN.mp4 — ролик перед миром (вместо слайдов)
         if video(v): files[v] = 1
     for w in WORLDS:
         d = os.path.join(SRC, w); n = 0
-        if not os.path.isdir(d): rep.append((w, 'нет папки')); continue
+        if not os.path.isdir(d): rep.append((w, 'ролик' if (w + '.mp4') in files else 'нет ни ролика, ни папки со слайдами')); continue
         os.makedirs(os.path.join(DST, w), exist_ok=True)
         for i in range(1, 31):
             f = next((os.path.join(d, '%d%s' % (i, e)) for e in ('.webp', '.png', '.jpg', '.jpeg') if os.path.exists(os.path.join(d, '%d%s' % (i, e)))), None)
@@ -118,7 +120,7 @@ def install():
         else: shutil.rmtree(os.path.join(DST, w))
         rep.append((w, 'картинок %d, голос %s, строк субтитров %d' % (n, 'есть' if vo else 'НЕТ', lines)))
     io.open(os.path.join(DST, 'index.js'), 'w', encoding='utf-8', newline='\n').write('// список заставок — пишет tools/cine_install.py, руками не править\nconst CINE_FILES = ' + json.dumps(files, ensure_ascii=False) + ';\n')
-    for k in ('logo_game.png', 'logo_paladium.mp4', 'intro.mp4', 'finale.mp4'): print('  %-20s %s' % (k, 'есть' if k in files else 'нет'))
+    for k in ('logo_game.webp', 'logo_paladium.mp4', 'intro.mp4', 'finale.mp4'): print('  %-20s %s' % (k, 'есть' if k in files else 'нет'))
     for w, t in rep: print('  %-20s %s' % (w, t))
     size = sum(os.path.getsize(os.path.join(r, f)) for r, _, fs in os.walk(DST) for f in fs)
     print('в игре cine/: %.1f МБ' % (size / 1048576))

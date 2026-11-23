@@ -1,12 +1,13 @@
 // Заставки и рассказ (v108). Проигрыватель; сами картинки, видео и голос делает Клауди и кладёт в
 // night_19_11/cinema/game/, оттуда их переносит в игру tools/cine_install.py (папка cine/ и список cine/index.js).
-//   запуск:      лого игры (cine/logo_game.png) → лого студии (cine/logo_paladium.mp4) → главное меню (оба лого пропускаются касанием)
+//   запуск:      лого игры (cine/logo_game.webp) → лого студии (cine/logo_paladium.mp4) → главное меню (оба лого пропускаются касанием)
 //   вступление:  cine/intro.mp4 — после «Новая игра» (перед первым боем) и по кнопке «История» в главном меню (v113; при запуске больше не идёт)
 //   видео (v113): готовится заранее и показывается только с первым кадром — до этого чёрный экран, никаких системных значков «плей»
-//   перед миром: при первом входе в мир N — cine/world_NN/1.webp, 2.webp, (3.webp) с медленным наездом и панорамой,
-//                голос cine/world_NN/vo.mp3 и субтитры cine/world_NN/text.json
-//   финал:       после босса мира 10 — cine/finale/ (то же устройство, что у мира; можно ещё finale.mp4)
-// Везде кнопка «Пропустить»; игра на это время стоит, музыка притушена (под видео — выключена).
+//   перед миром: при первом входе в мир N — ролик cine/world_NN.mp4 (v116, книга «Сердце Разлома»). Если ролика нет — прежние слайды:
+//                cine/world_NN/1.webp, 2.webp, (3.webp) с наездом, голос vo.mp3 и субтитры text.json
+//   финал:       после босса мира 10 — cine/finale.mp4 (нет ролика — слайды cine/finale/)
+// Любой ролик пропускается касанием в любом месте экрана (v116; надпись «Пропустить» — подсказка); игра на это время стоит,
+// музыка притушена (под видео — выключена). Ролик следующего мира грузится заранее, пока игрок на карте.
 // text.json: { "lines": [ { "t": 0, "text": "…", "slide": 1 }, { "t": 4.5, "text": "…", "slide": 2 } ] } — t в секундах от начала голоса;
 // строка стоит на экране до следующей. slide (необязательно) — с этой строки показывать картинку с таким номером;
 // без slide время делится между картинками поровну. Без голоса кадр держится CFG.slideSec секунд.
@@ -120,12 +121,13 @@ const CINE = (() => {
     v.preload = 'auto'; v.src = url(file); try { v.load(); } catch (e) {}
     return v;
   }
-  function preload(file) { if (!OFF && has(file) && !PRE[file]) PRE[file] = mkVideo(file); }
-  // o.tap — пропуск касанием в любом месте (лого), без кнопки; o.now — чёрный экран сразу, без плавного появления
+  function preload(file) { if (!OFF && has(file) && !PRE[file]) { for (const k in PRE) if (k !== 'logo_paladium.mp4') { try { PRE[k].removeAttribute('src'); PRE[k].load(); } catch (e) {} delete PRE[k]; } PRE[file] = mkVideo(file); } }   // заранее держим один ролик
+  // Пропуск — касанием в любом месте (v116). o.tap — лого: без надписи «Пропустить»; у роликов первые 0,7 с касание не считается
+  // (это ещё то нажатие, которым ролик запустили). o.now — чёрный экран сразу, без плавного появления
   function video(file, setSkip, o) {
     o = o || {};
     return new Promise(done => {
-      const r = root(o.now), v = PRE[file] || mkVideo(file); delete PRE[file]; let over = false, seen1 = false;
+      const r = root(o.now), v = PRE[file] || mkVideo(file); delete PRE[file]; let over = false, seen1 = false; const born = performance.now();
       const vis = () => { if (over) return; if (document.hidden) { try { v.pause(); } catch (e) {} } else v.play().catch(() => {}); };
       const end = () => { if (over) return; over = true; document.removeEventListener('visibilitychange', vis); try { v.pause(); } catch (e) {} done(); };
       document.addEventListener('visibilitychange', vis);
@@ -136,14 +138,15 @@ const CINE = (() => {
       v.addEventListener('timeupdate', () => { if (v.currentTime > 0) first(); });
       if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(first);
       r.appendChild(v);
-      if (o.tap) r.addEventListener('pointerdown', end, { once: true }); else skipBtn(r, end);
+      if (!o.tap) skipBtn(r, end);
+      r.addEventListener('pointerdown', () => { if (o.tap || performance.now() - born > 700) end(); });
       if (setSkip) setSkip(end);
       setDuck(0);
       // в браузере видео со звуком без нажатия запускать нельзя — тогда идём без звука; в приложении звук разрешён
       v.play().catch(() => { v.muted = true; v.play().catch(end); });
       setTimeout(() => { if (!seen1 && !over) wait.classList.add('on'); }, 1500);   // долго грузится — тонкое колечко ожидания
       const guard = () => { if (over || seen1) return; if (document.hidden) setTimeout(guard, 2000); else end(); };
-      setTimeout(guard, 8000);       // файл не грузится — не держим игрока (пока приложение свёрнуто — ждём)
+      setTimeout(guard, o.tap ? 8000 : 15000);       // файл не грузится — не держим игрока (пока приложение свёрнуто — ждём)
     });
   }
   // ---------- рассказ: картинки с наездом, голос, субтитры ----------
@@ -219,18 +222,21 @@ const CINE = (() => {
     then = typeof then === 'function' ? then : null;
     if (OFF || !has('intro.mp4') || on) { if (then) then(); return; }
     // после «Новой игры» чёрный экран не снимаем: следом сразу рассказ мира 1 (если его нет — тогда уже открываем игру)
-    session(async setSkip => { await video('intro.mp4', setSkip, { now: !!then }); if (!then) await hide(); }).then(() => { if (then) { then(); if (!on) hide(); } });
+    session(async setSkip => { const pv = video('intro.mp4', setSkip, { now: !!then }); if (then) ready(1); await pv; if (!then) await hide(); }).then(() => { if (then) { then(); if (!on) hide(); } });
   }
+  const wkey = n => 'world_' + String(n).padStart(2, '0');
+  // ролик мира грузим заранее: пока игрок на карте перед первым боем мира, а финал — когда начался бой с последним боссом
+  function ready(n) { if (!OFF && !online() && !seen[wkey(n)]) preload(wkey(n) + '.mp4'); }
   function world(n, then) {
-    const k = 'world_' + String(n).padStart(2, '0');
-    if (OFF || online() || seen[k] || !nSlides(k) || on) return then();
+    const k = wkey(n), vid = k + '.mp4';
+    if (OFF || online() || seen[k] || on || (!has(vid) && !nSlides(k))) return then();
     mark(k);
-    session(async setSkip => { await slides(k, nSlides(k), setSkip); await hide(); }).then(then);
+    session(async setSkip => { if (has(vid)) await video(vid, setSkip); else await slides(k, nSlides(k), setSkip); await hide(); }).then(then);
   }
   function finale(then) {
     if (OFF || online() || seen.finale || on || (!nSlides('finale') && !has('finale.mp4'))) return then();
     mark('finale');
-    session(async setSkip => { if (nSlides('finale')) await slides('finale', nSlides('finale'), setSkip); if (has('finale.mp4')) await video('finale.mp4', setSkip); await hide(); }).then(then);
+    session(async setSkip => { if (has('finale.mp4')) await video('finale.mp4', setSkip); else await slides('finale', nSlides('finale'), setSkip); await hide(); }).then(then);
   }
 
   // перед первым боем мира — рассказ этого мира (только первый круг)
@@ -239,6 +245,7 @@ const CINE = (() => {
     SHOP.startWave = function () {
       const a = arguments, go = () => _sw.apply(SHOP, a);
       if (on) return;
+      if (!OFF && SHOP.phase === 'rest' && wave === BAL.WAVES * BAL.WORLDS - 1 && !seen.finale && !online()) preload('finale.mp4');
       if (OFF || SHOP.phase !== 'rest' || P.dead > 0 || SHOP.transit || wave % BAL.WAVES !== 0 || wave >= BAL.WAVES * BAL.WORLDS || (typeof LIMBO !== 'undefined' && LIMBO.on)) return go();
       world(wave / BAL.WAVES + 1, go);
     };
@@ -248,6 +255,7 @@ const CINE = (() => {
     const _show = PATHMAP.show;
     PATHMAP.show = function (o) {
       const self = this, next = () => _show.call(self, o);
+      if (wave % BAL.WAVES === 0 && wave < BAL.WAVES * BAL.WORLDS) ready(wave / BAL.WAVES + 1);
       if (!o || o.mode === 'select' || wave !== BAL.WAVES * BAL.WORLDS) return next();
       finale(next);
     };

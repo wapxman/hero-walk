@@ -12,6 +12,8 @@
 'use strict';
 (function menu() {
   const U = n => 'url(ui/' + n + '.webp' + V + ')';
+  // лого игры (v116: TEN WORLDS): из заставок Клауди (cine/logo_game.webp), иначе прежнее
+  const LOGO = typeof CINE_FILES !== 'undefined' && CINE_FILES['logo_game.webp'] ? 'cine/logo_game.webp' : 'ui/logo.webp', LOGO_BG = 'url(' + LOGO + V + ')';
   const get = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } };
   const put = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
 
@@ -28,11 +30,11 @@
   .mn { position: fixed; inset: 0; z-index: 12; color: #fff; text-shadow: 0 1px 3px #000, 0 0 2px #000; }
   .mn .tap { cursor: pointer; touch-action: manipulation; }
   #mSplash { background: #000; display: flex; align-items: center; justify-content: center; z-index: 30; transition: opacity .7s; }
-  #mSplash i { width: min(80vw, 110vh); aspect-ratio: 3 / 2; background: ${U('logo')} center / contain no-repeat; opacity: 0; transform: scale(.92);
+  #mSplash i { width: min(70vw, 86vh); aspect-ratio: 1 / 1; background: ${LOGO_BG} center / contain no-repeat; opacity: 0; transform: scale(.92);
     transition: opacity 1s, transform 2.4s ease-out; }
   #mSplash.on i { opacity: 1; transform: scale(1); }
   #mMain { background: #05080e ${U('menu_bg')} center / cover no-repeat; display: none; }
-  #mMain .logo { position: absolute; left: 4vw; top: 2vh; width: min(34vw, 54vh); aspect-ratio: 3 / 2; background: ${U('logo')} center / contain no-repeat; }
+  #mMain .logo { position: absolute; left: 5vw; top: 2vh; width: min(22vw, 36vh); aspect-ratio: 1 / 1; background: ${LOGO_BG} center / contain no-repeat; }
   #mMain .btns { position: absolute; left: 6vw; top: 39.5vh; display: flex; flex-direction: column; gap: 1.2vh; }
   #mMain .b { width: 40vh; height: 9vh; background: ${U('h_button')} center / 100% 100% no-repeat; display: flex; align-items: center; justify-content: center;
     font: bold 3.3vh system-ui; color: #ffe9a8; letter-spacing: .06em; transition: transform .12s; }
@@ -172,9 +174,6 @@
   }
   const logo = new Image();
   logo.onload = () => { if (!back2menu) requestAnimationFrame(() => sp.classList.add('on')); };
-  // лого игры: своё из заставок Клауди (cine/logo_game.png), иначе прежнее
-  const LOGO = typeof CINE_FILES !== 'undefined' && CINE_FILES['logo_game.png'] ? 'cine/logo_game.png' : 'ui/logo.webp';
-  sp.firstChild.style.backgroundImage = 'url("' + LOGO + V + '")';
   logo.src = LOGO + V;
   sp.addEventListener('pointerdown', endSplash);
   setTimeout(endSplash, auto || back2menu ? 50 : 2600);   // после «В главное меню» — сразу меню, без логотипа
