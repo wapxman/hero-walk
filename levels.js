@@ -9,16 +9,17 @@
 //   7  — у босса все три приёма: прыжок, притяжение, оковы;
 //   8  — «Рывок» чаще.
 // Числа — в таблице K(L) ниже. В сети уровень всегда 1 (там врагов ведёт сервер).
-// Правило «прошёл арену — следующая на уровень выше» написано (AUTO), но пока выключено: сначала Создатель проверяет числа
-// в тестовой сборке. Тестовая сборка (window.LEVEL_TEST или ?levels в адресе): только мир 1, на старте экран «Уровень 1…10»,
+// Обычная игра (v118): уровень врагов меняется сам — пройденная арена (раунд: волны 1–3, 4–6, 7–9, босс) +1, не выше 10; гибель героя
+// на арене −2, не ниже 1; «Новая игра» начинает с уровня 1. Уровень лежит в сохранении забега (поле lv). Это скрытая настройка: в обычной
+// игре уровень врагов игроку нигде не показывается (ни надписи, ни всплывашки, ни в меню). Награда из боя растёт с уровнем (rk).
+// Уровень героя, его опыт и прокачку это правило не трогает. Тестовая сборка (window.LEVEL_TEST или ?levels в адресе): только мир 1, на старте экран «Уровень 1…10»,
 // герой «голый» (своё отдельное сохранение lt_* — настоящее не трогается), ролики выключены, уровень виден сверху.
 'use strict';
 const LEVEL = (() => {
   const TEST = !!window.LEVEL_TEST || /[?&]levels(&|$)/.test(location.search);
-  const AUTO = false;
+  const AUTO = !TEST;      // v118: обычная игра — каждая пройденная арена (раунд) +1 уровень, до 10; уровень хранится в сохранении забега (save.js)
   let n = 1;
   if (TEST) { try { n = Math.max(1, Math.min(10, +sessionStorage.getItem('hw_lv') || 1)); } catch (e) {} }
-  else if (AUTO) { try { n = Math.max(1, Math.min(10, +localStorage.getItem('hw_lvl') || 1)); } catch (e) {} }
   const net = () => !!(window.NETC && NETC.on);
   const TAB = [];
   for (let L = 1; L <= 10; L++) {
@@ -31,6 +32,11 @@ const LEVEL = (() => {
       bdmg: 1 + 0.1 * s, bhp: 1 + 0.09 * s };  // боссы и мини-боссы: урон ×1,9, здоровье ×1,81
   }
   const K = () => TAB[net() ? 1 : n];
+  // награда растёт с уровнем врагов: золото и опыт из боя ×(1 + 0,1 × (уровень − 1)) — монеты с врагов и боссов (shop.js onKill,
+  // store.js — сумма для «Удвоить за рекламу»), награда за арену (shop.js tick), «Рука Мидаса» (itemfx.js), опыт за убийства (gainXp).
+  // Продажа предметов и сундук «+80» — без надбавки. Никаких пометок о надбавке игрок не видит — просто числа больше.
+  const rk = () => 1 + 0.1 * ((net() ? 1 : n) - 1);
+  { const _gx = gainXp; gainXp = function (x) { return _gx(x * rk()); }; }
   let lastLunge = -99;
 
   {
@@ -72,9 +78,18 @@ const LEVEL = (() => {
   }
 
   // «прошёл арену — следующая на уровень выше» (пока выключено — AUTO)
-  if (AUTO && !TEST) {
+  // уровень ВРАГОВ: +1 за пройденную арену, −2 за гибель героя; границы 1 и 10; уровень и опыт героя это не трогает
+  function shift(d) {
+    n = Math.max(1, Math.min(10, n + d));      // игроку уровень врагов не показывается: ни надписи, ни всплывашки (решение Создателя 24.11)
+  }
+  if (AUTO) {
     const _t = SHOP.tick;
-    SHOP.tick = function (dt) { const was = SHOP.phase; _t.call(this, dt); if (was === 'fight' && SHOP.phase === 'rest' && !net() && P.dead <= 0 && n < 10) { n++; try { localStorage.setItem('hw_lvl', String(n)); } catch (e) {} } };
+    SHOP.tick = function (dt) {
+      const was = SHOP.phase; _t.call(this, dt);
+      if (was === 'fight' && SHOP.phase === 'rest' && !net() && P.dead <= 0 && !(typeof LIMBO !== 'undefined' && LIMBO.on)) shift(1);      // арена пройдена
+    };
+    // герой погиб на арене (ушёл в Междумирье) — уровень врагов −2. Воскрешение за рекламу на боссе гибелью не считается.
+    if (typeof LIMBO !== 'undefined' && LIMBO.enter) { const _en = LIMBO.enter; LIMBO.enter = function () { if (!net() && !LIMBO.on) { shift(-2); if (typeof SAVE !== 'undefined') SAVE.save(); } return _en.apply(this, arguments); }; }
   }
 
   // ---------- тестовая сборка: выбор уровня, только мир 1 ----------
@@ -125,5 +140,6 @@ const LEVEL = (() => {
       if (was === 'fight' && SHOP.phase === 'rest' && wave > 0 && wave % BAL.WAVES === 0 && P.dead <= 0) setTimeout(() => picker('Мир 1 пройден!', 'Уровень ' + n + ' пройден. Выберите следующий'), 1600);
     };
   }
-  return { get n() { return net() ? 1 : n; }, set n(v) { n = Math.max(1, Math.min(10, v | 0)); }, K, TAB, TEST, AUTO };
+  // load — уровень из сохранения забега (save.js); в тестовой сборке уровень — только выбранный на экране выбора
+  return { get n() { return net() ? 1 : n; }, load(v) { if (!TEST) n = Math.max(1, Math.min(10, (v | 0) || 1)); }, rk, K, TAB, TEST, AUTO };
 })();

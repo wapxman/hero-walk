@@ -64,6 +64,7 @@ const SHOP = {
       SHOP.phase = 'rest'; SHOP.restT = 1.3;
       // награда — за каждую волну раунда
       let bonus = 0; for (let w = SHOP.roundFrom || wave; w <= wave; w++) bonus += BAL.waveGold(w);
+      if (typeof LEVEL !== 'undefined') bonus = Math.round(bonus * LEVEL.rk());      // v118: награда растёт с уровнем врагов
       SHOP.addGold(bonus);
       say(P.x, P.y - CH * HS() * 1.35, 'Раунд отбит  +' + bonus, '#ffe9a8');
       SHOP.refresh();
@@ -84,7 +85,8 @@ const SHOP = {
     SHOP.hud();
   },
   onKill(e) {
-    const g = e.boss ? Math.round(BAL.bossGold(wave)) : Math.max(1, Math.round((e.k.gold || KILL_GOLD[e.type] || 8) * BAL.KILL_GOLD * (e.elite ? BAL.ELITE.gold : 1) * BAL.gold(wave) * rnd(0.85, 1.2)));
+    const rk = typeof LEVEL !== 'undefined' ? LEVEL.rk() : 1;      // v118: награда растёт с уровнем врагов
+    const g = e.boss ? Math.round(BAL.bossGold(wave) * rk) : Math.max(1, Math.round((e.k.gold || KILL_GOLD[e.type] || 8) * BAL.KILL_GOLD * (e.elite ? BAL.ELITE.gold : 1) * BAL.gold(wave) * rnd(0.85, 1.2) * rk));
     SHOP.drop('coin', null, e.x, e.y, g);
     if (e.boss) SHOP.drop('chest', null, e.x + 40, e.y + 10);
     else if (Math.random() < 0.05) SHOP.drop('chest', null, e.x + rnd(-30, 30), e.y + rnd(-10, 20));

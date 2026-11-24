@@ -2,7 +2,7 @@
 """Ролики книги в настоящем приложении на эмуляторе или телефоне (v116, отладочная сборка, свежие данные приложения):
   adb forward tcp:9333 localabstract:webview_devtools_remote_<pid приложения>
   python tools/emu_cine.py
-Касания — настоящие (adb shell input tap). Новая игра: вступление → касание → ролик мира 1 → касание → бой.
+Касания — настоящие (adb shell input tap). Новая игра (v118): пролог → касание → карта миров → «Продолжить» → ролик мира 1 → касание → бой.
 Ролики миров 2–10 и финал запускаются прямо (CINE.world / CINE.finale): идут, звук есть, касание пропускает, игра продолжается.
 Снимки экрана — tests/cine/emu_*.png. Код выхода 1 — если что-то не прошло."""
 import sys, time, os, subprocess, json, urllib.request
@@ -25,8 +25,8 @@ def shot(name): open(os.path.join(OUT, 'emu_' + name + '.png'), 'wb').write(subp
 def tap(x=900, y=800): time.sleep(1.0); subprocess.run([ADB, 'shell', 'input', 'tap', str(x), str(y)])      # настоящее касание по экрану (не по надписи «Пропустить»)
 ST = """(() => { const c = document.getElementById('cine'), v = c && c.querySelector('video'), on = !!c && c.style.display === 'block';
   return { on, video: on && v ? v.src.split('/').pop().split('?')[0] : '', t: on && v ? +v.currentTime.toFixed(1) : 0, dur: on && v ? +v.duration.toFixed(1) : 0, muted: on && v ? v.muted : null, vol: on && v ? v.volume : 0,
-    bytes: on && v ? (v.webkitAudioDecodedByteCount || 0) : 0, w: on && v ? v.videoWidth : 0, vis: on && v ? +getComputedStyle(v).opacity : 0, menu: getComputedStyle(document.getElementById('mMain')).display,
-    phase: SHOP.phase, paused: SHOP.paused, wave, map: PATHMAP.on, d: window.__d || 0 }; })()"""
+    bytes: on && v ? (v.webkitAudioDecodedByteCount || 0) : 0, w: on && v ? v.videoWidth : 0, vis: on && v ? +getComputedStyle(v).opacity : 0, menu: getComputedStyle(document.getElementById('mMain')).display, map: PATHMAP.on,
+    phase: SHOP.phase, paused: SHOP.paused, wave, d: window.__d || 0 }; })()"""
 bad = []
 def chk(name, ok, extra=''):
     print(('  да   ' if ok else '  НЕТ  ') + name + ('  ' + str(extra)[:260] if extra else ''))
@@ -43,7 +43,9 @@ s = wait(lambda s: not s['on'] and s['menu'] == 'block', 40); chk('после л
 ev("([...document.querySelectorAll('#mMain .btns .b')].find(b => b.textContent === 'Новая игра').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })), 1)"); time.sleep(1.5)
 ev("(document.querySelector('#hSel .go').dispatchEvent(new PointerEvent('pointerdown')), 1)")
 s = wait(plays('intro.mp4'), 30); chk('«Новая игра» → вступление intro.mp4 идёт, звук есть', plays('intro.mp4')(s) and snd(s) and s['dur'] > 100, s); time.sleep(4); shot('2_intro')
-tap(); s = wait(plays('world_01.mp4'), 30); chk('касание — вступление пропущено, идёт ролик мира 1, звук есть, игра стоит', plays('world_01.mp4')(s) and snd(s) and s['paused'], s); time.sleep(3); shot('3_world01')
+tap(); s = wait(lambda s: s['map'] and not s['on'], 30); chk('касание — пролог пропущен, открылась карта миров', s['map'] and not s['on'], s); time.sleep(2.5); shot('3a_map')
+r = ev("(() => { const b = document.getElementById('pmGo'), r = b.getBoundingClientRect(); return [(r.left + r.width / 2) * devicePixelRatio, (r.top + r.height / 2) * devicePixelRatio]; })()"); subprocess.run([ADB, 'shell', 'input', 'tap', str(int(r[0])), str(int(r[1]))])
+s = wait(plays('world_01.mp4'), 30); chk('«Продолжить» на карте (мир 1) — сразу ролик мира 1, звук есть, игра стоит', plays('world_01.mp4')(s) and snd(s) and s['paused'], s); time.sleep(3); shot('3_world01')
 tap(); s = wait(lambda s: s['phase'] == 'fight' and not s['paused'] and not s['on'], 30); chk('касание — ролик пропущен, первый бой мира 1 идёт', s['phase'] == 'fight' and not s['on'] and s['wave'] == 1, s); time.sleep(2); shot('4_fight')
 for i in range(2, 11):
     k = 'world_%02d.mp4' % i

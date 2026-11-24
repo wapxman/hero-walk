@@ -60,7 +60,7 @@ const ITEMFX = (() => {
     midas(a) {
       const t = inR(a.R, e => rank(e) === 0 && !(e.k.rise && !e.risen) && !(e.k.reborn && !e.reborn)).sort((x, y) => gdist(P, x) - gdist(P, y))[0];
       if (!t) return false;
-      const g = Math.round(a.gold * BAL.gold(Math.max(1, wave)));
+      const g = Math.round(a.gold * BAL.gold(Math.max(1, wave)) * (typeof LEVEL !== 'undefined' ? LEVEL.rk() : 1));
       HIT.noLs = true; proc(t, t.hp / ((P.dmgMul || 1) * 0.35) + 1, '#ffd95e'); HIT.noLs = false;   // наверняка (броня копа ×0,35)
       SHOP.addGold(g); gainXp(t.k.xp || 8); tagE(t, 'Золото +' + g, '#ffd95e'); snd('coins', 0.7, 1.2);
     },

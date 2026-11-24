@@ -1,10 +1,12 @@
 // Заставки и рассказ (v108). Проигрыватель; сами картинки, видео и голос делает Клауди и кладёт в
 // night_19_11/cinema/game/, оттуда их переносит в игру tools/cine_install.py (папка cine/ и список cine/index.js).
 //   запуск:      лого игры (cine/logo_game.webp) → лого студии (cine/logo_paladium.mp4) → главное меню (оба лого пропускаются касанием)
-//   вступление:  cine/intro.mp4 — после «Новая игра» (перед первым боем) и по кнопке «История» в главном меню (v113; при запуске больше не идёт)
+//   пролог:      cine/intro.mp4 — после «Новая игра» (выбор героя → пролог → карта миров); при «Продолжить» не идёт (v118)
+//   «История»:   кнопка в главном меню — список открытых роликов (пролог, ролики открытых миров, финал после победы); любой можно пересмотреть (v118)
 //   видео (v113): готовится заранее и показывается только с первым кадром — до этого чёрный экран, никаких системных значков «плей»
-//   перед миром: при первом входе в мир N — ролик cine/world_NN.mp4 (v116, книга «Сердце Разлома»): после босса прежнего мира — сразу за картой
-//                перехода, до арены (v117); мир 1 и мир, выбранный на карте, — перед первым боем. Один раз: пропущенный больше не всплывает. Если ролика нет — прежние слайды:
+//   перед миром: при ПЕРВОМ входе в мир N — ролик cine/world_NN.mp4 (книга «Сердце Разлома»): игрок выбрал мир на карте → ролик → первая арена;
+//                после босса прежнего мира — сразу за картой перехода, до арены. Один раз: пропущенный больше не всплывает. На аренах,
+//                при «Начать волну», при возврате на карту и при входе в уже открытый мир ролик не идёт (v118). Если ролика нет — прежние слайды:
 //                cine/world_NN/1.webp, 2.webp, (3.webp) с наездом, голос vo.mp3 и субтитры text.json
 //   финал:       после босса мира 10 — cine/finale.mp4 (нет ролика — слайды cine/finale/)
 // Любой ролик пропускается касанием в любом месте экрана (v116; надпись «Пропустить» — подсказка); игра на это время стоит,
@@ -223,7 +225,7 @@ const CINE = (() => {
   function intro(then) {
     then = typeof then === 'function' ? then : null;
     if (OFF || !has('intro.mp4') || on) { if (then) then(); return; }
-    // после «Новой игры» чёрный экран не снимаем: следом сразу рассказ мира 1 (если его нет — тогда уже открываем игру)
+    // после «Новой игры» чёрный экран держим до карты миров
     session(async setSkip => { const pv = video('intro.mp4', setSkip, { now: !!then }); if (then) ready(1); await pv; if (!then) await hide(); }).then(() => { if (then) { then(); if (!on) hide(); } });
   }
   const wkey = n => 'world_' + String(n).padStart(2, '0');
@@ -249,8 +251,7 @@ const CINE = (() => {
       const a = arguments, go = () => _sw.apply(SHOP, a);
       if (on) return;
       if (!OFF && SHOP.phase === 'rest' && wave === BAL.WAVES * BAL.WORLDS - 1 && !seen.finale && !online()) preload('finale.mp4');
-      if (OFF || SHOP.phase !== 'rest' || P.dead > 0 || SHOP.transit || wave % BAL.WAVES !== 0 || wave >= BAL.WAVES * BAL.WORLDS || (typeof LIMBO !== 'undefined' && LIMBO.on)) return go();
-      world(wave / BAL.WAVES + 1, go);
+      return go();      // v118: «Начать волну» ролик мира никогда не показывает — он идёт при входе в мир (выбор на карте или переход после босса)
     };
   }
   // после босса мира 10 — финал (до карты перехода)
@@ -263,17 +264,60 @@ const CINE = (() => {
       // v117: вход в новый мир после босса — ролик мира идёт сразу за картой перехода, до арены. Пропустили или досмотрели —
       // он отмечен просмотренным и на арене при «Начать волну» уже не появляется.
       if (o && o.mode === 'full' && nw > 1 && !OFF && !online() && !seen[wkey(nw)]) { const od = o.onDone; o = Object.assign({}, o, { onDone() { if (od) od(); world(nw, () => {}, true); } }); }
+      // v118: игрок выбрал на карте мир, в котором ещё не был, — сразу ролик этого мира, потом первая арена
+      if (o && o.mode === 'select' && o.onPick && !OFF && !online()) {
+        const op = o.onPick; ready(BAL.at(wave + 1).M);
+        o = Object.assign({}, o, { onPick(c, pw) { const run = () => op(c, pw); if (!seen[wkey(c)] && has(wkey(c) + '.mp4')) world(c, run, true); else run(); } });
+      }
       if (!o || o.mode === 'select' || wave !== BAL.WAVES * BAL.WORLDS) return next();
       finale(next);
     };
   }
-  // кнопка «История» в главном меню
+  // ---------- «История» в главном меню (v118): список открытых роликов — пролог, ролики открытых миров, финал после победы ----------
+  // Мир открыт, если его ролик уже показывали или игрок прошёл в нём хотя бы одну волну (старые сохранения). Любой открытый можно пересмотреть.
+  function bestAll() {
+    let b = 0;
+    try { for (const k of Object.keys(localStorage)) { if (!/^hw_run_/.test(k)) continue; const d = JSON.parse(localStorage.getItem(k)); if (d && d.best > b) b = d.best; } } catch (e) {}
+    return b;
+  }
+  { // миры, где игрок уже воевал, считаются открытыми: при повторном входе их ролик сам не идёт
+    const b = bestAll(); if (b > 0) { const m = Math.min(BAL.WORLDS, BAL.at(b).M); let ch = false; for (let n = 1; n <= (b >= BAL.WAVES * BAL.WORLDS ? BAL.WORLDS : m); n++) if (!seen[wkey(n)]) { seen[wkey(n)] = 1; ch = true; } if (ch) mark(wkey(1)); }
+  }
+  function unlocked() {
+    const b = bestAll(), L = [{ k: 'intro', file: 'intro.mp4', nm: 'Пролог. Падение небес', open: has('intro.mp4') }];
+    for (let n = 1; n <= BAL.WORLDS; n++) L.push({ k: wkey(n), file: wkey(n) + '.mp4', nm: 'Мир ' + n + (typeof WORLDS !== 'undefined' && WORLDS[n - 1] ? '. ' + WORLDS[n - 1].name : ''), open: has(wkey(n) + '.mp4') && !!seen[wkey(n)] });
+    L.push({ k: 'finale', file: 'finale.mp4', nm: 'Финал. Сердце Разлома', open: has('finale.mp4') && (!!seen.finale || b >= BAL.WAVES * BAL.WORLDS) });
+    return L;
+  }
+  function replay(file) { if (on || !has(file)) return; session(async setSkip => { await video(file, setSkip); await hide(); }); }
   (function () {
     const m = document.querySelector('#mMain'); if (!m || !has('intro.mp4')) return;
+    const c2 = document.createElement('style');
+    c2.textContent = `
+    #cineList { position: fixed; inset: 0; z-index: 75; background: rgba(6,9,15,.93); display: none; flex-direction: column; align-items: center; justify-content: center; color: #fff; font-family: system-ui, sans-serif; }
+    #cineList h1 { font: bold 5.4vh Georgia, serif; color: #ffe9a8; margin: 0 0 2.6vh; }
+    #cineList .g { display: grid; grid-template-columns: repeat(3, 28vw); gap: 1.6vh 1.4vw; }
+    #cineList .it { padding: 1.9vh 1.2vw; border-radius: 1.4vh; background: #1c2740; border: .25vh solid #6f8fd0; font: bold 2.5vh system-ui, sans-serif; text-align: center; cursor: pointer; user-select: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #cineList .it:active { transform: scale(.97); }
+    #cineList .it.no { opacity: .38; border-color: #556; cursor: default; }
+    #cineList .x { margin-top: 3vh; padding: 1.6vh 6vh; border-radius: 1.4vh; background: rgba(10,14,22,.7); border: .25vh solid rgba(255,255,255,.5); font: bold 2.7vh system-ui, sans-serif; cursor: pointer; user-select: none; }`;
+    document.head.appendChild(c2);
+    const box = document.createElement('div'); box.id = 'cineList'; document.body.appendChild(box);
+    for (const ev of ['pointerdown', 'touchstart', 'mousedown', 'click']) box.addEventListener(ev, e => e.stopPropagation());
+    function open() {
+      box.innerHTML = '<h1>История</h1><div class="g"></div><div class="x">Назад</div>';
+      const g = box.querySelector('.g');
+      for (const it of unlocked()) {
+        const d = document.createElement('div'); d.className = 'it' + (it.open ? '' : ' no'); d.textContent = it.open ? it.nm : it.nm.split('.')[0] + ' — не открыт'; d.dataset.k = it.k; g.appendChild(d);
+        if (it.open) d.addEventListener('pointerdown', e => { e.stopPropagation(); replay(it.file); });
+      }
+      box.querySelector('.x').addEventListener('pointerdown', e => { e.stopPropagation(); box.style.display = 'none'; });
+      box.style.display = 'flex';
+    }
     const b = document.createElement('div'); b.className = 'b story'; b.textContent = 'История'; m.appendChild(b);
-    b.addEventListener('pointerdown', e => { e.stopPropagation(); intro(); });
+    b.addEventListener('pointerdown', e => { e.stopPropagation(); open(); });
   })();
 
   if (window.BOOT_KIND === '') preload('logo_paladium.mp4');      // обычный запуск: лого студии грузится, пока стоит лого игры
-  return { boot, intro, preload, world, finale, CFG, skip() { if (skipNow) skipNow(); }, get on() { return on; }, reset() { seen = {}; try { localStorage.removeItem(KEY); } catch (e) {} } };
+  return { boot, intro, preload, world, finale, unlocked, replay, CFG, skip() { if (skipNow) skipNow(); }, get on() { return on; }, reset() { seen = {}; try { localStorage.removeItem(KEY); } catch (e) {} } };
 })();

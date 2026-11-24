@@ -148,7 +148,7 @@ const STORE = (() => {
   }
 
   // ---------- удвоить золото за босса ----------
-  { const _ok = SHOP.onKill; SHOP.onKill = function (e) { if (e && e.boss) bossGold = Math.round(BAL.bossGold(wave)); return _ok.apply(this, arguments); }; }
+  { const _ok = SHOP.onKill; SHOP.onKill = function (e) { if (e && e.boss) bossGold = Math.round(BAL.bossGold(wave) * (typeof LEVEL !== 'undefined' ? LEVEL.rk() : 1)); return _ok.apply(this, arguments); }; }
   if (typeof PATHMAP !== 'undefined') {
     const _show = PATHMAP.show;
     PATHMAP.show = function (o) {

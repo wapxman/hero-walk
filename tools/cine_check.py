@@ -42,6 +42,9 @@ def map_go(p):
     p.evaluate("for (const t of ['pointerdown', 'pointerup', 'click']) document.getElementById('pmGo').dispatchEvent(new PointerEvent(t, { bubbles: true }))")
 def soft_go(p):      # «Продолжить» на карте, если кнопка сейчас видна (без ожидания)
     p.evaluate("(() => { const b = document.getElementById('pmGo'); if (b && getComputedStyle(b).display !== 'none') for (const t of ['pointerdown', 'pointerup', 'click']) b.dispatchEvent(new PointerEvent(t, { bubbles: true })); })()"); time.sleep(0.8)
+LIST = "(() => { const b = document.getElementById('cineList'); return { on: !!b && getComputedStyle(b).display === 'flex', open: b ? [...b.querySelectorAll('.it:not(.no)')].map(x => x.dataset.k) : [] }; })()"
+def story(p, k): p.evaluate("(k) => document.querySelector('#cineList .it[data-k=\"' + k + '\"]').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))", k)
+def story_close(p): p.evaluate("document.querySelector('#cineList .x').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))")
 # с первого мгновения: что видел игрок (раз в кадр) — ни одного видео с кнопками или без пустого постера, и ни одного видео, показанного до первого кадра
 WATCH = """() => { window.__w = { bad: [], vids: 0, early: 0 }; const tick = () => {
     for (const v of document.querySelectorAll('video')) { __w.vids++; if (v.controls || !/^data:image/.test(v.poster || '')) __w.bad.push('controls/poster');
@@ -71,32 +74,40 @@ with sync_playwright() as pw:
     time.sleep(0.8); p.screenshot(path=os.path.join(OUT, '2_menu_new.png'))
     p.mouse.click(640, 700); time.sleep(1.0)
     chk('музыка меню — m7', p.evaluate("typeof mus !== 'undefined' && !!mus.el && /m7\\.mp3/.test(mus.el.src)"))
-    btn(p, 'История'); s = wait(p, lambda s: s['video'] == 'intro.mp4' and s['t'] > 0.3 and s['vis'] > 0.9, 15)
-    chk('«История» — вступление', s['video'] == 'intro.mp4' and s['t'] > 0.3, s)
+    btn(p, 'История'); time.sleep(0.6); L = p.evaluate(LIST)
+    chk('«История» — список роликов; до игры открыт только пролог', L['on'] and L['open'] == ['intro'], L); p.screenshot(path=os.path.join(OUT, '2b_story_list.png'))
+    story(p, 'intro'); s = wait(p, lambda s: s['video'] == 'intro.mp4' and s['t'] > 0.3 and s['vis'] > 0.9, 15)
+    chk('«Пролог» из списка — идёт intro.mp4', s['video'] == 'intro.mp4' and s['t'] > 0.3, s)
     time.sleep(1.5); a = p.evaluate(SND); chk('вступление: новый ролик (книга), звук идёт', snd_ok(a) and a['dur'] > 100, a)
     tap(p); s = wait(p, lambda s: not s['on'], 15)
-    chk('касание — ролик пропущен, снова меню', not s['on'] and s['menu'] == 'block', s)
+    chk('касание — ролик пропущен, снова список «Истории»', not s['on'] and p.evaluate(LIST)['on'], s)
+    story_close(p); time.sleep(0.4); chk('«Назад» — главное меню', not p.evaluate(LIST)['on'] and p.evaluate(ST)['menu'] == 'block')
 
     print('--- новая игра (сохранения нет)')
     btn(p, 'Новая игра'); time.sleep(0.6); s = p.evaluate(ST)
     chk('«Новая игра» без сохранения: сразу выбор героя, без вопроса', s['sel'] == 'flex' and s['menu'] == 'none' and not p.evaluate("!!document.getElementById('mNew')"), s)
     go(p); s = wait(p, lambda s: s['video'] == 'intro.mp4' and s['t'] > 0.3, 15)
-    chk('«В бой» — вступление (карты миров и меню нет)', s['video'] == 'intro.mp4' and s['t'] > 0.3 and not s['map'] and s['menu'] == 'none' and s['sel'] == 'none', s)
+    chk('«В бой» — пролог (карты миров и меню ещё нет)', s['video'] == 'intro.mp4' and s['t'] > 0.3 and not s['map'] and s['menu'] == 'none' and s['sel'] == 'none', s)
     p.screenshot(path=os.path.join(OUT, '3_intro.png'))
-    tap(p); t = time.time(); gap = 0
-    while time.time() - t < 10:            # между вступлением и роликом мира экран заставки не снимается (арена не мелькает)
+    tap(p); s = wait(p, lambda s: s['map'] and not s['on'], 15)
+    chk('касание — пролог пропущен, открылась карта миров (ролик мира ещё не идёт)', s['map'] and not s['on'] and s['phase'] == 'rest' and s['wave'] == 0, s)
+    time.sleep(1.2); p.screenshot(path=os.path.join(OUT, '3b_map.png')); again = 0; t = time.time()
+    while time.time() - t < 3: again += 1 if p.evaluate(ST)['on'] else 0; time.sleep(0.1)
+    chk('на карте ролики сами не идут', again == 0, again)
+    map_go(p); t = time.time(); gap = 0
+    while time.time() - t < 10:            # между картой и роликом мира арена не мелькает: ролик встаёт сразу
         s = p.evaluate(ST)
-        if not s['on']: gap += 1
         if s['video'] == 'world_01.mp4': break
+        if not s['on'] and not s['map']: gap += 1
         time.sleep(0.05)
     s = wait(p, lambda s: s['video'] == 'world_01.mp4' and s['t'] > 0.5 and s['vis'] > 0.9, 15)
-    chk('касание — сразу ролик мира 1, игра стоит, слайдов нет', s['video'] == 'world_01.mp4' and s['t'] > 0.5 and s['slides'] == 0 and s['paused'] and s['phase'] == 'rest' and not s['map'] and gap == 0, [s, gap])
+    chk('мир 1 выбран на карте — сразу ролик мира 1, игра стоит', s['video'] == 'world_01.mp4' and s['t'] > 0.5 and s['slides'] == 0 and s['paused'] and s['phase'] == 'rest' and not s['map'] and gap <= 1, [s, gap])
     time.sleep(2.5); p.screenshot(path=os.path.join(OUT, '4_world1.png'))
     a = p.evaluate(SND); chk('ролик мира 1: звук идёт', snd_ok(a), a)
     chk('музыка игры под ролик выключена', p.evaluate("mus.v != null && mus.v <= MUS_VOL * 0.05"), p.evaluate("[mus.v, MUS_VOL]"))
     tap(p); p.wait_for_function("SHOP.phase === 'fight' && !SHOP.paused", timeout=20000)
     s = p.evaluate(ST)
-    chk('касание — ролик пропущен, бой мира 1 идёт, пауза снята', s['phase'] == 'fight' and not s['paused'] and not s['on'], s)
+    chk('касание — ролик пропущен, первая арена мира 1: бой идёт, пауза снята', s['phase'] == 'fight' and not s['paused'] and not s['on'] and s['wave'] == 1, s)
     chk('сохранение появилось', p.evaluate("!!SAVE.read()"))
 
     print('--- пауза → «В главное меню» → «Продолжить»')
@@ -109,7 +120,7 @@ with sync_playwright() as pw:
     btn(p, 'Продолжить'); s = wait(p, lambda s: s['map'], 10)
     chk('«Продолжить»: карта миров, без лого, вступления и выбора героя', s['map'] and not s['on'] and s['sel'] == 'none' and s['menu'] == 'none', s)
     map_go(p); p.wait_for_function("SHOP.phase === 'fight' && !SHOP.paused", timeout=20000)
-    chk('с карты — тот же раунд, ролик мира 1 второй раз не идёт', p.evaluate("SHOP.roundFrom") == w0 and not p.evaluate(ST)['on'], [w0, p.evaluate("SHOP.roundFrom")])
+    chk('«Продолжить» с сохранения: тот же раунд, ни пролог, ни ролик мира 1 второй раз не идут', p.evaluate("SHOP.roundFrom") == w0 and not p.evaluate(ST)['on'], [w0, p.evaluate("SHOP.roundFrom")])
 
     print('--- повторный запуск игры')
     p.goto(U, timeout=120000)
@@ -117,6 +128,11 @@ with sync_playwright() as pw:
     chk('новый запуск: снова лого студии', s['video'] == 'logo_paladium.mp4', s)
     p.mouse.click(640, 360); s = wait(p, lambda s: not s['on'] and s['menu'] == 'block', 6)
     chk('лого студии пропускается касанием — меню с «Продолжить»', not s['on'] and s['menu'] == 'block' and s['btns'][0] == 'Продолжить*', s)
+    btn(p, 'История'); time.sleep(0.6); L = p.evaluate(LIST)
+    chk('«История»: открыты пролог и мир 1, остальные закрыты', L['on'] and L['open'] == ['intro', 'world_01'], L)
+    story(p, 'world_01'); s = wait(p, lambda s: s['video'] == 'world_01.mp4' and s['t'] > 0.3, 15)
+    chk('ролик мира 1 можно пересмотреть из «Истории»', s['video'] == 'world_01.mp4', s)
+    tap(p); wait(p, lambda s: not s['on'], 10); story_close(p); time.sleep(0.4)
 
     print('--- новая игра поверх сохранения')
     btn(p, 'Новая игра'); time.sleep(0.5)
@@ -130,9 +146,10 @@ with sync_playwright() as pw:
     time.sleep(1.0); s = wait(p, lambda s: s['sel'] == 'flex' and not s['splash'], 30); w = p.evaluate('__w')
     chk('«Начать заново»: сразу выбор героя — без лого, без меню; прогресс стёрт', s['sel'] == 'flex' and s['menu'] == 'none' and not s['on'] and not p.evaluate("SAVE.anySave()"), [s, w])
     go(p); s = wait(p, lambda s: s['video'] == 'intro.mp4' and s['t'] > 0.3, 15)
-    chk('«В бой» — вступление', s['video'] == 'intro.mp4' and s['t'] > 0.3, s)
-    p.keyboard.press('Escape'); s = wait(p, lambda s: s['video'] == 'world_01.mp4' and s['t'] > 0.3, 15)
-    chk('после вступления — ролик мира 1 заново', s['video'] == 'world_01.mp4' and s['t'] > 0.3, s)
+    chk('«В бой» — пролог', s['video'] == 'intro.mp4' and s['t'] > 0.3, s)
+    p.keyboard.press('Escape'); s = wait(p, lambda s: s['map'] and not s['on'], 15); time.sleep(1.0); map_go(p)
+    s = wait(p, lambda s: s['video'] == 'world_01.mp4' and s['t'] > 0.3, 15)
+    chk('новая игра заново: пролог → карта → ролик мира 1 снова идёт', s['video'] == 'world_01.mp4' and s['t'] > 0.3, s)
     tap(p); p.wait_for_function("SHOP.phase === 'fight' && !SHOP.paused", timeout=20000)
     chk('бой мира 1 с начала', p.evaluate("SHOP.roundFrom") == 1 and p.evaluate("SHOP.phase") == 'fight')
 
@@ -208,6 +225,32 @@ with sync_playwright() as pw:
         except Exception: pass
         s = p.evaluate(ST)
         chk('мир %d: касание — ролик пропущен, первый бой мира начался (волна %d)' % (n, (n - 1) * 10 + 1), s['phase'] == 'fight' and not s['on'] and s['wave'] == (n - 1) * 10 + 1, s)
+    print('--- повторный вход в открытый мир, победа над боссом мира 10, «История»')
+    def to_map():
+        p.evaluate("hurtPlayer(1e9)"); wait(p, lambda s: p.evaluate(WIN) or p.evaluate("LIMBO.on"), 12)
+        if p.evaluate(WIN): win_btn(p, 'В Междумирье')
+        wait(p, lambda s: p.evaluate("LIMBO.on"), 12); time.sleep(0.5); p.evaluate("LIMBO.leave()"); wait(p, lambda s: s['map'], 12); time.sleep(0.8)
+    to_map(); again = 0; t0 = time.time()
+    while time.time() - t0 < 2.5: again += 1 if p.evaluate(ST)['on'] else 0; time.sleep(0.1)
+    p.evaluate("PATHMAP.pickAt(2)"); time.sleep(0.8); map_go(p); t0 = time.time()
+    while time.time() - t0 < 5:
+        again += 1 if p.evaluate(ST)['on'] else 0
+        if p.evaluate(WIN): win_btn(p, 'Играть')
+        time.sleep(0.1)
+    s = p.evaluate(ST)
+    chk('возврат на карту и повторный вход в мир 2 — ролика нет, бой идёт', again == 0 and s['phase'] == 'fight' and s['wave'] == 11, [again, s])
+    to_map(); p.evaluate("PATHMAP.pickAt(10, 2)"); time.sleep(0.8); map_go(p); time.sleep(1.5)
+    if p.evaluate(WIN): win_btn(p, 'Играть')
+    p.wait_for_function("SHOP.phase === 'fight' && wave === 100 && enemies.some(e => e.boss)", timeout=25000)
+    chk('перед боссом мира 10 ролик не идёт (мир уже открыт), финал ещё закрыт', not p.evaluate(ST)['on'] and not [x for x in p.evaluate("CINE.unlocked()") if x['k'] == 'finale'][0]['open'])
+    t0 = time.time(); s = p.evaluate(ST)
+    while time.time() - t0 < 60 and s['video'] != 'finale.mp4':
+        p.evaluate("for (const e of enemies.slice()) hurtEnemy(e, 1e9)"); time.sleep(0.4); s = p.evaluate(ST)
+    s = wait(p, lambda s: s['video'] == 'finale.mp4' and s['t'] > 0.6 and s['vis'] > 0.9, 20)
+    chk('босс мира 10 убит (волна 100) — сразу финал finale.mp4, до окон и карты', s['video'] == 'finale.mp4' and s['t'] > 0.6 and not s['map'] and not p.evaluate(WIN), s)
+    tap(p); wait(p, lambda s: not s['on'], 10); time.sleep(1.0)
+    u = p.evaluate("CINE.unlocked().filter(x => x.open).map(x => x.k)")
+    chk('«История»: открыты пролог, миры 2–10 (в них входили) и финал; мир 1 закрыт (в него не входили)', u == ['intro'] + ['world_%02d' % i for i in range(2, 11)] + ['finale'], u)
     chk('ошибок нет', not errs, errs[:3]); cx.close(); br.close()
 if SRV: SRV.terminate()
 print('ИТОГ:', 'всё в порядке' if ok else 'ЕСТЬ ОШИБКИ'); sys.exit(0 if ok else 1)

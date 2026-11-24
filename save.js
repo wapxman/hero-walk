@@ -17,7 +17,7 @@ const SAVE = (() => {
     // в бою сохраняем начало текущего раунда — после перезапуска раунд начнётся заново
     const w = SHOP.phase === 'fight' ? Math.max(0, (SHOP.roundFrom || wave + 1) - 1) : wave;
     best = Math.max(best, w);
-    const d = { v: 1, wave: w, best, hp: Math.round(P.hp), mp: Math.round(P.mp), gold: Math.floor(SHOP.gold), bag: SHOP.bag.slice(), flasks: Object.assign({}, SHOP.flasks), led: SHOP.led, t: Date.now() };
+    const d = { v: 1, wave: w, best, hp: Math.round(P.hp), mp: Math.round(P.mp), gold: Math.floor(SHOP.gold), bag: SHOP.bag.slice(), flasks: Object.assign({}, SHOP.flasks), led: SHOP.led, lv: typeof LEVEL !== 'undefined' ? LEVEL.n : 1, t: Date.now() };
     try { localStorage.setItem(key(), JSON.stringify(d)); } catch (e) {}
     if (typeof progSave === 'function') progSave();
   }
@@ -27,6 +27,7 @@ const SAVE = (() => {
     ready = true;
     const d = read() || {};
     best = Math.max(best, d.best || 0);
+    if (typeof LEVEL !== 'undefined') LEVEL.load(d.lv);      // уровень сложности забега (v118)
     if (d.gold != null) SHOP.gold = d.gold;
     if (d.led && SHOP.led) for (const k in SHOP.led) if (typeof d.led[k] === 'number') SHOP.led[k] = d.led[k];   // учёт золота за забег
     if (Array.isArray(d.bag)) SHOP.bag = d.bag.filter(id => ALL[id]).slice(0, BAG_MAX);
@@ -72,12 +73,12 @@ const SAVE = (() => {
     try { for (const k of Object.keys(localStorage)) { const m = /^hw_run_(.+)$/.exec(k); if (!m) continue; let d = null; try { d = JSON.parse(localStorage.getItem(k)); } catch (e) {} if (d && typeof d === 'object' && (d.t || 0) > t) { t = d.t || 0; id = m[1]; } } } catch (e) {}
     return id;
   }
-  // после «В бой» у выбора героя: новая игра — вступление и сразу первый бой мира 1 (перед ним рассказ мира — cine.js);
-  // иначе карта миров. В тестовой сборке «все миры открыты» карта нужна и новой игре — на ней выбирают мир.
+  // после «В бой» у выбора героя: новая игра — пролог (cine.js), потом карта миров; иначе сразу карта миров.
+  // Ролик мира идёт после выбора мира на карте, перед первой ареной (cine.js).
   function begin() {
     if (!window.NEWGAME) return chooser();
     window.NEWGAME = false;
-    const go = () => { if (allOpen()) chooser(); else { start(1, 0); fight(); } };
+    const go = () => { if (typeof LEVEL !== 'undefined' && LEVEL.TEST) { start(1, 0); fight(); } else chooser(); };      // v118: после пролога — карта миров; игрок выбирает мир 1 → ролик мира → первая арена
     if (typeof CINE !== 'undefined') CINE.intro(go); else go();
   }
   // перед каждым боем — карта «Путь героев»: выбрать главу (текущую или пройденную) и нажать «Продолжить»

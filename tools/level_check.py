@@ -31,11 +31,74 @@ try:
         p = page('')
         p.evaluate("(v) => localStorage.setItem('hw_run_mage', v)", REAL)
         s = p.evaluate("({ n: LEVEL.n, test: LEVEL.TEST, auto: LEVEL.AUTO, pick: !!document.getElementById('lvPick'), chip: !!document.getElementById('lvChip'), k: LEVEL.K() })")
-        chk('уровень 1, экрана выбора уровня нет, числа уровня 1 — без прибавок', s['n'] == 1 and not s['test'] and not s['pick'] and not s['chip'] and all(abs(s['k'][x] - 1) < 1e-9 for x in ('run', 'atk', 'wind', 'cd', 'dmg', 'hp', 'bdmg', 'bhp')), s)
+        chk('уровень 1, экрана выбора уровня нет, числа уровня 1 — без прибавок', s['n'] == 1 and not s['test'] and not s['pick'] and s['auto'] and all(abs(s['k'][x] - 1) < 1e-9 for x in ('run', 'atk', 'wind', 'cd', 'dmg', 'hp', 'bdmg', 'bhp')), s)
         s = p.evaluate("(() => { wave = 0; spawnEnemy('v_maskedassassin'); const e = enemies[enemies.length - 1]; const r = [e.lv || 0, e.speed, KIND.v_maskedassassin.speed * BAL.speed(0) * HARD.spdK()]; enemies.length = 0; return r; })()")
         chk('враг обычной игры — без прибавок уровня', s[0] == 0 and abs(s[1] - s[2]) < 0.01, s)
         chk('в мире 1 нет «Фарфоровой фрейлины», рядовой — «Убийца в маске»', p.evaluate("!JSON.stringify(ROSTER[1]).includes('porcelainmaid') && ROSTER[1].mel[0] === 'v_maskedassassin'"))
         p.close()
+
+        print('обычная игра: уровень врагов сам — победа на арене +1, гибель −2 (v118)')
+        cx2 = b.new_context(viewport={'width': 1280, 'height': 600}); p = cx2.new_page(); p.on('pageerror', lambda e: errs.append(str(e)[:300]))
+        p.goto(BASE, timeout=120000); p.wait_for_function("typeof LEVEL !== 'undefined' && document.getElementById('mMain') !== null", timeout=120000); time.sleep(3)
+        p.evaluate("[...document.querySelectorAll('#mMain .btns .b')].find(b => b.textContent === 'Новая игра')." + PD); time.sleep(1)
+        chk('в меню и у выбора героя выбора уровня нет', not p.evaluate("!!document.getElementById('lvPick')") and 'Уровень' not in p.evaluate("document.getElementById('mMain').textContent + document.getElementById('hSel').textContent"))
+        p.evaluate("document.querySelector('#hSel .go').dispatchEvent(new PointerEvent('pointerdown'))")
+        GO = "(() => { const g = document.getElementById('pmGo'); if (PATHMAP.on && g && getComputedStyle(g).display !== 'none') for (const t of ['pointerdown', 'pointerup', 'click']) g.dispatchEvent(new PointerEvent(t, { bubbles: true })); })()"
+        WINB = "(() => { const w = document.getElementById('stWin'); if (!w || getComputedStyle(w).display !== 'flex') return; const x = [...w.querySelectorAll('.bt')].find(x => /^(В Междумирье|Дальше|Играть)/.test(x.textContent)); if (x) x.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); })()"
+        def fight():      # до начала боя: карта → «Продолжить», из отдыха — «Начать волну»
+            t0 = time.time()
+            while time.time() - t0 < 40:
+                st = p.evaluate("({ ph: SHOP.phase, map: PATHMAP.on, tr: !!SHOP.transit, limbo: LIMBO.on, dead: P.dead > 0, en: enemies.length })")
+                if st['ph'] == 'fight' and not st['limbo'] and not st['dead'] and st['en'] > 0: return True
+                p.evaluate(WINB)
+                if st['map']: p.evaluate(GO); time.sleep(1.2)
+                elif st['limbo']: p.evaluate("LIMBO.leave()"); time.sleep(1)
+                elif st['ph'] == 'rest' and not st['tr']: p.evaluate("SHOP.open && SHOP.closeShop(); SHOP.startWave()"); time.sleep(0.8)
+                time.sleep(0.3)
+            return False
+        def win():        # зачистить арену (раунд)
+            t0 = time.time()
+            while time.time() - t0 < 180 and p.evaluate("SHOP.phase") == 'fight': p.evaluate("P.hp = P.maxHp; for (const e of enemies.slice()) hurtEnemy(e, 1e9)"); p.evaluate(WINB); time.sleep(0.3)
+            time.sleep(0.6)
+        def die():        # погибнуть на арене
+            p.evaluate("window.__pop = []; hurtPlayer(1e9)"); t0 = time.time()
+            while time.time() - t0 < 20 and not p.evaluate("LIMBO.on"): p.evaluate(WINB); time.sleep(0.3)
+            time.sleep(0.5)
+        p.evaluate(r"window.__pop = []; window.__round = []; const _say = say; say = function (x, y, t) { if (/ровень|ровня|сильнее/i.test(t) && !/^Уровень \d+!/.test(t)) __pop.push(t); const m = /^Раунд отбит\s+\+(\d+)/.exec(t); if (m) __round.push(+m[1]); return _say.apply(this, arguments); }; 1")
+        HID = "(() => { const t = [...document.querySelectorAll('body *')].filter(x => x.children.length === 0 && x.offsetParent !== null).map(x => x.textContent).join('|'); return { chip: !!document.getElementById('lvChip'), txt: /Уровень (врагов|сложности)|Уровень [↑↓]/.test(t) }; })()"
+        def hidden(): h = p.evaluate(HID); return not h['chip'] and not h['txt'] and p.evaluate("__pop.length") == 0
+        chk('новая игра → карта → первый бой', fight()); s0 = p.evaluate("({ n: LEVEL.n, lv: enemies.map(e => e.lv || 1), rk: LEVEL.rk() })")
+        chk('новая игра начинается с уровня врагов 1, награда ×1,0; в бою уровень врагов не показан', s0['n'] == 1 and all(x == 1 for x in s0['lv']) and s0['rk'] == 1 and hidden(), [s0, p.evaluate(HID), p.evaluate('__pop')])
+        REW = "(() => { const w = wave, base = (() => { let b = 0; for (let x = SHOP.roundFrom || w; x <= roundEnd(SHOP.roundFrom || w); x++) b += BAL.waveGold(x); return b; })(); const x0 = P.xp, l0 = P.lvl, n0v = LEVEL.n; P.lvl = 90; P.xp = 0; P.lvl = 90; P.xp = 0; LEVEL.load(1); gainXp(100); const xp1 = P.xp; P.xp = 0; LEVEL.load(n0v); gainXp(100); const xp = P.xp / xp1; P.lvl = l0; P.xp = x0; "               "const n0 = SHOP.drops.length; SHOP.onKill({ boss: true, x: P.x + 900, y: P.y, k: {}, type: 'b_blackknight' }); const bg = SHOP.drops[n0].amount; SHOP.drops.length = n0; return { xp, bg, bossBase: BAL.bossGold(w), base, rk: LEVEL.rk() }; })()"
+        r1 = p.evaluate(REW)
+        win(); s1 = p.evaluate("({ n: LEVEL.n, pop: __pop, save: SAVE.read().lv, round: __round })")
+        chk('уровень 1: награда ×1,0 — опыт, золото босса и награда за арену как раньше', abs(r1['xp'] - 1) < 0.02 and r1['bg'] == round(r1['bossBase']) and s1['round'] == [round(r1['base'])], [r1, s1])
+        chk('арена пройдена → уровень врагов 2 (записан в сохранение), всплывашки нет', s1['n'] == 2 and s1['pop'] == [] and s1['save'] == 2, s1)
+        fight(); s2 = p.evaluate("enemies.map(e => e.lv)"); chk('следующая арена — враги 2-го уровня', len(s2) > 0 and all(x == 2 for x in s2), s2[:5])
+        die(); s3 = p.evaluate("({ n: LEVEL.n, pop: __pop, save: SAVE.read().lv })")
+        chk('гибель на уровне 2 → уровень 1 (ниже 1 не падает), всплывашки нет', s3['n'] == 1 and s3['pop'] == [] and s3['save'] == 1, s3)
+        fight(); die(); s4 = p.evaluate("({ n: LEVEL.n, pop: __pop })"); chk('гибель на уровне 1 → остаётся 1', s4['n'] == 1 and s4['pop'] == [], s4)
+        def climb(target):      # проходить арены, пока уровень не дойдёт до target; каждая пройденная арена должна дать ровно +1
+            a = p.evaluate("[LEVEL.n, __round.length]")
+            for i in range(16):
+                if p.evaluate("LEVEL.n") >= target: break
+                fight(); win()
+            z = p.evaluate("[LEVEL.n, __round.length]"); return z[0] == target and z[0] - a[0] == z[1] - a[1], [a, z]
+        ok6, d6 = climb(7); chk('шесть арен подряд → уровень 7 (каждая пройденная арена +1)', ok6, d6)
+        fight(); die(); s5 = p.evaluate("({ n: LEVEL.n, pop: __pop })"); chk('гибель на уровне 7 → уровень 5', s5['n'] == 5 and s5['pop'] == [], s5)
+        ok10, d10 = climb(10); fight(); win(); fight(); win()
+        s6 = p.evaluate("({ n: LEVEL.n, wave })"); chk('пять арен → уровень 10; ещё две арены — выше 10 не растёт', ok10 and s6['n'] == 10, [d10, s6])
+        fight(); s7 = p.evaluate("enemies.map(e => e.lv)"); chk('на уровне 10 враги 10-го уровня', len(s7) > 0 and all(x == 10 for x in s7), s7[:5])
+        r10 = p.evaluate(REW); p.evaluate("__round.length = 0"); win(); rr = p.evaluate("__round")
+        chk('уровень 10: награда ×1,9 — опыт, золото босса, награда за арену', abs(r10['rk'] - 1.9) < 1e-9 and abs(r10['xp'] - 1.9) < 0.02 and r10['bg'] == round(r10['bossBase'] * 1.9) and rr == [round(r10['base'] * 1.9)], [r10, rr])
+        chk('уровень 10 и выше не растёт; в бою и после него уровень врагов нигде не показан, пометок о надбавке нет', p.evaluate("LEVEL.n") == 10 and hidden() and not any('%' in str(x) or 'бонус' in str(x) for x in p.evaluate('__pop')), [p.evaluate(HID), p.evaluate('__pop')])
+        fight()
+        p.reload(timeout=120000); p.wait_for_function("typeof LEVEL !== 'undefined' && document.getElementById('mMain') !== null", timeout=120000); time.sleep(6)
+        p.mouse.click(400, 200); time.sleep(3.5); p.mouse.click(400, 200); time.sleep(3)
+        p.evaluate("[...document.querySelectorAll('#mMain .btns .b')].find(b => b.textContent === 'Продолжить')." + PD); time.sleep(1.5); fight()
+        chk('перезапуск → «Продолжить»: уровень из сохранения (10)', p.evaluate("LEVEL.n") == 10, p.evaluate("LEVEL.n"))
+        cx2.close()
+        p = page(''); chk('ошибок страницы нет', not errs, errs[:3]); p.close()
 
         print('тестовая сборка: выбор уровня')
         p = page('?levels')
