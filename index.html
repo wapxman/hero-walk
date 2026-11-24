@@ -14,8 +14,8 @@
 <link rel="icon" type="image/png" sizes="192x192" href="ui/app/icon-192.png">
 <link rel="manifest" href="manifest.json">
 <!-- заставка и фон меню грузятся первыми, до остальных картинок игры -->
-<link rel="preload" as="image" href="cine/logo_game.webp?v=118">
-<link rel="preload" as="image" href="ui/menu_bg.webp?v=118">
+<link rel="preload" as="image" href="cine/logo_game.webp?v=119">
+<link rel="preload" as="image" href="ui/menu_bg.webp?v=119">
 <style>
   * { margin:0; padding:0; }
   /* вырез экрана и полоска «Домой»: отступы одним местом, остальной интерфейс берёт var(--sal) и т. д., код — SAFE */
@@ -73,12 +73,12 @@
   try { if (sessionStorage.getItem('hw_lt_wipe')) { sessionStorage.removeItem('hw_lt_wipe'); window.LT_WIPE(); } } catch (e) {}
 })();
 </script>
-<script src="data.js?v=118"></script>
-<script src="chars/atlas.js?v=118"></script>
-<script src="chars/villains.js?v=118"></script>
-<script src="chars/skills.js?v=118"></script>
+<script src="data.js?v=119"></script>
+<script src="chars/atlas.js?v=119"></script>
+<script src="chars/villains.js?v=119"></script>
+<script src="chars/skills.js?v=119"></script>
 <script>
-const V = '?v=118';
+const V = '?v=119';
 const cv = document.getElementById('c');
 const ctx = cv.getContext('2d');
 // Чёткость: холст рисуется не больше чем в 2 точки на точку экрана. Если телефон не успевает
@@ -518,42 +518,43 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 </script>
-<script src="roster.js?v=118"></script>
-<script src="combat.js?v=118"></script>
-<script src="shop.js?v=118"></script>
-<script src="heroes.js?v=118"></script>
-<script src="progress.js?v=118"></script>
-<script src="worlds.js?v=118"></script>
-<script src="pathmap.js?v=118"></script>
-<script src="mapfx.js?v=118"></script>
-<script src="arenafx.js?v=118"></script>
-<script src="ui/locfx/locfx.js?v=118"></script>
-<script src="locfx.js?v=118"></script>
-<script src="limbo.js?v=118"></script>
-<script src="enemies.js?v=118"></script>
-<script src="items.js?v=118"></script>
-<script src="relics.js?v=118"></script>
-<script src="bossmech.js?v=118"></script>
-<script src="sk.js?v=118"></script>
-<script src="sk_defs.js?v=118"></script>
-<script src="mini.js?v=118"></script>
-<script src="v34.js?v=118"></script>
-<script src="hook.js?v=118"></script>
-<script src="status.js?v=118"></script>
-<script src="dash.js?v=118"></script>
-<script src="itemfx.js?v=118"></script>
-<script src="tune.js?v=118"></script>
-<script src="hard.js?v=118"></script>
-<script src="levels.js?v=118"></script>
-<script src="bossvo_map.js?v=118"></script>
-<script src="bossvo.js?v=118"></script>
-<script src="net/shared.js?v=118"></script>
-<script src="net/client.js?v=118"></script>
-<script src="net/team.js?v=118"></script>
-<script src="cine/index.js?v=118"></script>
-<script src="menu.js?v=118"></script>
-<script src="store.js?v=118"></script>
-<script src="cine.js?v=118"></script>
-<script src="save.js?v=118"></script>
+<script src="roster.js?v=119"></script>
+<script src="combat.js?v=119"></script>
+<script src="shop.js?v=119"></script>
+<script src="heroes.js?v=119"></script>
+<script src="progress.js?v=119"></script>
+<script src="worlds.js?v=119"></script>
+<script src="pathmap.js?v=119"></script>
+<script src="mapfx.js?v=119"></script>
+<script src="arenafx.js?v=119"></script>
+<script src="ui/locfx/locfx.js?v=119"></script>
+<script src="locfx.js?v=119"></script>
+<script src="limbo.js?v=119"></script>
+<script src="enemies.js?v=119"></script>
+<script src="items.js?v=119"></script>
+<script src="relics.js?v=119"></script>
+<script src="bossmech.js?v=119"></script>
+<script src="sk.js?v=119"></script>
+<script src="sk_defs.js?v=119"></script>
+<script src="mini.js?v=119"></script>
+<script src="v34.js?v=119"></script>
+<script src="hook.js?v=119"></script>
+<script src="status.js?v=119"></script>
+<script src="dash.js?v=119"></script>
+<script src="itemfx.js?v=119"></script>
+<script src="tune.js?v=119"></script>
+<script src="hard.js?v=119"></script>
+<script src="levels.js?v=119"></script>
+<script src="dmgshow.js?v=119"></script>
+<script src="bossvo_map.js?v=119"></script>
+<script src="bossvo.js?v=119"></script>
+<script src="net/shared.js?v=119"></script>
+<script src="net/client.js?v=119"></script>
+<script src="net/team.js?v=119"></script>
+<script src="cine/index.js?v=119"></script>
+<script src="menu.js?v=119"></script>
+<script src="store.js?v=119"></script>
+<script src="cine.js?v=119"></script>
+<script src="save.js?v=119"></script>
 </body>
 </html>

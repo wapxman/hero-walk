@@ -1,16 +1,17 @@
-// Прокачка героя: уровни до 200 (BAL.LVL_MAX; около 100-го к боссу мира 10), за уровень — 1 очко умений и 3 очка характеристик, распределяются вручную в окне героя.
-// Умения (Q E F R) качаются с 1 до 10: урон +12% и перезарядка −3% за уровень (skDmg / skCd в combat.js).
+// Прокачка героя (v119): уровни до 100, за уровень — 1 очко умений и 3 очка характеристик, распределяются вручную в окне героя.
+// Умения (Q E F R) и рывок качаются с 1 до 20: у умений сила +7% и перезарядка −2% за уровень (skDmg / skCd в combat.js), у рывка —
+// перезарядка −0,1 с и дальность +4 за уровень (dash.js). К 100-му уровню героя очков хватает довести все пять до 20 (нужно 95, даётся 99).
 // Характеристики: Сила — здоровье и урон, Ловкость — скорость атаки и бега, Интеллект — мана, её восстановление и сила умений
 // (сами формулы — в SHOP.recompute). Прокачка сохраняется в браузере отдельно для каждого героя; золото и предметы — на один забег.
 'use strict';
 
-const LVL_MAX = BAL.LVL_MAX, SK_MAX = 10, STAT_PER_LVL = 3;
+const LVL_MAX = Math.min(100, BAL.LVL_MAX), SK_MAX = 20, STAT_PER_LVL = 3;   // v119: герой до 100-го уровня, у умений и рывка по 20 уровней
 const STATS = [
   { id: 'str', name: 'Сила', desc: '+8 здоровья, +0,6% урона', img: 'i_str' },
   { id: 'agi', name: 'Ловкость', desc: '+1,5% скорости атаки, +0,6% бега', img: 'i_agi' },
-  { id: 'int', name: 'Интеллект', desc: '+12 маны, +0,35 маны/с, +1,5% силы умений', img: 'i_int' },
+  { id: 'int', name: 'Интеллект', desc: '+12 маны, +0,12 маны/с, +1,5% силы умений', img: 'i_int' },
 ];
-const SK_IDS = ['q', 'e', 'f', 'r'];
+const SK_IDS = ['q', 'e', 'f', 'r', 'dash'];   // v119: рывок качается так же, как умения
 // опыт до следующего уровня — кривая в data.js (BAL.need), расчёт — tools/balance_sim.py
 const xpNeedP = l => BAL.need(l);
 const progKey = () => 'hw_prog_' + HERO_ID;
@@ -20,13 +21,13 @@ function progLoad() {
   try { d = JSON.parse(localStorage.getItem(progKey())); } catch (e) {}
   d = d && typeof d === 'object' ? d : {};
   const num = (v, lo, hi, def) => (typeof v === 'number' && v >= lo && v <= hi ? Math.floor(v) : def);
-  P.lvl = num(d.lvl, 1, LVL_MAX, 1);
+  P.lvl = typeof d.lvl === 'number' && d.lvl > LVL_MAX ? LVL_MAX : num(d.lvl, 1, LVL_MAX, 1);      // старое сохранение выше 100-го — становится 100-м
   P.xp = num(d.xp, 0, 1e9, 0);
-  P.sp = num(d.sp, 0, LVL_MAX, 0);
-  P.stp = num(d.stp, 0, LVL_MAX * STAT_PER_LVL, 0);
+  P.sp = num(d.sp, 0, 200, 0);
+  P.stp = num(d.stp, 0, 200 * STAT_PER_LVL, 0);
   P.skLv = {}; P.st = {};
   for (const k of SK_IDS) P.skLv[k] = num(d.sk && d.sk[k], 1, SK_MAX, 1);
-  for (const s of STATS) P.st[s.id] = num(d.st && d.st[s.id], 0, LVL_MAX * STAT_PER_LVL, 0);
+  for (const s of STATS) P.st[s.id] = num(d.st && d.st[s.id], 0, 200 * STAT_PER_LVL, 0);
   P.forge = {}; for (const k of ['q', 'e', 'f', 'r']) P.forge[k] = num(d.fg && d.fg[k], 0, 5, 0);   // закалка кузницы Междумирья
   SHOP.recompute(); P.hp = P.maxHp; P.mp = P.maxMp;
   progUI();
@@ -73,6 +74,7 @@ const PE = {};
   #hProg .xpb i { position: absolute; inset: 0; background: ${U('h_xp')} center / 100% 100% no-repeat; }
   #hProg .xpb span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: .75em; font-weight: bold; }
   #hProg .rw { display: flex; align-items: center; gap: .7em; background: rgba(8,16,32,.55); border-radius: .6em; padding: .45em .6em; }
+  #hProg .c2 .rw { padding: .28em .6em; } #hProg .c2 .ic { width: 2.7em; height: 2.7em; } #hProg .c2 { gap: 1.6%; }
   #hProg .ic { width: 3.1em; height: 3.1em; flex: none; background-size: 100% 100%; background-repeat: no-repeat; border-radius: 50%; }
   #hProg .tx { flex: 1; min-width: 0; } #hProg .tx b { font-size: .98em; } #hProg .tx em { font-style: normal; color: #ffe27a; margin-left: .4em; }
   #hProg .tx div { font-size: .74em; opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -106,7 +108,7 @@ const PE = {};
   }
   PE.sum = document.createElement('div'); PE.sum.className = 'rw'; PE.sum.style.cssText = 'font-size:.82em;display:block;line-height:1.5';
   c1.appendChild(PE.sum);
-  c2.innerHTML = '<h4><span>Умения (1–10)</span><span class="kn"></span></h4>';
+  c2.innerHTML = '<h4><span>Умения и рывок · до ' + SK_MAX + '</span><span class="kn"></span></h4>';
   PE.kn = c2.querySelector('.kn');
   PE.sk = {};
   for (const k of SK_IDS) {
@@ -129,8 +131,9 @@ function progOpen(on) {
 // что даёт следующий уровень умения: урон и перезарядка
 function skHint(k) {
   const l = P.skLv[k];
-  if (HERO_ID === 'archer' && k === 'r') return 'Верный глаз: +' + (12 + 2 * (l - 1)) + '% урона, +' + (10 + (l - 1)) + '% дальности, ' + (25 + 2 * (l - 1)) + '% стрел пронзающие';
-  return 'сила ×' + (1 + 0.12 * (l - 1)).toFixed(2) + ', перезарядка −' + Math.round(3 * (l - 1)) + '%';
+  if (k === 'dash') return 'перезарядка ' + DASH.cdOf().toFixed(1) + ' с, дальность ' + Math.round(DASH.distOf());
+  if (HERO_ID === 'archer' && k === 'r') return 'Верный глаз: +' + (12 + (l - 1)) + '% урона, +' + (10 + 0.5 * (l - 1)) + '% дальности, ' + (25 + (l - 1)) + '% стрел пронзающие';
+  return 'сила ×' + (1 + 0.07 * (l - 1)).toFixed(2) + ', перезарядка −' + Math.round(2 * (l - 1)) + '%';
 }
 function progUI() {
   if (!PE.box) return;
@@ -139,7 +142,7 @@ function progUI() {
   PE.xp.firstChild.style.clipPath = 'inset(0 ' + (100 - pct).toFixed(1) + '% 0 0)';
   if (PE.box.style.display !== 'flex') return;
   const h = HEROES[HERO_ID];
-  PE.tt.textContent = h.name + ' · уровень ' + P.lvl + (P.lvl >= LVL_MAX ? ' (макс.)' : '');
+  PE.tt.textContent = h.name + ' · уровень ' + P.lvl + ' из ' + LVL_MAX;
   PE.xn.textContent = P.lvl >= LVL_MAX ? 'максимум' : P.xp + ' / ' + need;
   PE.xpb.firstChild.style.clipPath = 'inset(0 ' + (100 - pct).toFixed(1) + '% 0 0)';
   PE.xpb.lastChild.textContent = Math.floor(pct) + '%';
@@ -150,14 +153,13 @@ function progUI() {
     r.querySelector('.pl').classList.toggle('off', !P.stp);
   }
   PE.sum.innerHTML = 'Здоровье: <b>' + P.maxHp + '</b>' + (P.hpRegX ? ' (+' + P.hpRegX + '/с)' : '') + ' · Мана: <b>' + P.maxMp + '</b> (+' + P.mpRegen.toFixed(1) + '/с)<br>Урон: <b>×' + P.dmgMul.toFixed(2) +
-    '</b> · Атака: <b>×' + P.atkSpd.toFixed(2) + '</b> · Умения: <b>×' + P.skMul.toFixed(2) + '</b>';
+    '</b> · Атака: <b>×' + P.atkSpd.toFixed(2) + '</b> · Умения: <b>×' + P.skMul.toFixed(2) + '</b><br>За уровень героя: 1 очко умений и ' + STAT_PER_LVL + ' очка характеристик';
   PE.kn.textContent = 'очков: ' + P.sp;
   SK_IDS.forEach((k, i) => {
     const r = PE.sk[k], cell = SK_CELL[k], ic = r.querySelector('.ic');
-    ic.style.backgroundImage = 'url(' + h.icons + V + ')';
-    ic.style.backgroundSize = '300% 200%';
-    ic.style.backgroundPosition = (cell % 3) * 50 + '% ' + Math.floor(cell / 3) * 100 + '%';
-    r.querySelector('b').textContent = h.skills[i + 1].split(' — ')[0];
+    if (k === 'dash') { ic.style.backgroundImage = 'url(ui/status/dash.webp' + V + ')'; ic.style.backgroundSize = '100% 100%'; ic.style.backgroundPosition = 'center'; }
+    else { ic.style.backgroundImage = 'url(' + h.icons + V + ')'; ic.style.backgroundSize = '300% 200%'; ic.style.backgroundPosition = (cell % 3) * 50 + '% ' + Math.floor(cell / 3) * 100 + '%'; }
+    r.querySelector('b').textContent = k === 'dash' ? 'Рывок' : h.skills[i + 1].split(' — ')[0];
     r.querySelector('em').textContent = P.skLv[k] + '/' + SK_MAX;
     r.querySelector('.tx div').textContent = skHint(k);
     r.querySelector('.pl').classList.toggle('off', !P.sp || P.skLv[k] >= SK_MAX);

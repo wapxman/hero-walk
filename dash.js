@@ -8,6 +8,8 @@
 'use strict';
 const DASH = (function () {
   const D = { dist: 250, dur: 0.18, inv: 0.25, cd: 6 };
+  // v119: рывок качается (1–20, окно героя): перезарядка −0,1 с и дальность +4 за уровень — на 20-м 4,1 с и 326
+  const lvD = () => ((P.skLv && P.skLv.dash) || 1) - 1, cdOf = () => D.cd - 0.1 * lvD(), distOf = () => D.dist + 4 * lvD();
   const ICON = new Image(); ICON.src = 'ui/status/dash.webp' + V;
   const off = () => !!(window.NETC && NETC.on) || (typeof LIMBO !== 'undefined' && LIMBO.on);
   BTN.push({ id: 'dash', label: 'Рывок', key: '⇧', col: '255,220,140' });   // v101: на клавиатуре — Shift (на C открывалось окно героя, и рывок с клавиши не работал)
@@ -32,7 +34,7 @@ const DASH = (function () {
   function go() {
     if (off() || P.dead > 0 || P.cd.dash > 0 || run || (typeof SHOP !== 'undefined' && SHOP.paused) || why()) return false;
     const v = inputVector(), dx = v.m > 0.12 ? v.ax / v.m : P.face.x, dy = v.m > 0.12 ? v.ay / v.m : P.face.y;
-    run = { t: 0, dx, dy, acc: 0 }; P.dashI = D.inv; P.cd.dash = D.cd * (P.cdMul || 1);
+    run = { t: 0, dx, dy, acc: 0 }; P.dashI = D.inv; P.cd.dash = cdOf() * (P.cdMul || 1); CDMAX.dash = cdOf();
     P.face = { x: dx, y: dy }; run.row = runRow(dx, dy);
     if (HERO.mul && HERO.mul.dash) P.act = { anim: 'dash', t: ACT / 6, dur: ACT, row: run.row };
     ghosts.push({ x: P.x, y: P.y, t: 0, f: 2, row: run.row });
@@ -53,7 +55,7 @@ const DASH = (function () {
       if (run) {
         if (P.dead > 0 || why()) run = null;
         else {
-          const k = Math.min(dt, D.dur - run.t), sp = D.dist / D.dur;
+          const k = Math.min(dt, D.dur - run.t), sp = distOf() / D.dur;
           P.x += run.dx * sp * k; P.y += run.dy * sp * k * YK; collide(P);
           run.t += dt; run.acc += dt;
           if (run.acc >= 0.055) { run.acc = 0; ghosts.push({ x: P.x, y: P.y, t: 0, f: run.t < 0.1 ? 2 : 3, row: run.row }); }
@@ -103,5 +105,5 @@ const DASH = (function () {
       _ui();
     };
   }
-  return { D, why, go, get on() { return !!run; }, ghosts };
+  return { D, why, go, cdOf, distOf, get on() { return !!run; }, ghosts };
 })();

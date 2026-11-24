@@ -138,6 +138,7 @@ const CINE = (() => {
       const wait = el('wait', r);
       const first = () => { if (seen1 || over) return; seen1 = true; v.classList.add('on'); wait.classList.remove('on'); };
       v.classList.remove('on');
+      try { if (v.currentTime > 0) v.currentTime = 0; } catch (e) {}      // v119: ролик всегда идёт с самого начала
       v.addEventListener('ended', end); v.addEventListener('error', end);
       v.addEventListener('timeupdate', () => { if (v.currentTime > 0) first(); });
       if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(first);

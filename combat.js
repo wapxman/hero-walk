@@ -119,10 +119,11 @@ addEventListener('keydown', e => {
 const SPAWN = HERO_SPAWN;
 // мана: скиллы стоят маны, она сама восстанавливается; уровень растёт от опыта за победы
 Object.assign(P, { mp: 420, maxMp: 420, lvl: 1, xp: 0 });
-const MANA = { q: 60, e: 50, f: 80, r: 150 }, MP_REGEN = 11;
+const MANA = { q: 60, e: 50, f: 80, r: 150 }, MP_REGEN = 3.7;   // v119: было 11
 const skLv = id => (P.skLv && P.skLv[id]) || 1;
-let skDmg = id => (1 + 0.12 * (skLv(id) - 1)) * (P.skMul || 1);
-let skCd = id => 1 - 0.03 * (skLv(id) - 1);
+// v119: у умения 20 уровней (было 10): сила +7 % и перезарядка −2 % за уровень — на 20-м ×2,33 и −38 % (на прежнем 10-м было ×2,08 и −27 %)
+let skDmg = id => (1 + 0.07 * (skLv(id) - 1)) * (P.skMul || 1);
+let skCd = id => 1 - 0.02 * (skLv(id) - 1);
 const KILL_XP = { min: 8, war: 18, mag: 14, rog: 14, boss: 150 };   // новые виды — поле xp в KIND
 const xpNeed = l => 40 + 35 * l;
 function gainXp(n) {
@@ -261,7 +262,7 @@ function cast(id) {
   } else if (id === 'e') {
     const t = nearestEnemy(RANGE);
     if (!t) { say(P.x, P.y - CH * HS(), 'нет цели', '#ffd28a'); return; }
-    t.root = 2.8 + 0.1 * (skLv('e') - 1); t.dot = 45 * skDmg('e'); hurtEnemy(t, 40 * skDmg('e'));
+    t.root = 2.8 + 0.05 * (skLv('e') - 1); t.dot = 45 * skDmg('e'); hurtEnemy(t, 40 * skDmg('e'));
     fx.push({ type: 'chains', e: t, x: t.x, y: t.y, t: 0, dur: 3.25, h: t.ch.top * t.ch.U * t.sc });
     snd('chains', 0.85);
   } else if (id === 'f') {
@@ -270,7 +271,7 @@ function cast(id) {
     snd('hail', 0.8);
   } else if (id === 'r') {
     const agh = typeof ITEMFX !== 'undefined' && ITEMFX.pas('agh');   // Скипетр древних: Буря дольше и сильнее
-    P.ult = 5 + 0.2 * (skLv('r') - 1) + (agh ? agh.t : 0); P.ultTick = 0; P.ultMul = skDmg('r') * (agh ? agh.k : 1);   // звук бури длится те же 5 секунд
+    P.ult = 5 + 0.1 * (skLv('r') - 1) + (agh ? agh.t : 0); P.ultTick = 0; P.ultMul = skDmg('r') * (agh ? agh.k : 1);   // звук бури длится те же 5 секунд
     snd('storm', 0.85);
   }
   P.cd[id] = CDMAX[id] * (P.cdMul || 1) * skCd(id); P.cast = 0.3; P.mp -= MANA[id];

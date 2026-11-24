@@ -40,7 +40,7 @@ const SHOP = {
     P.spdMul = (1 + 0.1 * L('boots')) * (b.swift > 0 ? 1.45 : 1) * (1 + 0.006 * agi);
     P.atkSpd = 1 + 0.015 * agi;
     P.skMul = 1 + 0.015 * int;
-    P.mpRegen = 11 + 0.35 * int;
+    P.mpRegen = MP_REGEN + 0.12 * int;
     const mm = 420 + 12 * int;
     if (mm !== P.maxMp) { P.mp = Math.min(mm, P.mp + Math.max(0, mm - P.maxMp)); P.maxMp = mm; }
     P.cdMul = Math.pow(0.88, L('ring'));
@@ -210,9 +210,10 @@ SHOP.flaskPrice = f => BAL.price(f.id === 'heal' ? 40 + 5 * (BAL.mw(wave + 1) - 
   #hTopR .gd span { position: absolute; left: 34%; right: 8%; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font: bold 3vh system-ui; color: #ffe9a8; }
   #hTopR .sq { width: 8.4vh; height: 8.9vh; }
   #hInv { bottom: calc(2.4vh + var(--sab)); left: 50%; transform: translateX(-60%); display: flex; gap: 1vh; align-items: center; }
-  .hs { position: relative; width: 9.4vh; height: 9.2vh; background-image: ${U('h_slot')}; }
+  .hs { position: relative; width: 6.3vh; height: 6.2vh; background-image: ${U('h_slot')}; }
+  #hInv { gap: .45vh; }
   .hs .ic { position: absolute; left: 17%; top: 17%; width: 66%; height: 66%; }
-  .hs b { position: absolute; right: .7vh; bottom: .4vh; font: bold 2.2vh system-ui; }
+  .hs b { position: absolute; right: .4vh; bottom: .2vh; font: bold 1.8vh system-ui; }
   .hs.buff { filter: drop-shadow(0 0 .9vh #7fe0ff); }
   #hFlask { position: relative; width: 10.4vh; height: 10.4vh; margin-left: 1.6vh; background-image: ${U('h_round')}; }
   #hFlask .ic { position: absolute; left: 18%; top: 16%; width: 64%; height: 64%; }
@@ -275,7 +276,7 @@ SHOP.flaskPrice = f => BAL.price(f.id === 'heal' ? 40 + 5 * (BAL.mw(wave + 1) - 
   // снизу: 6 ячеек сумки (склянки холода, скорости, силы и предметы) и склянка лечения
   E.inv = mk('div', 'sh'); E.inv.id = 'hInv';
   E.slots = [];
-  for (let i = 0; i < 6; i++) { const c = mk('div', 'hs bg', E.inv); tap(c, () => { if (c.use) SHOP.use(c.use); }); E.slots.push(c); }
+  for (let i = 0; i < 12; i++) { const c = mk('div', 'hs bg', E.inv); tap(c, () => { if (c.use) SHOP.use(c.use); }); E.slots.push(c); }
   E.flask = mk('div', 'bg', E.inv, icon(ICON.heal) + '<b class="bg">0</b>'); E.flask.id = 'hFlask';
   E.flask.title = 'Склянка лечения: +150 и 20 % здоровья, не чаще раза в секунду (клавиша 1)'; tap(E.flask, () => SHOP.use('heal'));
   // пауза: продолжить, музыка, редактор

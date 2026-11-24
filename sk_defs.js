@@ -388,9 +388,19 @@
     { ph: 'Огненный разлом', col: '#ff7a3a', cd: 14, first: 2, an: 'fg_slam_cast', dur: 0.9, at: 0.55, can: (e, d) => d < 750,
       cast(e) { line(e, { img: F('b_forgegolem', 'fg_fissure'), len: 700, w: 120, run: 0.35, dur: 6.3, wall: true, onHit() { hurtPlayer(45 * e.dm, 'fire'); stun(1); } }); } },
     { ph: 'Закалка', col: '#fff3c4', cd: 18, first: 6, an: 'cast2', dur: 0.8, at: 0.5,
-      cast(e) {   // 5 с: не оглушить, не замедлить, лечится 2 % HP/с
+      cast(e) {   // 5 с: не оглушить, не замедлить. v119: себя больше не лечит — вместо этого поднимает двух павших:
+        // каждый раз два РАЗНЫХ вида рядовых врагов этого мира (вид свечения «Закалки» прежний)
         mark({ img: F('b_forgegolem', 'fg_temper'), on: e, at: e.ch.top * e.ch.U * e.sc * 0.5, dur: 5, size: 300, add: 1 });
-        MOV.push({ t: 0, dur: 5, update(m, dt) { e.slowT = 0; e.root = 0; e.silT = 0; e.hp = Math.min(e.max, e.hp + e.max * 0.02 * dt); } });
+        MOV.push({ t: 0, dur: 5, update(m, dt) { e.slowT = 0; e.root = 0; e.silT = 0; } });
+        const R0 = rosterOf(Math.max(1, wave)), kinds = [...new Set(R0.mel.concat(R0.rng))].filter(t => KIND[t] && !KIND[t].boss);
+        for (let i = kinds.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [kinds[i], kinds[j]] = [kinds[j], kinds[i]]; }
+        if (enemies.length < 15) kinds.slice(0, 2).forEach((t, i) => {
+          spawnEnemy(t); const m = enemies[enemies.length - 1], a = Math.atan2(P.y - e.y, P.x - e.x) + (i ? 1.1 : -1.1);
+          m.x = e.x + Math.cos(a) * 150; m.y = e.y + Math.sin(a) * 150 * YK; collide(m); m.raised = 1;
+          mark({ img: F('b_forgegolem', 'fg_temper'), on: m, at: (m.ch.ok ? m.ch.top * m.ch.U * m.sc : 80) * 0.5, dur: 1.6, size: 190, add: 1 });
+          fx.push({ type: 'quake', x: m.x, y: m.y, t: 0, dur: 0.6, R: 60 });
+        });
+        SK.tag(e, 'Восстаньте!', '#fff3c4'); snd('boss_roar', 0.7, 1.15);
       } },
     { ph: 'Дух горна', col: '#ffb36a', cd: 30, first: 10, an: 'fg_spirit_cast', dur: 0.9, at: 0.6,
       cast(e) { e.guard = 5; mark({ img: F('b_forgegolem', 'fg_spirit'), on: e, at: e.ch.top * e.ch.U * e.sc * 1.1, dur: 5, size: 520, add: 0 });

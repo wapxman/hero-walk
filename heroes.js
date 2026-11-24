@@ -157,9 +157,9 @@ function fx3(k, x, y, w, h, ax, ay, alpha, rot, ground) {
 // (+2 % за уровень R) — пронзающие: +60 % урона, не смотрят на щиты и броню врага, пролетают насквозь и бьют ещё одного.
 const MARK_R = 350;
 const markOn = () => (window.NETC && NETC.on) ? P.focus > 0 : !!P.mark;   // в онлайне решает сервер (флаг приходит в P.focus)
-const markK = () => markOn() ? 1.12 + 0.02 * (skLv('r') - 1) : 1;
-const markRange = () => markOn() ? 1.10 + 0.01 * (skLv('r') - 1) : 1;
-const markPierce = () => 0.25 + 0.02 * (skLv('r') - 1) + (typeof ITEMFX !== 'undefined' && ITEMFX.pas('agh') ? ITEMFX.pas('agh').pierce : 0);   // Скипетр древних: +15 %
+const markK = () => markOn() ? 1.12 + 0.01 * (skLv('r') - 1) : 1;      // v119: 20 уровней — шаг вдвое меньше
+const markRange = () => markOn() ? 1.10 + 0.005 * (skLv('r') - 1) : 1;
+const markPierce = () => 0.25 + 0.01 * (skLv('r') - 1) + (typeof ITEMFX !== 'undefined' && ITEMFX.pas('agh') ? ITEMFX.pas('agh').pierce : 0);   // Скипетр древних: +15 %
 // урон умения: щиты боссов видят его как умение, а не как обычную атаку
 function eiraSpell(fn) { const g = typeof heroSpell !== 'undefined'; if (g) heroSpell++; try { fn(); } finally { if (g) heroSpell--; } }
 

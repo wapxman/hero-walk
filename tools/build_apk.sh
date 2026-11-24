@@ -22,6 +22,11 @@ if [ "$1" != "--no-test" ]; then
   # v117: уровни сложности, тестовая сборка мира 1 с выбором уровня, крюк мясника
   PYTHONIOENCODING=utf-8 python tools/level_check.py > tests_lv.log 2>&1 || { grep -a "НЕТ\|ИТОГ\|Error" tests_lv.log | cut -c1-300; rm -f tests_lv.log; echo "ПРОВЕРКА УРОВНЕЙ КРАСНАЯ — APK не собран"; exit 1; }
   rm -f tests_lv.log; echo "уровни и крюк в порядке"
+  # v119: мана, 20 уровней умений и рывка, 12 слотов, босс мира 5, цифры урона; умения героев видны; ролики идут с начала и до конца
+  for t in v119_check fx_check cine_full; do
+    PYTHONIOENCODING=utf-8 python tools/$t.py > tests_x.log 2>&1 || { grep -a "НЕТ\|ИТОГ\|Error" tests_x.log | cut -c1-300; rm -f tests_x.log; echo "ПРОВЕРКА $t КРАСНАЯ — APK не собран"; exit 1; }
+    rm -f tests_x.log; echo "$t: в порядке"
+  done
 fi
 cd ../hero-walk-apk
 W=gamedata/src/main/assets/www   # файлы игры для APK и для набора Google Play

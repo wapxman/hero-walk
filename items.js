@@ -106,7 +106,7 @@ for (const id in RECIPES) {
   r.from = r.from.concat(k);
 }
 const ALL = Object.assign({}, PARTS, RECIPES);
-const BAG_MAX = 6;
+const BAG_MAX = 12;   // v119: 12 маленьких слотов (было 6)
 const STAT_TXT = { dmg: ['урон', '%'], hp: ['здоровье', ''], mp: ['мана', ''], as: ['скорость атаки', '%'], spd: ['бег', '%'],
   hpr: ['здоровье/с', ''], mpr: ['мана/с', ''], arm: ['защита', '%'], sk: ['сила умений', '%'], cd: ['перезарядка', '%', '−'],
   ls: ['вампиризм', '%'], crit: ['крит ×2', '%'] };
@@ -192,7 +192,7 @@ SHOP.recompute = function () {
   P.spdMul = (1 + S.spd) * (b.swift > 0 ? 1.45 : 1) * (1 + 0.006 * agi);
   P.atkSpd = (1 + 0.015 * agi) * (1 + Math.min(0.6, S.as));   // предметы — не больше +60 % к атаке
   P.skMul = (1 + 0.015 * int) * (1 + S.sk);
-  P.mpRegen = 11 + 0.35 * int + S.mpr;
+  P.mpRegen = MP_REGEN + 0.12 * int + S.mpr;   // v119: мана копится втрое медленнее (было 11 + 0,35 за очко интеллекта) — её приходится беречь
   P.hpRegX = S.hpr; P.ls = Math.min(0.25, S.ls); P.crit = Math.min(0.4, S.crit);   // вампиризм — не больше 25 %
   P.spl = 0; for (const id of SHOP.bag) { const p = ALL[id] && ALL[id].pas; if (p && p.spl > P.spl) P.spl = p.spl; }   // вампиризм умений: Радужное ядро 10 %, Багровый самоцвет 20 % (берётся больший)
   const mm = 420 + 12 * int + S.mp;
@@ -292,7 +292,8 @@ SHOP.pick = (function (orig) {
   #shBuy .ic { width: 1.1em; height: 1.1em; }
   #shBuy.no { filter: grayscale(1) brightness(.7); }
   #shBag { position: absolute; left: 6.5%; bottom: 9.5%; display: flex; gap: .35em; align-items: center; }
-  #shBag .ci { width: 3.6em; height: 3.9em; }
+  #shBag .ci { width: 2.45em; height: 2.65em; }
+  #shBag { gap: .22em; }
   #shBag span { font-size: .8em; opacity: .8; margin-right: .3em; }
   .hs .it { position: absolute; left: 17%; top: 17%; width: 66%; height: 66%; }
   #shGo { left: auto !important; right: 6% !important; width: 26% !important; }
@@ -395,7 +396,7 @@ SHOP.pick = (function (orig) {
     if (SHOP.open) draw();
     // ячейки внизу экрана: предметы сумки, потом склянки (кроме лечения)
     const inv = SHOP.bag.map(id => ({ h: ICN(ALL[id]), t: ALL[id].nm + ': ' + (ALL[id].relic ? ALL[id].ds || statText(ALL[id].st) : itemText(ALL[id])), use: ALL[id].act ? 'it:' + id : null }));   // вещи с активкой жмутся
-    for (const f of FLASKS) if (f.id !== 'heal' && SHOP.flasks[f.id] && inv.length < 6) inv.push({ h: SHOP.iconHtml(ICON[f.id]) + '<b>' + SHOP.flasks[f.id] + '</b>', use: f.id, t: f.name });
+    for (const f of FLASKS) if (f.id !== 'heal' && SHOP.flasks[f.id] && inv.length < BAG_MAX) inv.push({ h: SHOP.iconHtml(ICON[f.id]) + '<b>' + SHOP.flasks[f.id] + '</b>', use: f.id, t: f.name });
     E.slots.forEach((c, i) => {
       const x = inv[i], h = x ? x.h : '';
       if (c.h !== h) { c.innerHTML = h; c.h = h; }
