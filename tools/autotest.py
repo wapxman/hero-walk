@@ -102,7 +102,7 @@ async def extra(br, res):
         r['items'] = await p.evaluate("""() => { const o = {}; SHOP.gold += 20000; const b0 = SHOP.bag.slice(); SHOP.bag = [];
           buyItem('sword'); buyItem('sword'); o.combine = SHOP.bag.join(',');                 // два меча -> Клинок воина
           SHOP.bag = []; o.scroll = buyItem('sange') && SHOP.bag.join(',');                   // предмет со свитком рецепта
-          SHOP.bag = ['fang', 'blink', 'reaver', 'hyper', 'demonedge', 'mystic']; const g = SHOP.gold; o.full = buyItem('fang') === false && SHOP.bag.length === 6; o.fullGold = SHOP.gold === g;   // полная сумка: седьмая вещь не покупается
+          SHOP.bag = ['fang', 'blink', 'reaver', 'hyper', 'demonedge', 'mystic', 'fang', 'blink', 'reaver', 'hyper', 'demonedge', 'mystic'].slice(0, BAG_MAX); const g = SHOP.gold; o.full = BAG_MAX === 12 && buyItem('fang') === false && SHOP.bag.length === BAG_MAX; o.fullGold = SHOP.gold === g;   // полная сумка (v119: 12 мест): тринадцатая вещь не покупается
           SHOP.bag = ['blade']; const g2 = SHOP.gold; sellItem(0); o.sell = SHOP.gold - g2 === Math.floor(fullPrice('blade') / 2);
           SHOP.bag = ['blade', 'bracer', 'sange']; SHOP.gold = 777; SHOP.flasks.heal = 3; SHOP.flasks.mana = 2; SHOP.recompute(); SHOP.refresh(); SAVE.save(); return o; }   // это и сохраняем""")
         a = await p.evaluate("({ wave, gold: SHOP.gold, bag: SHOP.bag.slice(), lvl: P.lvl, heal: SHOP.flasks.heal, st: P.st, hp: Math.round(P.hp), saved: SAVE.read() })")
