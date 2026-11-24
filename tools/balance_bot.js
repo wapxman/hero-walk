@@ -151,6 +151,7 @@
   };
   B.run = function (frames) {
     for (let i = 0; i < frames && !B.done; i++) {
+      if (!HERO.ok || !window.COMBAT_READY) break;      // v120: игра ещё грузит листы героя («Загрузка арены…») — не шагаем, ждём (листы теперь грузятся не на старте)
       VT += 1000 / 30;
       if (LIMBO.on) { B.deaths++; if (B.cur) { B.cur.deaths++; if (B.cur.deaths >= 6) { B.cur.stuck = 1; B.stuck++; } } hpPrev = P.maxHp;
         const stuck = B.cur && B.cur.stuck; LIMBO.leave();
@@ -164,7 +165,7 @@
       } else if (SHOP.phase === 'fight') {
         ai(1 / 30); if (B.cur) B.cur.t += 1 / 30;
         // зависание: волна не кончается 12 игровых минут — записываем и идём дальше
-        if (wave !== wv0) { wv0 = wave; wvT = 0; } else if ((wvT += 1 / 30) > 720) { B.hang.push({ wave, left: enemies.filter(live).map(e => e.type), queue: ROUND.queue.length }); wvT = 0; for (const e of enemies) e.hp = 0; enemies.length = 0; ROUND.queue.length = 0; ROUND.fin = null; wave = ROUND.endW; }
+        if (wave !== wv0) { wv0 = wave; wvT = 0; } else if ((wvT += 1 / 30) > 720) { B.hang.push({ wave, left: enemies.filter(live).map(e => e.type), queue: ROUND.queue.length, why: [SHOP.paused ? 'пауза' : '', HERO.ok ? '' : 'листы героя не загружены', window.COMBAT_READY ? '' : 'бой не готов', 'в списке врагов ' + enemies.length, 'до выхода ' + (+ROUND.relT).toFixed(1), 'волна раунда до ' + ROUND.endW, typeof PATHMAP !== 'undefined' && PATHMAP.on ? 'карта открыта' : '', typeof CINE !== 'undefined' && CINE.on ? 'ролик' : '', typeof STORE !== 'undefined' && STORE.busy ? 'реклама' : '', P.dead > 0 ? 'герой мёртв' : ''].filter(Boolean).join(', ') }); wvT = 0; for (const e of enemies) e.hp = 0; enemies.length = 0; ROUND.queue.length = 0; ROUND.fin = null; wave = ROUND.endW; }
       }
       const r0 = realNow(); frame(VT); const ms = realNow() - r0; B.perf.n++; B.perf.sum += ms; if (ms > B.perf.max) B.perf.max = ms; if (ms > 50) B.perf.slow++;
       if (P.hp < hpPrev) { taken += hpPrev - P.hp; if (B.cur && enemies.some(e => (e.mini || e.boss) && e.hp > 0)) B.cur.takenBoss = (B.cur.takenBoss || 0) + hpPrev - P.hp; } hpPrev = P.hp;

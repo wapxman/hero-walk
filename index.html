@@ -411,7 +411,7 @@ const red = {};
 let last = performance.now();
 // арену не видно: открыта карта миров (её холст непрозрачный), идёт ролик, стоит главное меню, выбор героя или заставка
 let HID_EL = null, hidT = 0;
-function arenaHidden() {
+function arenaHidden() { if (window.BOT) return false;      // бот автопрогона шагает игру сам, без меню и карты
   if (typeof PATHMAP !== 'undefined' && PATHMAP.on) return true;
   if (typeof CINE !== 'undefined' && CINE.solid) return true;
   if (!HID_EL) HID_EL = [document.getElementById('mMain'), document.getElementById('hSel')];

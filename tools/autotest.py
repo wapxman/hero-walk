@@ -159,7 +159,7 @@ for w in WORLDS:
     if not run: continue
     m = MW[w - 1]; lvl0 = MW[w - 2]['lvl'] if w > 1 else 1
     if run['wave'] < w * 10: red(w, f"пройдено волн до {run['wave']} из {w * 10}")
-    for h in run['hang']: red(w, f"зависание: волна {h['wave']} не кончалась 12 игровых минут (остались: {', '.join(sorted(set(h['left']))) or 'никого'}, в очереди {h['queue']})")
+    for h in run['hang']: red(w, f"зависание: волна {h['wave']} не кончалась 12 игровых минут (остались: {', '.join(sorted(set(h['left']))) or 'никого'}, в очереди {h['queue']}; {h.get('why', '')})")
     if run['stuck']: yel(w, f"бот не смог пройти {run['stuck']} раунд(а) даже с бронёй ×{A.armor} — пропущены")
     if abs(run['lvl'] - m['lvl']) > 3: red(w, f"уровень в конце мира {run['lvl']}, по модели {m['lvl']}")
     inc = sum(x['gold1'] - x['gold'] for x in run['rounds'])
