@@ -25,7 +25,8 @@ const MAXLVL = 3;
 const KILL_GOLD = { min: 6, war: 13, mag: 11, rog: 11, boss: 90 };
 const BASE_HP = 600;
 // склянка лечения (v87): 150 + 20 % здоровья, цена 40 + 10 за мир, с собой не больше 10, пить не чаще раза в секунду
-const HEAL = { max: 10, cd: 1 };
+const HEAL = { max: 5, cd: 1 };   // v120: не больше 5 склянок каждого вида, лечения тоже (было 10 лечения и без предела остальных)
+const FLASK_MAX = 5;
 
 const SHOP = {
   gold: 0, flasks: { heal: 3, frost: 0, swift: 0, power: 0, mana: 0 }, items: {}, buffs: { swift: 0, power: 0 },
@@ -111,7 +112,7 @@ const SHOP = {
       SHOP.addGold(d.amount); say(P.x + rnd(-10, 10), P.y - CH * HS() * 0.9, '+' + d.amount, '#ffd95e');
       snd('coins', 0.25, 1.3);   // тихий звон, когда монеты долетели до героя
     }
-    else if (d.kind === 'flask') { SHOP.flasks[d.id] = Math.min(d.id === 'heal' ? HEAL.max : 99, SHOP.flasks[d.id] + 1); say(P.x, P.y - CH * HS() * 1.1, FLASKS.find(f => f.id === d.id).name, '#bfe6ff'); }
+    else if (d.kind === 'flask') { SHOP.flasks[d.id] = Math.min(FLASK_MAX, SHOP.flasks[d.id] + 1); say(P.x, P.y - CH * HS() * 1.1, FLASKS.find(f => f.id === d.id).name, '#bfe6ff'); }
     else {
       snd('coins', 0.6, 0.85);
       const free = ITEMS.filter(it => (SHOP.items[it.id] || 0) < MAXLVL);
@@ -139,7 +140,7 @@ const SHOP = {
   buy(kind, id) {
     if (kind === 'flask') {
       const f = FLASKS.find(x => x.id === id), pr = SHOP.flaskPrice(f);
-      if (id === 'heal' && SHOP.flasks.heal >= HEAL.max) { say(P.x, P.y - CH * HS() * 1.2, 'Фласок лечения — не больше ' + HEAL.max, '#ffb36a'); return; }
+      if (SHOP.flasks[id] >= FLASK_MAX) { say(P.x, P.y - CH * HS() * 1.2, 'Таких склянок — не больше ' + FLASK_MAX, '#ffb36a'); return; }
       if (SHOP.gold < pr) return;
       SHOP.gold -= pr; SHOP.flasks[id]++;
     } else {
@@ -210,10 +211,12 @@ SHOP.flaskPrice = f => BAL.price(f.id === 'heal' ? 40 + 5 * (BAL.mw(wave + 1) - 
   #hTopR .gd span { position: absolute; left: 34%; right: 8%; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font: bold 3vh system-ui; color: #ffe9a8; }
   #hTopR .sq { width: 8.4vh; height: 8.9vh; }
   #hInv { bottom: calc(2.4vh + var(--sab)); left: 50%; transform: translateX(-60%); display: flex; gap: 1vh; align-items: center; }
-  .hs { position: relative; width: 6.3vh; height: 6.2vh; background-image: ${U('h_slot')}; }
-  #hInv { gap: .45vh; }
+  .hs { position: relative; width: 8.2vh; height: 8vh; background-image: ${U('h_slot')}; }
+  /* v120: 12 слотов — два ряда по шесть; склянка лечения справа на оба ряда */
+  #hInv { display: grid; grid-template-columns: repeat(6, auto) auto; gap: .5vh .6vh; bottom: calc(1.2vh + var(--sab)); }
+  #hInv #hFlask { grid-column: 7; grid-row: 1 / span 2; align-self: center; }
   .hs .ic { position: absolute; left: 17%; top: 17%; width: 66%; height: 66%; }
-  .hs b { position: absolute; right: .4vh; bottom: .2vh; font: bold 1.8vh system-ui; }
+  .hs b { position: absolute; right: .6vh; bottom: .3vh; font: bold 2vh system-ui; }
   .hs.buff { filter: drop-shadow(0 0 .9vh #7fe0ff); }
   #hFlask { position: relative; width: 10.4vh; height: 10.4vh; margin-left: 1.6vh; background-image: ${U('h_round')}; }
   #hFlask .ic { position: absolute; left: 18%; top: 16%; width: 64%; height: 64%; }

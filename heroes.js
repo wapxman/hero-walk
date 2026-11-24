@@ -25,7 +25,8 @@ const HERO_KEY = 'hw_hero';
 function setHero(id) {
   if (!HEROES[id]) id = 'mage';
   const h = HEROES[id];
-  HERO_ID = id; HERO = h.def; loadHero(HERO);
+  HERO_ID = id; HERO = h.def;
+  if (typeof LAZY !== 'undefined') LAZY.first(() => { if (HERO === h.def) loadHero(h.def); }); else loadHero(HERO);      // v120: листы героя — когда страница собрана
   Object.assign(CDMAX, h.cd); Object.assign(MANA, h.mana);
   RANGE = h.range; P.baseHp = h.hp;
   SK_ICONS.src = h.icons + V;

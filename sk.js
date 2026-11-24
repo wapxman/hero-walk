@@ -42,12 +42,15 @@ const SK = (() => {
   function cre(sp, key, k) {
     const id = sp + ':' + key; if (CRE[id]) return CRE[id];
     const a = A(sp, key); if (!a) return null;
-    const o = CRE[id] = { a, ok: false, k: k || VK * ((a.size || 150) / ATLAS[a.at].cell) / 0.6 };
-    const i = new Image(); i.onload = () => { o.ok = true; }; i.src = 'chars/at_' + a.at + '.webp' + V; o.img = i;
+    const o = CRE[id] = { a, sp, ok: false, k: k || VK * ((a.size || 150) / ATLAS[a.at].cell) / 0.6 };
+    // v120: лист существа грузится не на старте игры, а перед раундом хозяина (tune.js → creWarm) или при первом появлении
+    o.load = () => { if (o.img) return; const i = new Image(); i.onload = () => { o.ok = true; }; i.src = 'chars/at_' + a.at + '.webp' + V; o.img = i; };
     return o;
   }
+  function creWarm(sp) { for (const id in CRE) if (CRE[id].sp === sp) CRE[id].load(); }
   function drawCre(o, x, y, t, row, opt) {
-    if (!o || !o.ok) return;
+    if (!o) return; if (!o.img) o.load();
+    if (!o.ok) return;
     opt = opt || {};
     const a = o.a, n = a.n, f = opt.f != null ? opt.f : Math.floor(t * 1000 / a.ms) % n, cell = ATLAS[a.at].cell, size = cell * o.k * (opt.s || 1);
     ctx.save(); ctx.translate(x, y); if (opt.a != null) ctx.globalAlpha = opt.a; if (opt.flip) ctx.scale(-1, 1);
@@ -299,7 +302,7 @@ const SK = (() => {
   // отложенное действие по игровому времени (v91; раньше умения ставили setTimeout — удар прилетал и на паузе): на паузе ждёт,
   // после гибели героя и в Междумирье не срабатывает (MOV очищается)
   const later = (fn, ms) => { MOV.push({ t: 0, dur: ms / 1000, update(m) { if (!m.done && m.t >= m.dur) { m.done = 1; fn(); } } }); };
-  return { later, F, A, img, ready, dirTo2, dist, attach, cre, drawCre, proj, beam, line, mark, ring, ground, groundImg, zone, WALLS, MOV, PR, ZONES, MARKS, LINES, BEAMS, RINGS, GROUND,
+  return { later, F, A, img, ready, dirTo2, dist, attach, cre, creWarm, drawCre, proj, beam, line, mark, ring, ground, groundImg, zone, WALLS, MOV, PR, ZONES, MARKS, LINES, BEAMS, RINGS, GROUND,
     S, bind, pin, stun, hex, poisonStack, DEF, ON_HIT, schedule, tick, drawGround, drawOver, tag, HEAD, say2, near, isSpell };
   function rebirth(e) { SK._reb && SK._reb(e); }
 })();

@@ -8,8 +8,9 @@
 'use strict';
 const DASH = (function () {
   const D = { dist: 250, dur: 0.18, inv: 0.25, cd: 6 };
-  // v119: рывок качается (1–20, окно героя): перезарядка −0,1 с и дальность +4 за уровень — на 20-м 4,1 с и 326
-  const lvD = () => ((P.skLv && P.skLv.dash) || 1) - 1, cdOf = () => D.cd - 0.1 * lvD(), distOf = () => D.dist + 4 * lvD();
+  // v119: рывок качается (1–20, окно героя). v120: перезарядка от 6 с на 1-м уровне до 2 с на 20-м (шаг 4/19 ≈ 0,21 с за уровень),
+  // дальность +4 за уровень — на 20-м 326
+  const lvD = () => ((P.skLv && P.skLv.dash) || 1) - 1, cdOf = () => D.cd - (4 / 19) * lvD(), distOf = () => D.dist + 4 * lvD();
   const ICON = new Image(); ICON.src = 'ui/status/dash.webp' + V;
   const off = () => !!(window.NETC && NETC.on) || (typeof LIMBO !== 'undefined' && LIMBO.on);
   BTN.push({ id: 'dash', label: 'Рывок', key: '⇧', col: '255,220,140' });   // v101: на клавиатуре — Shift (на C открывалось окно героя, и рывок с клавиши не работал)

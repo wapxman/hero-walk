@@ -119,7 +119,7 @@ const ITEMFX = (() => {
     if (has('linken') && !(RCD.linken > 0) && hard()) { purge(); T.ward = ALL.linken.pas.linken.imm; immune(T.ward); RCD.linken = ALL.linken.pas.cd; relicFlash('linken'); T.linkenF = 1.5;
       GLOWS.push({ x: P.x, y: P.y, col: '255,215,120', t: 0, dur: 0.7, R: 150, im: 'linken_block', hero: 1 }); click('linken'); }
     const cm = pas('calm');   // Сердце великана: 5 с без урона — +2 % здоровья в секунду
-    if (cm && T.calm >= cm.after && P.hp < P.maxHp) { const h = cm.pct * P.maxHp * dt; P.hp = Math.min(P.maxHp, P.hp + h); T.calmAcc = (T.calmAcc || 0) + h; if ((T.calmT = (T.calmT || 0) + dt) >= 1) { say(P.x, P.y - CH * HS() * 1.1, '+' + Math.round(T.calmAcc), '#7dff8a'); T.calmT = 0; T.calmAcc = 0; } }
+    if (cm && T.calm >= cm.after && P.hp < (cm.cap || 1) * P.maxHp) { const h = Math.min(cm.pct * P.maxHp * dt, (cm.cap || 1) * P.maxHp - P.hp); P.hp += h;      /* v120: только до 70 % здоровья */ T.calmAcc = (T.calmAcc || 0) + h; if ((T.calmT = (T.calmT || 0) + dt) >= 1) { say(P.x, P.y - CH * HS() * 1.1, '+' + Math.round(T.calmAcc), '#7dff8a'); T.calmT = 0; T.calmAcc = 0; } }
     for (const id of new Set(SHOP.bag)) {
       const au = ALL[id] && ALL[id].pas && ALL[id].pas.aura; if (!au) continue;
       for (const e of inR(au.R)) {
@@ -192,7 +192,7 @@ const ITEMFX = (() => {
     const L = []; if (off()) return L;
     if (T.bkb > 0) L.push(['bkb', { t: T.bkb }]); if (T.aeon > 0) L.push(['aeon', { t: T.aeon }]); if (T.unholy > 0) L.push(['satanic', { t: T.unholy }]);
     if (T.manta > 0) L.push(['manta', { t: T.manta }]); if (T.storm > 0) L.push(['vajra', { t: T.storm }]); if (T.rite > 0) L.push(['bloodstone', { t: T.rite }]);
-    const cm = pas('calm'); if (cm && T.calm >= cm.after && P.hp < P.maxHp) L.push(['tarrasque', { t: 0 }]);   // Кровь титана — пока лечит
+    const cm = pas('calm'); if (cm && T.calm >= cm.after && P.hp < (cm.cap || 1) * P.maxHp) L.push(['tarrasque', { t: 0 }]);   // Кровь титана — пока лечит
     if (T.linkenF > 0) L.push(['linken', { t: T.linkenF }]); if (T.lotusF > 0) L.push(['lotus', { t: T.lotusF }]);
     return L;
   };

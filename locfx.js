@@ -124,7 +124,7 @@ if (LFX) {
     LFX.draw(ctx, id, performance.now() / 1000, 0, 0, w, { a: 'c' });
     ctx.restore();
   };
-  setTimeout(() => { for (const h of ['g', 'e']) for (let i = 1; i <= 3; i++) if (LOCFX.defs['shot_' + h + i]) LFX.img('shot_' + h + i); }, 2000);
+  { const pre = () => { for (const h of ['g', 'e']) for (let i = 1; i <= 3; i++) if (LOCFX.defs['shot_' + h + i]) LFX.img('shot_' + h + i); }; if (typeof LAZY !== 'undefined') LAZY.run(pre); else setTimeout(pre, 2000); }
   // переключатель «Выстрел: 1 / 2 / 3» — в выборе героя и в меню паузы
   const css = document.createElement('style');
   css.textContent = `.shotSel { display: flex; gap: 1vh; align-items: center; justify-content: center; font: bold 2.4vh system-ui; color: #ffe9a8; text-shadow: 0 .2vh .5vh #000; }

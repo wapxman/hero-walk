@@ -72,17 +72,19 @@ const CINE = (() => {
   #cine .skip:active { transform: scale(.95); }
   #mMain .b.story { position: absolute; right: 3vh; top: 14vh; width: 46vh; }`;
   document.head.appendChild(css);
-  let R = null;
+  let R = null, solid = false, solidT = 0;
   function root(now) {      // now — без плавного появления: сразу чёрный экран (между меню и вступлением не должна мелькать арена)
     if (!R) {
       R = document.createElement('div'); R.id = 'cine'; document.body.appendChild(R);
       for (const ev of ['pointerdown', 'touchstart', 'mousedown', 'click', 'keydown']) R.addEventListener(ev, e => e.stopPropagation());
     }
     R.innerHTML = ''; R.classList.toggle('now', !!now); R.style.display = 'block'; void R.offsetWidth; R.classList.add('on');
+    clearTimeout(solidT); if (now) solid = true; else solidT = setTimeout(() => { solid = true; }, 650);      // v120: экран ролика стал непрозрачным — арену под ним не рисуем
     return R;
   }
   function hide(fast) {
     if (!R) return Promise.resolve();
+    clearTimeout(solidT); solid = false;
     R.classList.remove('on');
     return new Promise(r => setTimeout(() => { R.style.display = 'none'; R.innerHTML = ''; r(); }, fast ? 0 : 600));
   }
@@ -320,5 +322,5 @@ const CINE = (() => {
   })();
 
   if (window.BOOT_KIND === '') preload('logo_paladium.mp4');      // обычный запуск: лого студии грузится, пока стоит лого игры
-  return { boot, intro, preload, world, finale, unlocked, replay, CFG, skip() { if (skipNow) skipNow(); }, get on() { return on; }, reset() { seen = {}; try { localStorage.removeItem(KEY); } catch (e) {} } };
+  return { boot, intro, preload, world, finale, unlocked, replay, CFG, skip() { if (skipNow) skipNow(); }, get on() { return on; }, get solid() { return solid; }, reset() { seen = {}; try { localStorage.removeItem(KEY); } catch (e) {} } };
 })();

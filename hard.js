@@ -79,7 +79,7 @@ const HARD = (() => {
   }
   {
     const _ue = updateEnemy;
-    updateEnemy = function (e, dt) { e.hStamp = stamp; if ((e.boss || (e.mini && LVN() >= 5)) && !off()) bossKit(e, dt); return _ue(e, dt); };
+    updateEnemy = function (e, dt) { e.hStamp = stamp; if ((e.boss || (e.mini && LVN() >= 5)) && !off()) bossKit(e, dt); if (e.boss && !off()) bossAllies(e, dt); return _ue(e, dt); };
     const _cu = combatUpdate; combatUpdate = function (dt) { _cu(dt); director(dt); };
     const _cg = combatGround;
     combatGround = function (t) {
@@ -123,5 +123,39 @@ const HARD = (() => {
       startAct(e, 'cast', 0.8, 0.5, () => { if (P.dead > 0) return; warn(P.x, P.y, 130, 0.7, 10 * e.dm, { onHitP: () => { if (P.dashI > 0) return; S.pin = Math.max(S.pin, 1.6 * T.dur); SK.say2('оковы!', COL.shackle); e.hRushT = 2.2; } }); });
     }
   }
-  return { D, T, KIT, spdK };
+  // ---------- 4. боссы зовут союзников (v120, просьба Создателя 25.11) ----------
+  // Каждый босс мира по ходу боя призывает рядовых своего мира — каждый раз случайных и РАЗНЫХ видов. Первый призыв через 10 с боя,
+  // дальше раз в 17 с (ниже 40 % здоровья — раз в 13 с; уровень врагов сокращает паузу, как у всех приёмов). За раз — двое
+  // (ниже 40 % здоровья — трое; в мягком мире 1 — один). Не больше шести союзников на арене разом: пока их шесть — призыва нет.
+  // Прежний призыв трёх одинаковых (combat.js: bossSkills) у боссов этим заменён. Горн-Голем (мир 5) зовёт своей «Закалкой» — ему
+  // общий призыв не добавлен.
+  const ALLY = { first: 10, gap: 17, gapLow: 13, n: 2, nLow: 3, max: 6, skip: { b_forgegolem: 1, tb_forgegolem: 1 } };
+  function bossAllies(e, dt) {
+    e.summonCd = 1e9;                                         // старый призыв трёх одинаковых — выключен
+    if (!live(e) || ALLY.skip[e.type] || e.clone) return;
+    e.hSum = (e.hSum == null ? ALLY.first : e.hSum) - dt * (typeof LEVEL !== 'undefined' ? 1 / LEVEL.K().cd : 1);
+    if (e.hSum > 0 || e.kb || e.root > 0 || P.dead > 0) return;
+    // босс занят своим умением — ждём, но не дольше 6 с: потом союзники приходят и без его взмаха (иначе занятой босс не звал бы никого)
+    const busy = !!(e.act || e.leap || e.skMove || e.skBusy > 0 || e.silT > 0);
+    if (busy && e.hSum > -6) return;
+    const allies = enemies.filter(x => x !== e && live(x) && !x.boss).length;
+    if (allies >= ALLY.max) { e.hSum = 3; return; }
+    const a = at(), soft = a.M === 1 && a.C === 1 && LVN() < 3, low = e.hp < e.max * 0.4;
+    const R0 = rosterOf(Math.max(1, wave)), kinds = [...new Set(R0.mel.concat(R0.rng))].filter(t => KIND[t] && !KIND[t].boss);
+    for (let i = kinds.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [kinds[i], kinds[j]] = [kinds[j], kinds[i]]; }
+    const n = Math.min(soft ? 1 : low ? ALLY.nLow : ALLY.n, ALLY.max - allies, kinds.length);
+    e.hSum = (low ? ALLY.gapLow : ALLY.gap) * T.gap; D.casts.allies = (D.casts.allies || 0) + 1;
+    tag(e, 'Ко мне!', '#ffb36a');
+    const call = () => {
+      if (!live(e)) return;
+      kinds.slice(0, n).forEach((t, i) => {
+        spawnEnemy(t); const m = enemies[enemies.length - 1], ang = Math.atan2(P.y - e.y, P.x - e.x) + (i - (n - 1) / 2) * 1.2 + rnd(-0.2, 0.2);
+        m.x = e.x + Math.cos(ang) * 150; m.y = e.y + Math.sin(ang) * 150 * YK; collide(m); m.ally = 1;
+        fx.push({ type: 'quake', x: m.x, y: m.y, t: 0, dur: 0.6, R: 60 });
+      });
+      snd('boss_roar', 0.8, 1.12);
+    };
+    if (busy) call(); else startAct(e, 'cast', 1.0, 0.55, call);
+  }
+  return { D, T, KIT, ALLY, spdK };
 })();

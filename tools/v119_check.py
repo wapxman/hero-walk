@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Правки v119 в настоящей странице: босс мира 5 (воскрешение вместо лечения), мана, 20 уровней умений и рывка, герой до 100,
-12 слотов предметов, временные цифры урона. Сервер страниц поднимает сам (порт 8778) и сам останавливает (только свой процесс).
+12 слотов предметов (v120: в два ряда), временные цифры (v120: только криты героя). Сервер страниц поднимает сам (порт 8778) и сам останавливает (только свой процесс).
 Запуск: python tools/v119_check.py        снимки — tests/v119/.  Код выхода 1 — если что-то не прошло."""
 import sys, os, time, json, subprocess
 sys.stdout.reconfigure(encoding='utf-8', line_buffering=True)
@@ -47,18 +47,18 @@ try:
                        "dmg: skDmg('q') / (P.skMul || 1), cd: skCd('q'), dcd: DASH.cdOf(), dd: DASH.distOf() })")
         chk('к 100-му уровню все пять доведены до 20 кнопками «+» в окне героя (95 очков, 4 в запасе)', n == 95 and all(v == 20 for v in s['sk'].values()) and s['sp'] == 4, [n, s['sk'], s['sp']])
         chk('окно героя: «уровень 100 из 100», пять строк с «20/20», строка рывка помещается', '100 из 100' in s['tt'] and all('20/20' in r for r in s['rows']) and s['rows'][4].startswith('Рывок') and s['fit'], [s['tt'], s['rows'], s['fit']])
-        chk('20-й уровень: умение ×2,33 и перезарядка −38 %; рывок 4,1 с и дальность 326', abs(s['dmg'] - 2.33) < 0.001 and abs(s['cd'] - 0.62) < 0.001 and abs(s['dcd'] - 4.1) < 1e-6 and s['dd'] == 326, s)
+        chk('20-й уровень: умение ×2,33 и перезарядка −38 %; рывок 2 с (v120) и дальность 326', abs(s['dmg'] - 2.33) < 0.001 and abs(s['cd'] - 0.62) < 0.001 and abs(s['dcd'] - 2.0) < 1e-6 and s['dd'] == 326, s)
         p.screenshot(path=os.path.join(OUT, '1_hero_window.png')); p.evaluate("progOpen(false)")
         s = p.evaluate("(() => { P.cd.dash = 0; P.cdMul = 1; const x0 = P.x, y0 = P.y; P.face = { x: 1, y: 0 }; const ok = cast('dash'); return { ok, cd: P.cd.dash, x0 }; })()"); time.sleep(0.6)
         d = p.evaluate("P.x") - s['x0']
-        chk('рывок 20-го уровня в игре: перезарядка 4,1 с, пролетает дальше прежних 250', s['ok'] and abs(s['cd'] - 4.1) < 0.05 and d > 262, [s, d])
+        chk('рывок 20-го уровня в игре: перезарядка 2 с, пролетает дальше прежних 250', s['ok'] and abs(s['cd'] - 2.0) < 0.05 and d > 262, [s, d])
 
         print('12 слотов предметов')
         ids = ['bloodstone'] * 12 + ['rune']
         s = p.evaluate("(ids) => { SHOP.bag = []; SHOP.gold = 1e6; SHOP.bag = ids.slice(0, 11); const got = ids.slice(0, 11).map(() => true).concat([buyItem('rune'), buyItem('rune')]); SHOP.recompute(); SHOP.refresh(); const sl = [...document.querySelectorAll('#hInv .hs')], r = sl.map(x => x.getBoundingClientRect()); "
-                       "return { max: BAG_MAX, bag: SHOP.bag.length, got, slots: sl.length, filled: sl.filter(x => x.innerHTML).length, w: r[0].width, h: innerHeight, left: r[0].left, right: r[11].right, row: Math.abs(r[0].top - r[11].top) < 2, bottom: r[0].bottom, vw: innerWidth }; }", ids)
+                       "return { max: BAG_MAX, bag: SHOP.bag.length, got, slots: sl.length, filled: sl.filter(x => x.innerHTML).length, w: r[0].width, h: innerHeight, left: r[0].left, right: r[11].right, row: Math.abs(r[0].top - r[5].top) < 2 && Math.abs(r[6].top - r[11].top) < 2 && r[6].top > r[0].bottom - 2 && Math.abs(r[0].left - r[6].left) < 2, right5: r[5].right, bottom: r[11].bottom, vw: innerWidth }; }", ids)
         chk('в сумке 12 мест: 12-й предмет покупается, 13-й не влезает', s['max'] == 12 and s['bag'] == 12 and s['got'][11] and not s['got'][12], s)
-        chk('внизу экрана 12 маленьких слотов в один ряд, все на экране и заполнены', s['slots'] == 12 and s['filled'] == 12 and s['row'] and s['left'] >= 0 and s['right'] <= s['vw'] and s['bottom'] <= s['h'] and s['w'] < 0.08 * s['h'], s)
+        chk('внизу экрана 12 слотов в два ряда по шесть (v120: крупнее), все на экране и заполнены', s['slots'] == 12 and s['filled'] == 12 and s['row'] and s['left'] >= 0 and s['right5'] <= s['vw'] and s['bottom'] <= s['h'] and s['w'] > 0.075 * s['h'], s)
         p.screenshot(path=os.path.join(OUT, '2_slots.png'))
         p.evaluate("SHOP.phase = 'rest'; enemies.length = 0; SHOP.openShop()"); time.sleep(0.8)
         s = p.evaluate("(() => { const c = [...document.querySelectorAll('#shBag .ci')], r = c.map(x => x.getBoundingClientRect()), go = document.getElementById('shGo').getBoundingClientRect(); return { n: c.length, right: r[r.length - 1].right, go: go.left, row: Math.abs(r[0].top - r[r.length - 1].top) < 2 }; })()")
@@ -67,16 +67,17 @@ try:
         s = p.evaluate("(() => { SHOP.bag = Object.keys(PARTS).slice(0, 12); SAVE.save(); const d = SAVE.read(); return d.bag.length; })()"); chk('12 предметов записываются в сохранение', s == 12, s)
         p.evaluate("SHOP.bag = []; SHOP.recompute(); SHOP.refresh()")
 
-        print('временные цифры урона')
-        p.evaluate(clear + "SHOP.phase = 'fight'; P.hp = P.maxHp = 5000; spawnEnemy('v_maskedassassin'); window.__e = enemies[0]; __e.x = P.x + 60; __e.y = P.y; __e.speed = 0; window.__hp = P.hp; DMGSHOW.N.length = 0; window.__seen = [];"
-                   "window.__iv = setInterval(() => { for (const n of DMGSHOW.N) if (!__seen.includes(n)) __seen.push(n); }, 30); 1")
-        t0 = time.time(); shot = False
-        while time.time() - t0 < 6:
-            if p.evaluate("DMGSHOW.N.length") and not shot: p.screenshot(path=os.path.join(OUT, '4_damage_numbers.png')); shot = True
-            time.sleep(0.05)
-        s = p.evaluate("(() => { clearInterval(__iv); const lost = __hp - P.hp, sum = __seen.reduce((a, n) => a + n.v, 0); return { lost, sum, n: __seen.length, each: __seen.map(n => n.v), show: DMGSHOW.hit(__e), raw: (__e.k.dmg[0] + __e.k.dmg[1]) / 2 * __e.dm, arm: P.armMul || 1, small: texts.filter(t => /^-\\d+$/.test(t.txt)).length }; })()")
-        chk('над героем — цифра за каждый удар врага; сумма цифр равна снятому здоровью', s['n'] >= 2 and abs(s['sum'] - s['lost']) <= s['n'] and s['small'] == 0, s)
-        chk('у врага рядом с полоской здоровья — урон его удара', s['show'] == round(s['raw']) and s['show'] > 0 and all(abs(v - s['show'] * s['arm']) <= max(3, 0.25 * s['show']) for v in s['each']), s)
+        print('временное: крупные цифры критов героя; урона врагов на экране больше нет (v120)')
+        p.evaluate(clear + "SHOP.phase = 'fight'; P.hp = P.maxHp = 5000; spawnEnemy('v_maskedassassin'); window.__e = enemies[0]; __e.x = P.x + 60; __e.y = P.y; __e.speed = 0; __e.hp = __e.max = 1e7; window.__hp = P.hp; DMGSHOW.N.length = 0; 1")
+        time.sleep(3.5)
+        s = p.evaluate("({ lost: __hp - P.hp, big: DMGSHOW.N.length, small: texts.filter(t => /^-\\d+$/.test(String(t.txt))).length })")
+        chk('удары врага по герою: обычные мелкие цифры, крупных нет', s['lost'] > 0 and s['big'] == 0, s)
+        s = p.evaluate("(() => { const c0 = P.crit; P.crit = 1; HIT.atk = true; const n0 = texts.length; hurtEnemy(__e, 50); HIT.atk = false; const big = DMGSHOW.N.map(n => n.v), yellow = texts.slice(n0).filter(t => t.col === DMGSHOW.CRIT).length; "
+                       "P.crit = 0; DMGSHOW.N.length = 0; const n1 = texts.length; hurtEnemy(__e, 50); const plain = texts.length - n1, big2 = DMGSHOW.N.length; P.crit = c0; return { big, yellow, plain, big2 }; })()")
+        chk('крит героя — одна крупная цифра (обычной жёлтой нет); обычный удар — обычная цифра', len(s['big']) == 1 and s['yellow'] == 0 and s['plain'] == 1 and s['big2'] == 0, s)
+        p.evaluate("(P.crit = 1, HIT.atk = true, hurtEnemy(__e, 50), HIT.atk = false, P.crit = 0, 1)"); time.sleep(0.25); p.screenshot(path=os.path.join(OUT, '4_crit_number.png'))
+        s = p.evaluate("(() => { const src = drawEnemy.toString() + DMGSHOW.toString; return { label: !!Object.keys(DMGSHOW).includes('hit') }; })()")
+        chk('урона врага у полоски здоровья больше нет', not s['label'], s)
 
         print('босс мира 5: «Закалка» больше не лечит, воскрешает двух разных рядовых')
         p.evaluate(clear + "wave = 49; applyWorld(5); SHOP.phase = 'fight'; ROUND.endW = 50; wave = 50; spawnEnemy('b_forgegolem'); window.__b = enemies.find(e => e.boss); __b.x = P.x + 300; __b.y = P.y; __b.speed = 0; __b.silT = 1e6; __b.hp = __b.max * 0.5; window.__r = []; 1"); time.sleep(1.0)

@@ -239,7 +239,7 @@ const LIMBO = (() => {
     FG.querySelector('[data-x]').addEventListener('pointerdown', e => { e.stopPropagation(); FG.style.display = 'none'; });
   }
 
-  ['bg', 'flame1', 'flame2', 'flame3', 'flame4', 'pillar', 'ring', 'keeper', 'ghost1', 'ghost2', 'mourn'].forEach(n => setTimeout(() => im(n), 3000));
+  ['bg', 'flame1', 'flame2', 'flame3', 'flame4', 'pillar', 'ring', 'keeper', 'ghost1', 'ghost2', 'mourn'].forEach(n => (typeof LAZY !== 'undefined' ? LAZY.later(() => im(n)) : setTimeout(() => im(n), 3000)));      // v120: картинки Междумирья — не на старте, а когда начался первый бой
   return { S, L, enter, leave, tick, ground, over, ui, forgeLv, get on() { return S.on; } };
 })();
 

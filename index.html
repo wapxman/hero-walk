@@ -14,8 +14,8 @@
 <link rel="icon" type="image/png" sizes="192x192" href="ui/app/icon-192.png">
 <link rel="manifest" href="manifest.json">
 <!-- заставка и фон меню грузятся первыми, до остальных картинок игры -->
-<link rel="preload" as="image" href="cine/logo_game.webp?v=119">
-<link rel="preload" as="image" href="ui/menu_bg.webp?v=119">
+<link rel="preload" as="image" href="cine/logo_game.webp?v=120">
+<link rel="preload" as="image" href="ui/menu_bg.webp?v=120">
 <style>
   * { margin:0; padding:0; }
   /* вырез экрана и полоска «Домой»: отступы одним местом, остальной интерфейс берёт var(--sal) и т. д., код — SAFE */
@@ -55,8 +55,9 @@
   const B = window.DuelSave; if (!B) return;
   try { const all = JSON.parse(B.all()); for (const k in all) localStorage.setItem(k, all[k]); } catch (e) {}
   const set = Storage.prototype.setItem, rem = Storage.prototype.removeItem;
-  Storage.prototype.setItem = function (k, v) { set.call(this, k, v); if (this === window.localStorage && /^hw_/.test(k)) try { B.set(k, String(v)); } catch (e) {} };
-  Storage.prototype.removeItem = function (k) { rem.call(this, k); if (this === window.localStorage && /^hw_/.test(k)) try { B.remove(k); } catch (e) {} };
+  const sent = {};      // v120: то же значение второй раз в хранилище Android не отправляем (каждая отправка — запись на диск)
+  Storage.prototype.setItem = function (k, v) { set.call(this, k, v); if (this === window.localStorage && /^hw_/.test(k)) { v = String(v); if (sent[k] === v) return; sent[k] = v; try { B.set(k, v); } catch (e) {} } };
+  Storage.prototype.removeItem = function (k) { rem.call(this, k); if (this === window.localStorage && /^hw_/.test(k)) { delete sent[k]; try { B.remove(k); } catch (e) {} } };
 })();
 </script>
 <script>
@@ -73,12 +74,34 @@
   try { if (sessionStorage.getItem('hw_lt_wipe')) { sessionStorage.removeItem('hw_lt_wipe'); window.LT_WIPE(); } } catch (e) {}
 })();
 </script>
-<script src="data.js?v=119"></script>
-<script src="chars/atlas.js?v=119"></script>
-<script src="chars/villains.js?v=119"></script>
-<script src="chars/skills.js?v=119"></script>
 <script>
-const V = '?v=119';
+// v120 (аудит скорости): отложенная загрузка. На старте грузится только то, что нужно меню; листы героя и злодеев, карта миров,
+// живые элементы и прочее ставятся в очередь LAZY.run и идут, когда страница собрана (событие load) — не мешая её собирать.
+// LAZY.later — вторая очередь: то, что понадобится только в бою (Междумирье): идёт через несколько секунд после начала первого боя.
+// LAZY.world() — мир последнего сохранения (или 1): на старте готовим его, а не всегда мир 1.
+const LAZY = (() => {
+  let go0 = false, go = false, go2 = false, q0 = [], q = [], q2 = [];
+  // задачи очереди идут по одной с паузой: разом они на секунду-другую занимали страницу (меню не отвечало на касания)
+  const drain = l => { l.forEach((f, i) => { if (!i) { try { f(); } catch (e) {} } else setTimeout(() => { try { f(); } catch (e) {} }, i * 90); }); };
+  function start0() { if (go0) return; go0 = true; const l = q0; q0 = []; drain(l); }
+  function start() { start0(); if (go) return; go = true; const l = q; q = []; drain(l); }
+  function start2() { start(); if (go2) return; go2 = true; const l = q2; q2 = []; drain(l); }
+  // Три очереди. first — нужное раньше всего и небольшое (карта миров, листы героя): как только страница собрана, пока идут лого.
+  // run — листы злодеев мира и прочее тяжёлое: когда на экране главное меню (menu.js) или игрок пошёл играть — во время лого студии
+  // их не грузим, иначе лого и меню ждут; запасной срок — 9 с. later — см. выше. Остальные запуски (после «В главное меню»,
+  // «Новая игра» с перезагрузкой, ссылки проверки) — всё сразу.
+  addEventListener('load', () => { setTimeout(start0, 30); setTimeout(start, window.BOOT_KIND === '' ? 9000 : 30); });
+  return { first(f) { if (go0) drain([f]); else q0.push(f); }, run(f) { if (go) drain([f]); else q.push(f); }, later(f) { if (go2) drain([f]); else q2.push(f); }, start, start2, get go() { return go; },
+    world() { try { let best = null; for (const k of Object.keys(localStorage)) if (/^hw_run_/.test(k)) { const d = JSON.parse(localStorage.getItem(k)); if (d && typeof d === 'object' && (!best || (d.t || 0) > (best.t || 0))) best = d; }
+      if (best && typeof BAL !== 'undefined') return Math.max(1, Math.min(10, BAL.at((best.wave || 0) + 1).M)); } catch (e) {} return 1; } };
+})();
+</script>
+<script src="data.js?v=120"></script>
+<script src="chars/atlas.js?v=120"></script>
+<script src="chars/villains.js?v=120"></script>
+<script src="chars/skills.js?v=120"></script>
+<script>
+const V = '?v=120';
 const cv = document.getElementById('c');
 const ctx = cv.getContext('2d');
 // Чёткость: холст рисуется не больше чем в 2 точки на точку экрана. Если телефон не успевает
@@ -386,6 +409,16 @@ for (let i = 0; i < 70; i++) {
 
 const red = {};
 let last = performance.now();
+// арену не видно: открыта карта миров (её холст непрозрачный), идёт ролик, стоит главное меню, выбор героя или заставка
+let HID_EL = null, hidT = 0;
+function arenaHidden() {
+  if (typeof PATHMAP !== 'undefined' && PATHMAP.on) return true;
+  if (typeof CINE !== 'undefined' && CINE.solid) return true;
+  if (!HID_EL) HID_EL = [document.getElementById('mMain'), document.getElementById('hSel')];
+  if (HID_EL[0] && HID_EL[0].style.display === 'block') return true;
+  if (HID_EL[1] && HID_EL[1].style.display === 'flex' && typeof MENU !== 'undefined') return true;
+  return false;
+}
 function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
@@ -443,6 +476,9 @@ function frame(now) {
   const f = 1 - Math.exp(-dt * 7);
   cam.x += (tx - cam.x) * f; cam.y += (ty - cam.y) * f;
 
+  // v120: арену целиком закрывает меню, карта миров или ролик — раньше она всё равно рисовалась под ними каждый кадр. Теперь — дважды
+  // в секунду: этого хватает, чтобы её картинки оставались в видеопамяти и первый кадр после карты не давал рывка.
+  if (arenaHidden()) { if ((hidT += dt) < 0.5) return; hidT = 0; } else hidT = 0;
   ctx.fillStyle = '#0d1a0c'; ctx.fillRect(0, 0, W, H);
   ctx.setTransform(DPR * Z, 0, 0, DPR * Z, -cam.x * DPR * Z, -cam.y * DPR * Z);
   ctx.imageSmoothingQuality = 'high';
@@ -518,43 +554,45 @@ function frame(now) {
 }
 requestAnimationFrame(frame);
 </script>
-<script src="roster.js?v=119"></script>
-<script src="combat.js?v=119"></script>
-<script src="shop.js?v=119"></script>
-<script src="heroes.js?v=119"></script>
-<script src="progress.js?v=119"></script>
-<script src="worlds.js?v=119"></script>
-<script src="pathmap.js?v=119"></script>
-<script src="mapfx.js?v=119"></script>
-<script src="arenafx.js?v=119"></script>
-<script src="ui/locfx/locfx.js?v=119"></script>
-<script src="locfx.js?v=119"></script>
-<script src="limbo.js?v=119"></script>
-<script src="enemies.js?v=119"></script>
-<script src="items.js?v=119"></script>
-<script src="relics.js?v=119"></script>
-<script src="bossmech.js?v=119"></script>
-<script src="sk.js?v=119"></script>
-<script src="sk_defs.js?v=119"></script>
-<script src="mini.js?v=119"></script>
-<script src="v34.js?v=119"></script>
-<script src="hook.js?v=119"></script>
-<script src="status.js?v=119"></script>
-<script src="dash.js?v=119"></script>
-<script src="itemfx.js?v=119"></script>
-<script src="tune.js?v=119"></script>
-<script src="hard.js?v=119"></script>
-<script src="levels.js?v=119"></script>
-<script src="dmgshow.js?v=119"></script>
-<script src="bossvo_map.js?v=119"></script>
-<script src="bossvo.js?v=119"></script>
-<script src="net/shared.js?v=119"></script>
-<script src="net/client.js?v=119"></script>
-<script src="net/team.js?v=119"></script>
-<script src="cine/index.js?v=119"></script>
-<script src="menu.js?v=119"></script>
-<script src="store.js?v=119"></script>
-<script src="cine.js?v=119"></script>
-<script src="save.js?v=119"></script>
+<script src="roster.js?v=120"></script>
+<script src="combat.js?v=120"></script>
+<script src="shop.js?v=120"></script>
+<script src="heroes.js?v=120"></script>
+<script src="progress.js?v=120"></script>
+<script src="worlds.js?v=120"></script>
+<script src="pathmap.js?v=120"></script>
+<script src="ui/mapfx/defs.js?v=120"></script>
+<script src="mapfx.js?v=120"></script>
+<script src="arenafx.js?v=120"></script>
+<script src="ui/locfx/locfx.js?v=120"></script>
+<script src="locfx.js?v=120"></script>
+<script src="limbo.js?v=120"></script>
+<script src="enemies.js?v=120"></script>
+<script src="items.js?v=120"></script>
+<script src="relics.js?v=120"></script>
+<script src="bossmech.js?v=120"></script>
+<script src="sk.js?v=120"></script>
+<script src="sk_defs.js?v=120"></script>
+<script src="mini.js?v=120"></script>
+<script src="v34.js?v=120"></script>
+<script src="hook.js?v=120"></script>
+<script src="status.js?v=120"></script>
+<script src="dash.js?v=120"></script>
+<script src="itemfx.js?v=120"></script>
+<script src="tune.js?v=120"></script>
+<script src="hard.js?v=120"></script>
+<script src="levels.js?v=120"></script>
+<script src="dmgshow.js?v=120"></script>
+<script src="flasks.js?v=120"></script>
+<script src="bossvo_map.js?v=120"></script>
+<script src="bossvo.js?v=120"></script>
+<script src="net/shared.js?v=120"></script>
+<script src="net/client.js?v=120"></script>
+<script src="net/team.js?v=120"></script>
+<script src="cine/index.js?v=120"></script>
+<script src="menu.js?v=120"></script>
+<script src="store.js?v=120"></script>
+<script src="cine.js?v=120"></script>
+<script src="save.js?v=120"></script>
 </body>
 </html>

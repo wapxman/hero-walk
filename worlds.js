@@ -23,6 +23,18 @@ const ARENA_COVER = (() => {
     void el.offsetWidth; el.style.transition = 'opacity .35s'; el.style.opacity = '0'; timer = setTimeout(() => { el.style.display = 'none'; }, 380); }
   return { on, off, settle() { if (!wait && el.style.display !== 'none' && el.style.opacity === '1') off(); }, get busy() { return !!wait; }, get held() { return held; } };
 })();
+// v120: картинки арен — через общий запас: арену, куда игрок сейчас пойдёт (выбрана на карте миров, следующий мир после босса),
+// можно загрузить и раскодировать заранее (arenaPre) — тогда вход на неё не ждёт загрузки. В запасе — текущая и одна заранее.
+const ARENA_IMG = {};
+function arenaImg(src) {
+  let g = ARENA_IMG[src];
+  if (!g) { g = ARENA_IMG[src] = new Image(); g.ready = new Promise(res => { g.onload = () => { if (g.decode) g.decode().then(res, res); else res(); }; g.onerror = () => res(); }); g.src = src + V; }
+  return g;
+}
+function arenaSrc(m, i) { const w = WORLDS[m - 1], list = ARENAS[m] || []; return w ? (i > 0 && list[i - 1] ? list[i - 1] : w.ground) : null; }
+let arenaNext = null;
+function arenaPre(m, i) { const src = arenaSrc(m, i); if (!src || src === curGround) return; arenaNext = src; arenaImg(src); arenaTrim(curGround); }
+function arenaTrim(cur) { for (const k in ARENA_IMG) if (k !== cur && k !== arenaNext && k !== curGround) delete ARENA_IMG[k]; }
 // арена части мира: картинка земли меняется, раскладка остаётся (ARENAS в data.js)
 let ARENA_I = 0;
 function setArena(m, i, quiet) {
@@ -31,12 +43,12 @@ function setArena(m, i, quiet) {
   if (src !== curGround) {
     curGround = src;
     // пока новая картинка грузится, экран закрыт затемнением (ARENA_COVER) — старая арена не мелькает и не подменяется рывком
-    const g = new Image(); ARENA_COVER.on(src);
+    const g = arenaImg(src); ARENA_COVER.on(src);
     // v101: картинку сначала раскодируем (decode — не в основном потоке) и только потом показываем: раньше первый кадр новой арены
     // раскодировал её сам и давал рывок в 100–300 мс в начале раунда
     // затемнение снимаем через пару кадров после подмены: первый показ новой арены (загрузка в видеопамять) проходит под ним
-    const use = () => { if (curGround === src) { img.ground = g; setTimeout(() => ARENA_COVER.off(src), 70); } };
-    g.onload = () => { if (g.decode) g.decode().then(use, use); else use(); }; g.onerror = () => ARENA_COVER.off(src); g.src = src + V;
+    const use = () => { if (curGround !== src) return; if (!g.naturalWidth) { delete ARENA_IMG[src]; ARENA_COVER.off(src); return; } img.ground = g; arenaTrim(src); setTimeout(() => ARENA_COVER.off(src), 70); };
+    g.ready.then(use);
     if (!quiet) { P.x = HERO_SPAWN.x; P.y = HERO_SPAWN.y; collide(P); cam.ready = false; SHOP.drops.length = 0; }
   }
 }
@@ -65,7 +77,10 @@ function applyWorld(m) {
   setArena(m, arenaIdx(wave + 1), true);
   P.x = HERO_SPAWN.x; P.y = HERO_SPAWN.y; collide(P); cam.ready = false;
   SHOP.drops.length = 0;
-  for (const r of ROSTER[m] ? [ROSTER[m]] : []) for (const t of [...r.mel, ...r.rng, ...r.elite, r.boss]) needChar(CHARS[KIND[t].ch]);
+  // v120: листы рядовых и элиты мира. Самый первый вызов (запуск игры, мир 1) их не грузит: на старте готовится мир последнего
+  // сохранения (tune.js, очередь LAZY). Листы босса здесь больше не грузятся — их готовят перед его раундом (tune.js: warmRound).
+  if (applyWorld.booted) for (const r of ROSTER[m] ? [ROSTER[m]] : []) for (const t of [...r.mel, ...r.rng, ...r.elite]) needChar(CHARS[KIND[t].ch]);
+  applyWorld.booted = true;
 }
 
 // затемнение экрана на время перехода (обычный чёрный слой, без картинок)

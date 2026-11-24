@@ -11,6 +11,13 @@ const PATHMAP = (() => {
   const IMG = {};
   const im = n => { if (!IMG[n]) { const i = new Image(); i.src = 'ui/map/' + n + '.webp' + V0; IMG[n] = i; } return IMG[n]; };
   const ok = i => i && i.complete && i.naturalWidth > 0;
+  // v120: медальон закрытого мира (серый, тёмный) готовится один раз. Раньше фильтр накладывался на каждый закрытый медальон
+  // на каждом кадре — у игрока с девятью закрытыми мирами карта шла около 4 кадров в секунду.
+  const GRAY = {};
+  function gray(n, i) {
+    if (!GRAY[n]) { const c = document.createElement('canvas'); c.width = i.naturalWidth; c.height = i.naturalHeight; const g = c.getContext('2d'); g.filter = 'grayscale(0.85) brightness(0.55)'; g.drawImage(i, 0, 0); GRAY[n] = c; }
+    return GRAY[n];
+  }
   // узлы глав в долях картинки карты (выставлены по нарисованной карте) и названия глав
   const NODES = [[0.175, 0.83], [0.35, 0.85], [0.27, 0.62], [0.54, 0.65], [0.79, 0.67], [0.83, 0.40], [0.23, 0.35],
     [0.41, 0.26], [0.62, 0.22], [0.87, 0.21]];
@@ -81,6 +88,7 @@ const PATHMAP = (() => {
 
   // ---- камера: карта «cover» на экран, наезд z на точку (fx, fy) ----
   let W = 0, H = 0, DPR = 1, cam = { z: 1, fx: 0.5, fy: 0.5 };
+  let pathCv = null, pathKey = '', pathPrev = '';      // готовый слой светящегося пути (см. draw)
   function geo() {
     const m = im('map'), mw = ok(m) ? m.naturalWidth : 1920, mh = ok(m) ? m.naturalHeight : 1080;
     const s = Math.max(W / mw, H / mh) * cam.z, dw = mw * s, dh = mh * s;
@@ -223,15 +231,25 @@ const PATHMAP = (() => {
     }
     // пройденная часть — золотая и светится
     const lit = st.select ? Math.max(st.select.litT, st.t) : st.t;
-    cx.lineCap = 'round'; cx.lineJoin = 'round';
-    for (const [w, a, blur] of [[16, 0.22, 22], [7, 0.9, 10], [2.5, 1, 0]]) {
-      cx.beginPath(); let started = false;
-      for (const p of PTS) { if (p.t > lit) break; const X = g.X(p.x), Y = g.Y(p.y); started ? cx.lineTo(X, Y) : cx.moveTo(X, Y); started = true; }
-      const h = at(lit); if (started) cx.lineTo(g.X(h.x), g.Y(h.y));
-      cx.strokeStyle = w > 3 ? 'rgba(255,196,64,' + a + ')' : 'rgba(255,250,215,1)'; cx.lineWidth = w * u; cx.shadowColor = 'rgba(255,170,40,0.9)'; cx.shadowBlur = blur * u;
-      cx.stroke();
-    }
-    cx.shadowBlur = 0;
+    // v120: светящийся путь с размытой тенью — дорогой рисунок. Пока свет и камера стоят на месте (почти всё время на карте
+    // выбора), путь берётся из готового слоя; рисуется заново, только когда что-то сдвинулось.
+    const lightPath = c => {
+      c.lineCap = 'round'; c.lineJoin = 'round';
+      for (const [w, a, blur] of [[16, 0.22, 22], [7, 0.9, 10], [2.5, 1, 0]]) {
+        c.beginPath(); let started = false;
+        for (const p of PTS) { if (p.t > lit) break; const X = g.X(p.x), Y = g.Y(p.y); started ? c.lineTo(X, Y) : c.moveTo(X, Y); started = true; }
+        const h = at(lit); if (started) c.lineTo(g.X(h.x), g.Y(h.y));
+        c.strokeStyle = w > 3 ? 'rgba(255,196,64,' + a + ')' : 'rgba(255,250,215,1)'; c.lineWidth = w * u; c.shadowColor = 'rgba(255,170,40,0.9)'; c.shadowBlur = blur * u;
+        c.stroke();
+      }
+      c.shadowBlur = 0;
+    };
+    const pk = lit.toFixed(4) + '|' + cam.z.toFixed(4) + '|' + cam.fx.toFixed(4) + '|' + cam.fy.toFixed(4) + '|' + W + '|' + H;
+    if (pk === pathPrev) {
+      if (pathKey !== pk) { if (!pathCv) pathCv = document.createElement('canvas'); if (pathCv.width !== W || pathCv.height !== H) { pathCv.width = W; pathCv.height = H; } const pc = pathCv.getContext('2d'); pc.setTransform(1, 0, 0, 1, 0, 0); pc.clearRect(0, 0, W, H); lightPath(pc); pathKey = pk; }
+      cx.drawImage(pathCv, 0, 0);
+    } else lightPath(cx);
+    pathPrev = pk;
     // искры плывут по пройденному пути (v97: медленно и без мигания — раньше пробегали весь путь за 2 с и мерцали 9 раз в секунду)
     const sp = im('spark');
     if (lit > 0.02 && ok(sp)) {
@@ -263,8 +281,7 @@ const PATHMAP = (() => {
       if (done && ok(la)) { const w = R * 3.1; cx.drawImage(la, X - w / 2, Y - w * 0.47, w, w * la.naturalHeight / la.naturalWidth); }
       const md = im('m' + c);
       if (ok(md)) {
-        if (!open) cx.filter = 'grayscale(0.85) brightness(0.55)';
-        cx.drawImage(md, X - R, Y - R, R * 2, R * 2); cx.filter = 'none';
+        cx.drawImage(open ? md : gray('m' + c, md), X - R, Y - R, R * 2, R * 2);
       }
       if (done) { const ck = im('check'); if (ok(ck)) { const w = R * 0.95; cx.drawImage(ck, X + R * 0.25, Y + R * 0.2, w, w * ck.naturalHeight / ck.naturalWidth); } }
       if (!open) { const lk = im('lock'); if (ok(lk)) { const w = R * 0.85; cx.drawImage(lk, X + R * 0.3, Y + R * 0.15, w, w * lk.naturalHeight / lk.naturalWidth); } }
@@ -329,7 +346,7 @@ const PATHMAP = (() => {
 
   function tick(now) {
     if (!st) return;
-    const dt = Math.min(0.05, (now - last) / 1000 || 0.016); last = now; st.age += dt;
+    const dt = Math.min(0.12, (now - last) / 1000 || 0.016); last = now; st.age += dt;      // v120: было 0,05 — при медленных кадрах все анимации карты (и её затухание после «Продолжить») шли как в замедленной съёмке
     const P = st.plan;
     // ход света и фишки
     let k;
@@ -375,6 +392,8 @@ const PATHMAP = (() => {
     scr(t) { const g = geo(), p = at(t); return [g.X(p.x) / DPR, g.Y(p.y) / DPR]; },   // где точка пути на экране (для проверок)
     preload,
     // для проверок (tools/wave100_check.py): выбрать на открытой карте главу c (j — пункт после волн 3, 6, 9: 0, 1, 2) — то же, что касание точки
+    get sel() { return st && st.select ? { c: st.cur, w: st.selW } : null; },
+    get fading() { return !!(st && st.out > 0); },      // карта гаснет — арена под ней уже рисуется (первый её кадр, самый тяжёлый, проходит под картой)      // v120: выбранная точка — её арену грузим заранее (tune.js)
     pickAt(c, j) {
       if (!st || !st.select) return false;
       const t = c - 1 + (j == null ? 0 : STEPS[j]); if (j == null ? c > st.select.open : t > st.select.openT + 1e-3) return false;
@@ -409,4 +428,4 @@ const PATHMAP = (() => {
   };
 })();
 // картинки карты — заранее, чтобы первый показ не появлялся по частям
-setTimeout(() => PATHMAP.preload(), 2500);
+if (typeof LAZY !== 'undefined') LAZY.first(() => PATHMAP.preload()); else setTimeout(() => PATHMAP.preload(), 2500);      // v120: в очереди отложенной загрузки — первой

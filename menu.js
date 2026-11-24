@@ -92,7 +92,7 @@
   // new — «Новая игра»: как play, но после «В бой» идёт вступление и сразу мир 1 (save.js), без карты миров
   function openSelect(kind) {
     window.NEWGAME = kind === 'new'; if (kind === 'new') { kind = 'play'; if (typeof CINE !== 'undefined') CINE.preload('intro.mp4'); }
-    hideMain(); sel.style.display = 'flex';
+    hideMain(); sel.style.display = 'flex'; if (typeof LAZY !== 'undefined') LAZY.start();
     plaque.textContent = kind === 'view' ? 'ГЕРОИ' : 'ВЫБЕРИ ГЕРОЯ';
     const go = sel.querySelector('.go'); go.style.display = kind === 'view' ? 'none' : 'flex';
     if (modes) {
@@ -116,7 +116,7 @@
     if (typeof mus === 'undefined' || started) return; menuMus = true;
     if (mus.el) { if (mus.i !== MENU_TRACK) { mus.i = MENU_TRACK; musicLoad(); } } else store('hw_mus_i', MENU_TRACK);
   }
-  function showMain() { window.NEWGAME = false; main.style.display = 'block'; sel.style.display = 'none'; menuMusic(); }
+  function showMain() { window.NEWGAME = false; main.style.display = 'block'; sel.style.display = 'none'; menuMusic(); if (typeof LAZY !== 'undefined') setTimeout(LAZY.start, 120); }      // v120: меню на экране — в фоне грузим то, что нужно для игры
   window.MENU = { openSelect, showMain };
   function hideMain() { main.style.display = 'none'; }
   // магазин из меню: после закрытия — обратно в меню, пока бой не начат

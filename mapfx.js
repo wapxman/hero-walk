@@ -6,12 +6,17 @@ const MFX = (() => {
   const IDS = ['fx_aurora', 'fx_eruption', 'fx_fire', 'fx_ghost', 'fx_lightning', 'fx_smoke', 'fx_vortex', 'fx_waterfall',
     'sp_dragon', 'sp_flyers', 'sp_props', 'sp_ship'];
   const D = {};
+  // v120: описания листов — из ui/mapfx/defs.js (раньше 12 запросов подряд, каждый останавливал загрузку страницы);
+  // сами листы грузятся не на старте, а в очереди LAZY (когда страница собрана)
   for (const id of IDS) {
-    const x = new XMLHttpRequest();
-    try { x.open('GET', 'ui/mapfx/' + id + '.json' + V, false); x.send(); D[id] = JSON.parse(x.responseText); } catch (e) { continue; }
-    const im = new Image(); im.src = 'ui/mapfx/' + id + '.webp' + V; D[id].img = im;
+    if (typeof MAPFX_DEFS !== 'undefined' && MAPFX_DEFS[id]) D[id] = MAPFX_DEFS[id];
+    else { const x = new XMLHttpRequest(); try { x.open('GET', 'ui/mapfx/' + id + '.json' + V, false); x.send(); D[id] = JSON.parse(x.responseText); } catch (e) { continue; } }
   }
-  const ok = id => D[id] && D[id].img.complete && D[id].img.naturalWidth > 0;
+  const load = () => { for (const id of IDS) if (D[id] && !D[id].img) { const im = new Image(); im.src = 'ui/mapfx/' + id + '.webp' + V; D[id].img = im; } };
+  if (typeof LAZY !== 'undefined') LAZY.first(load); else load();
+  const ok = id => D[id] && D[id].img && D[id].img.complete && D[id].img.naturalWidth > 0;
+  // тень летуна: чёрный силуэт листа готовится один раз (раньше — фильтр на каждом кадре)
+  const dark = d => { if (!d.dark) { const c = document.createElement('canvas'); c.width = d.img.naturalWidth; c.height = d.img.naturalHeight; const g = c.getContext('2d'); g.filter = 'brightness(0)'; g.drawImage(d.img, 0, 0); d.dark = c; } return d.dark; };
   // кадр f листа id в точке (x, y) шириной w; anchor — по низу (y — основание)
   function frame(c, id, f, x, y, w, o) {
     const d = D[id]; if (!ok(id)) return;
@@ -23,8 +28,7 @@ const MFX = (() => {
     if (o.blend || d.blend === 'lighter') c.globalCompositeOperation = o.blend || 'lighter';
     c.globalAlpha = o.a == null ? 1 : o.a;
     c.translate(x, y); if (o.rot) c.rotate(o.rot); if (o.flip) c.scale(-1, 1);
-    if (o.shadow) c.filter = 'brightness(0)';
-    c.drawImage(d.img, sx, sy, cw, ch, -w / 2, o.center ? -h / 2 : -h, w, h);
+    c.drawImage(o.shadow ? dark(d) : d.img, sx, sy, cw, ch, -w / 2, o.center ? -h / 2 : -h, w, h);
     c.restore();
   }
   // ---------- частицы фонтанов, брызги, круги на воде ----------

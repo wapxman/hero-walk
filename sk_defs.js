@@ -469,7 +469,12 @@
   KIND.ml_clone = Object.assign({}, KIND.b_mirrorlord, { nm: 'Двойник', boss: 0, spells: [], xp: 0, gold: 0 }); MECH.ml_clone = () => false;
   // двойники: живут 8 с, полупрозрачные; бьются с одного удара (sk.js: e.clone)
   MOV.push({ t: 0, dur: 1e9, update(m, dt) { for (const e of enemies) if (e.clone && e.dieT == null && (e.cloneT -= dt) <= 0) { e.hp = 0; e.dieT = 0; e.anim = 'die'; } } });
-  { const _de = drawEnemy; drawEnemy = function (e) { if (e.hide) return; if (e.clone) { ctx.save(); ctx.globalAlpha = 0.55; ctx.filter = 'hue-rotate(160deg) brightness(1.2)'; _de(e); ctx.restore(); return; } _de(e); }; }
+  // v120: цвет двойника (сдвиг оттенка, ярче) — свой перекрашенный лист, готовится один раз (как у перекрашенных злодеев: tint
+  // в loadMul); раньше фильтр накладывался на каждого двойника на каждом кадре
+  { const b = CHARS[KIND.b_mirrorlord.ch];
+    if (b && b.mul) { const mul = {}; for (const k of ['idle', 'run', 'atk', 'die']) if (b.mul[k]) mul[k] = { at: b.mul[k].at, n: b.mul[k].n, ms: b.mul[k].ms, rows: b.mul[k].rows, foot: b.mul[k].foot };
+      CHARS.ml_clone = { lazy: 1, at: 'ml_clone', U: b.U, top: b.top, k: b.k, mul, vfx: b.vfx, tint: 'hue-rotate(160deg) brightness(1.2)' }; KIND.ml_clone.ch = 'ml_clone'; } }
+  { const _de = drawEnemy; drawEnemy = function (e) { if (e.hide) return; if (e.clone) { ctx.save(); ctx.globalAlpha = 0.55; if (e.ch.tint == null) ctx.filter = 'hue-rotate(160deg) brightness(1.2)'; _de(e); ctx.restore(); return; } _de(e); }; }
   // танец рапиры: 25 % крит ×2 с росчерком и крупной цифрой
   ON_HIT.b_mirrorlord = e => { if (Math.random() < 0.25) { const d = rnd(e.k.dmg[0], e.k.dmg[1]) * e.dm; hurtPlayer(d); mark({ img: F('b_mirrorlord', 'ml_crit'), dur: 0.5, at: SK.HEAD() * 0.6, size: 160, add: 1 }); say(P.x + 30, P.y - SK.HEAD() * 1.5, 'КРИТ ' + Math.round(d * 2), '#ffe27a'); } };
   // Витражная плясунья: Витражный вихрь — 2,5 с кружится к герою, режет вокруг, её не остановить

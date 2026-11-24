@@ -31,7 +31,7 @@ const SAVE = (() => {
     if (d.gold != null) SHOP.gold = d.gold;
     if (d.led && SHOP.led) for (const k in SHOP.led) if (typeof d.led[k] === 'number') SHOP.led[k] = d.led[k];   // учёт золота за забег
     if (Array.isArray(d.bag)) SHOP.bag = d.bag.filter(id => ALL[id]).slice(0, BAG_MAX);
-    if (d.flasks) for (const k in SHOP.flasks) if (typeof d.flasks[k] === 'number') SHOP.flasks[k] = Math.max(0, Math.min(k === 'heal' ? 10 : 99, d.flasks[k] | 0));
+    if (d.flasks) for (const k in SHOP.flasks) if (typeof d.flasks[k] === 'number') SHOP.flasks[k] = Math.max(0, Math.min(typeof FLASK_MAX === 'number' ? FLASK_MAX : 5, d.flasks[k] | 0));
     const curC = BAL.at((d.wave || 0) + 1).M;
     wave = w != null ? w : c === curC ? (d.wave || 0) : (c - 1) * BAL.WAVES;
     SHOP.phase = 'rest'; SHOP.restT = 0; SHOP.roundFrom = wave + 1;
