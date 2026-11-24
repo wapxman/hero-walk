@@ -3,7 +3,8 @@
 //   запуск:      лого игры (cine/logo_game.webp) → лого студии (cine/logo_paladium.mp4) → главное меню (оба лого пропускаются касанием)
 //   вступление:  cine/intro.mp4 — после «Новая игра» (перед первым боем) и по кнопке «История» в главном меню (v113; при запуске больше не идёт)
 //   видео (v113): готовится заранее и показывается только с первым кадром — до этого чёрный экран, никаких системных значков «плей»
-//   перед миром: при первом входе в мир N — ролик cine/world_NN.mp4 (v116, книга «Сердце Разлома»). Если ролика нет — прежние слайды:
+//   перед миром: при первом входе в мир N — ролик cine/world_NN.mp4 (v116, книга «Сердце Разлома»): после босса прежнего мира — сразу за картой
+//                перехода, до арены (v117); мир 1 и мир, выбранный на карте, — перед первым боем. Один раз: пропущенный больше не всплывает. Если ролика нет — прежние слайды:
 //                cine/world_NN/1.webp, 2.webp, (3.webp) с наездом, голос vo.mp3 и субтитры text.json
 //   финал:       после босса мира 10 — cine/finale.mp4 (нет ролика — слайды cine/finale/)
 // Любой ролик пропускается касанием в любом месте экрана (v116; надпись «Пропустить» — подсказка); игра на это время стоит,
@@ -17,7 +18,7 @@ const CINE = (() => {
   const CFG = { intro: true, slideSec: 7, logoSec: 2.6, duckVoice: 0.25, fade: 0.9 };
   const M = (typeof CINE_FILES !== 'undefined' && CINE_FILES) || {};      // что реально лежит в cine/ (пишет cine_install.py)
   const FORCE = /[?&]cine=1/.test(location.search);
-  const OFF = !FORCE && (!!navigator.webdriver || /[?&](mode|auto)=/.test(location.search));   // автопрогон и ссылки проверки — без заставок
+  const OFF = (!FORCE && (!!navigator.webdriver || /[?&](mode|auto)=/.test(location.search))) || !!window.LEVEL_TEST || /[?&]levels(&|$)/.test(location.search);   // тестовая сборка уровней (levels.js) — без роликов   // автопрогон и ссылки проверки — без заставок
   const KEY = 'hw_cine';
   let seen = {}; try { seen = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {}
   const mark = k => { seen[k] = 1; try { localStorage.setItem(KEY, JSON.stringify(seen)); } catch (e) {} };
@@ -129,7 +130,8 @@ const CINE = (() => {
     return new Promise(done => {
       const r = root(o.now), v = PRE[file] || mkVideo(file); delete PRE[file]; let over = false, seen1 = false; const born = performance.now();
       const vis = () => { if (over) return; if (document.hidden) { try { v.pause(); } catch (e) {} } else v.play().catch(() => {}); };
-      const end = () => { if (over) return; over = true; document.removeEventListener('visibilitychange', vis); try { v.pause(); } catch (e) {} done(); };
+      const tapEnd = () => { if (o.tap || performance.now() - born > 700) end(); };
+      const end = () => { if (over) return; over = true; document.removeEventListener('visibilitychange', vis); r.removeEventListener('pointerdown', tapEnd); try { v.pause(); } catch (e) {} done(); };
       document.addEventListener('visibilitychange', vis);
       const wait = el('wait', r);
       const first = () => { if (seen1 || over) return; seen1 = true; v.classList.add('on'); wait.classList.remove('on'); };
@@ -139,11 +141,11 @@ const CINE = (() => {
       if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(first);
       r.appendChild(v);
       if (!o.tap) skipBtn(r, end);
-      r.addEventListener('pointerdown', () => { if (o.tap || performance.now() - born > 700) end(); });
+      r.addEventListener('pointerdown', tapEnd);
       if (setSkip) setSkip(end);
       setDuck(0);
       // в браузере видео со звуком без нажатия запускать нельзя — тогда идём без звука; в приложении звук разрешён
-      v.play().catch(() => { v.muted = true; v.play().catch(end); });
+      v.play().catch(() => { if (over) return; v.muted = true; v.play().catch(end); });      // over: пропустили, пока ролик грузился, — заново (без звука) не запускаем (v117)
       setTimeout(() => { if (!seen1 && !over) wait.classList.add('on'); }, 1500);   // долго грузится — тонкое колечко ожидания
       const guard = () => { if (over || seen1) return; if (document.hidden) setTimeout(guard, 2000); else end(); };
       setTimeout(guard, o.tap ? 8000 : 15000);       // файл не грузится — не держим игрока (пока приложение свёрнуто — ждём)
@@ -227,11 +229,12 @@ const CINE = (() => {
   const wkey = n => 'world_' + String(n).padStart(2, '0');
   // ролик мира грузим заранее: пока игрок на карте перед первым боем мира, а финал — когда начался бой с последним боссом
   function ready(n) { if (!OFF && !online() && !seen[wkey(n)]) preload(wkey(n) + '.mp4'); }
-  function world(n, then) {
+  // now — чёрный экран сразу (вход в мир после карты перехода: арена до ролика не мелькает)
+  function world(n, then, now) {
     const k = wkey(n), vid = k + '.mp4';
     if (OFF || online() || seen[k] || on || (!has(vid) && !nSlides(k))) return then();
     mark(k);
-    session(async setSkip => { if (has(vid)) await video(vid, setSkip); else await slides(k, nSlides(k), setSkip); await hide(); }).then(then);
+    session(async setSkip => { if (has(vid)) await video(vid, setSkip, { now: !!now }); else await slides(k, nSlides(k), setSkip); await hide(); }).then(then);
   }
   function finale(then) {
     if (OFF || online() || seen.finale || on || (!nSlides('finale') && !has('finale.mp4'))) return then();
@@ -255,7 +258,11 @@ const CINE = (() => {
     const _show = PATHMAP.show;
     PATHMAP.show = function (o) {
       const self = this, next = () => _show.call(self, o);
-      if (wave % BAL.WAVES === 0 && wave < BAL.WAVES * BAL.WORLDS) ready(wave / BAL.WAVES + 1);
+      const nw = wave % BAL.WAVES === 0 && wave < BAL.WAVES * BAL.WORLDS ? wave / BAL.WAVES + 1 : 0;
+      if (nw) ready(nw);
+      // v117: вход в новый мир после босса — ролик мира идёт сразу за картой перехода, до арены. Пропустили или досмотрели —
+      // он отмечен просмотренным и на арене при «Начать волну» уже не появляется.
+      if (o && o.mode === 'full' && nw > 1 && !OFF && !online() && !seen[wkey(nw)]) { const od = o.onDone; o = Object.assign({}, o, { onDone() { if (od) od(); world(nw, () => {}, true); } }); }
       if (!o || o.mode === 'select' || wave !== BAL.WAVES * BAL.WORLDS) return next();
       finale(next);
     };

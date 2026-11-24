@@ -1,8 +1,8 @@
 #!/bin/bash
 # Сборка APK: bash tools/build_apk.sh        (версия берётся из index.html: const V = '?v=NN')
-# 1) автопрогон tools/autotest.py, проверка волны 100 tools/wave100_check.py и роликов tools/cine_check.py — если красные, APK не собирается;
+# 1) автопрогон tools/autotest.py, проверки волны 100 (wave100_check.py), роликов (cine_check.py), уровней и крюка (level_check.py) — если красные, APK не собирается;
 # 2) в APK идёт то, что закоммичено (git archive HEAD), поэтому сначала коммит;
-# 3) два файла в apk/: обычный и test-all-worlds (все 10 миров открыты);
+# 3) три файла в apk/: обычный, test-all-worlds (все 10 миров открыты) и test-levels (мир 1 с выбором уровня сложности, v117);
 # 4) с ключом --play — ещё и AAB для Google Play: apk/play/game-vNN.aab (не выкладывается, только собирается).
 # Проект сборки лежит рядом с игрой: ../hero-walk-apk (build.sh, AndroidManifest.xml, gamedata/src/main/assets/www).
 set -e
@@ -19,6 +19,9 @@ if [ "$1" != "--no-test" ]; then
   # v116: ролики книги — вступление, 10 миров, финал: идут, со звуком, пропускаются касанием, после ролика бой стартует (нужен обычный Chrome)
   PYTHONIOENCODING=utf-8 python tools/cine_check.py > tests_cine.log 2>&1 || { grep -a "НЕТ\|ИТОГ\|Error" tests_cine.log | cut -c1-300; rm -f tests_cine.log; echo "ПРОВЕРКА РОЛИКОВ КРАСНАЯ — APK не собран"; exit 1; }
   rm -f tests_cine.log; echo "ролики идут"
+  # v117: уровни сложности, тестовая сборка мира 1 с выбором уровня, крюк мясника
+  PYTHONIOENCODING=utf-8 python tools/level_check.py > tests_lv.log 2>&1 || { grep -a "НЕТ\|ИТОГ\|Error" tests_lv.log | cut -c1-300; rm -f tests_lv.log; echo "ПРОВЕРКА УРОВНЕЙ КРАСНАЯ — APK не собран"; exit 1; }
+  rm -f tests_lv.log; echo "уровни и крюк в порядке"
 fi
 cd ../hero-walk-apk
 W=gamedata/src/main/assets/www   # файлы игры для APK и для набора Google Play
@@ -31,6 +34,10 @@ rm -rf $W/apk $W/tests $W/tools $W/server $W/*.md $W/dbg.png   # служебн�
 gbuild ../hero-walk/apk/DuelArena-v$V.apk > /tmp/apk_a.log 2>&1 || { tail -20 /tmp/apk_a.log; exit 1; }
 sed -i 's#<head>#<head><script>window.ALL_WORLDS=1</script>#' $W/index.html
 gbuild ../hero-walk/apk/DuelArena-v$V-test-all-worlds.apk > /tmp/apk_b.log 2>&1 || { tail -20 /tmp/apk_b.log; exit 1; }
+# v117: тестовая сборка «уровни сложности» — только мир 1, на старте выбор уровня 1…10 (levels.js)
+sed -i 's#<head><script>window.ALL_WORLDS=1</script>#<head><script>window.LEVEL_TEST=1</script>#' $W/index.html
+gbuild ../hero-walk/apk/DuelArena-v$V-test-levels.apk > /tmp/apk_d.log 2>&1 || { tail -20 /tmp/apk_d.log; exit 1; }
+sed -i 's#<head><script>window.LEVEL_TEST=1</script>#<head><script>window.ALL_WORLDS=1</script>#' $W/index.html
 # сборка для Google Play (AAB): файлы игры — обычные, без «все миры открыты»; подпись — ключом загрузки (~/.keys/play-upload)
 if [ "$1" = "--play" ] || [ "$2" = "--play" ]; then
   sed -i 's#<head><script>window.ALL_WORLDS=1</script>#<head>#' $W/index.html

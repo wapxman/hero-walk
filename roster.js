@@ -136,7 +136,7 @@ KIND.skyharpist = { nm: 'Небесная арфистка', ch: 'skyharpist', r
 // wide — зверь шире обычного: круг столкновения шире (rad ×√wide), ближнему — рука длиннее.
 // 1 Королевский замок
 KIND.v_butcher = { nm: 'Тюремный мясник', ch: 'v_butcher', mel: 1, hp: 290, rad: 30, speed: 116, dmg: [22, 27], cd: 1.4, reach: 92, xp: 19, gold: 14 };
-KIND.v_maskedassassin = { nm: 'Убийца в маске', ch: 'v_maskedassassin', mel: 1, hp: 145, rad: 22, speed: 175, dmg: [13, 16], cd: 0.7, reach: 70, xp: 12, gold: 9 };
+KIND.v_maskedassassin = { nm: 'Убийца в маске', ch: 'v_maskedassassin', mel: 1, hp: 128, rad: 22, speed: 166, dmg: [11, 14], cd: 0.7, reach: 70, xp: 10, gold: 7 };   // v117: теперь основной рядовой мира 1 (вместо фрейлины) — числа чуть ниже прежних (было 145 / 175 / 13–16)
 KIND.v_chaplain = { nm: 'Чумной капеллан', ch: 'v_chaplain', rng: 1, hp: 100, rad: 21, speed: 110, dmg: [15, 19], cd: 1.7, want: 500, shot: 580, pcol: '140,235,90', xp: 14, gold: 11 };
 KIND.v_warlock = { nm: 'Королевский чернокнижник', ch: 'v_warlock', rng: 1, hp: 100, rad: 21, speed: 110, dmg: [15, 19], cd: 1.7, want: 500, shot: 580, pcol: '255,60,50', xp: 14, gold: 11 };
 // 2 Горящая деревня
@@ -234,7 +234,8 @@ KIND.sk_spiderling = { nm: 'Паучок', ch: 'mb_weaver', mel: 1, hp: 60, rad:
 const MINI_ART = { mb_reaper: 1, mb_thornqueen: 1,   // листы 28 новых пришли 20.11 (v87)
   mb_arbalest: 1, mb_executioner: 1, mb_bannerlord: 1, mb_plaguedoc: 1, mb_firebull: 1, mb_weaver: 1, mb_moonhuntress: 1, mb_drownedbride: 1, mb_crocodile: 1, mb_hydra: 1, mb_steamdwarf: 1, mb_trollminer: 1, mb_gemscorpion: 1, mb_snowfairy: 1, mb_walrus: 1, mb_wyvern: 1, mb_templar: 1, mb_mercury: 1, mb_timekeeper: 1, mb_lavaturtle: 1, mb_embermonk: 1, mb_phoenix: 1, mb_windarcher: 1, mb_dawnsmith: 1, mb_sphinx: 1, mb_dreameater: 1, mb_obsidian: 1, mb_gatekeeper: 1 };
 const ROSTER = {
-  1: { mel: ['porcelainmaid', 'porcelainmaid', 'v_maskedassassin', 'porcelainmaid', 'v_butcher', 'porcelainmaid'], rng: ['jester', 'v_chaplain', 'v_warlock'], elite: ['el_butcher'], mini: ['mb_arbalest', 'mb_executioner', 'mb_bannerlord'], boss: 'b_blackknight' },
+  1: { mel: ['v_maskedassassin', 'v_maskedassassin', 'v_maskedassassin', 'v_maskedassassin', 'v_butcher', 'v_maskedassassin'],   // v117: вместо «Фарфоровой фрейлины» — «Убийца в маске»
+     rng: ['jester', 'v_chaplain', 'v_warlock'], elite: ['el_butcher'], mini: ['mb_arbalest', 'mb_executioner', 'mb_bannerlord'], boss: 'b_blackknight' },
   2: { mel: ['fireimp', 'magmahound', 'v_ghoulfarmer', 'fireimp'], rng: ['ashcultist', 'cinderwraith', 'v_batrider'], elite: ['el_cultist', 'el_ghoulfarmer'], mini: ['mb_plaguedoc', 'mb_reaper', 'mb_firebull'], boss: 'b_plaguelord' },
   3: { mel: ['shadowwolf', 'werefox', 'rotdryad', 'autumnbear', 'boarbrute', 'scarecrow'], rng: ['sporeshaman', 'thornimp', 'crowharpy', 'hollowarcher'],
     elite: ['thornroot', 'el_bear'], mini: ['mb_weaver', 'mb_thornqueen', 'mb_moonhuntress'], boss: 'b_serpentqueen' },

@@ -8,7 +8,10 @@ const dirTo = (e, x, y) => { const dx = x - e.x, dy = (y - e.y) / YK, m = Math.h
 // Мир 1 — первый, мягкий (v99, по просьбе Создателя): на первом круге рядовые здесь просто берут в кольцо — без умений и старых приёмов;
 // у элиты умение остаётся, у мини-боссов и босса — по одному простому, с заметным предупреждением (SOFT1_SK: что оставлено).
 // Полигон автопрогона проверяет все умения — для него смягчение выключается (window.NO_SOFT).
-const SOFT1 = () => { if (window.NO_SOFT || (window.NETC && NETC.on)) return false; const a = BAL.at(Math.max(1, wave)); return a.M === 1 && a.C === 1; };
+// v117: уровни сложности (levels.js). Мягкость мира 1 — только на уровнях 1–2; свои умения рядовых мира 1 — с уровня 2.
+const LVN = () => (typeof LEVEL !== 'undefined' ? LEVEL.n : 1);
+const SOFT1W = () => { if (window.NO_SOFT || (window.NETC && NETC.on)) return false; const a = BAL.at(Math.max(1, wave)); return a.M === 1 && a.C === 1; };
+const SOFT1 = () => SOFT1W() && LVN() < 3;
 const SOFT1_SK = { mb_arbalest: ['Град болтов'], mb_executioner: ['Плаха'], mb_bannerlord: ['Королевское копьё'], b_blackknight: [], tb_blackknight: [] };   // Чёрный Рыцарь: остаётся только «Таран» (bossmech.js)
 // Первый круг вне сети (v101, план по мирам 21.11): каждый мир учит одной новой вещи — часть жёстких состояний на первом круге
 // убрана или смягчена, давление боссов подогнано (TUNE1). На втором круге, в сети и в полигоне автопрогона — всё как было.
@@ -24,7 +27,7 @@ const TUNE1 = {
   b_voidmage: { cd: { 'Грозовой скачок': 8 }, cdk: 0.8, dm: 1.15 },
 };
 const tune1 = e => (FIRST() && TUNE1[e.type]) || null;
-const softRank = e => !e.boss && !e.mini && !e.elite && SOFT1();
+const softRank = e => !e.boss && !e.mini && !e.elite && SOFT1W() && LVN() < 2;
 const headY = e => e.y - (e.ch.ok ? e.ch.top * e.ch.U * e.sc : 80) - 26;
 function tag(e, t, c) { say(e.x, headY(e), t, c || '#ffb36a'); }
 function slowHero(k, t) { P.slowK = Math.min(P.slowT > 0 ? P.slowK : 1, k); P.slowT = Math.max(P.slowT || 0, t); }

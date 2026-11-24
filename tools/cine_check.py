@@ -40,6 +40,8 @@ def go(p): p.evaluate("document.querySelector('#hSel .go').dispatchEvent(new Poi
 def map_go(p):
     p.wait_for_function("document.getElementById('pmGo') && getComputedStyle(document.getElementById('pmGo')).display !== 'none'", timeout=20000); time.sleep(0.5)
     p.evaluate("for (const t of ['pointerdown', 'pointerup', 'click']) document.getElementById('pmGo').dispatchEvent(new PointerEvent(t, { bubbles: true }))")
+def soft_go(p):      # «Продолжить» на карте, если кнопка сейчас видна (без ожидания)
+    p.evaluate("(() => { const b = document.getElementById('pmGo'); if (b && getComputedStyle(b).display !== 'none') for (const t of ['pointerdown', 'pointerup', 'click']) b.dispatchEvent(new PointerEvent(t, { bubbles: true })); })()"); time.sleep(0.8)
 # с первого мгновения: что видел игрок (раз в кадр) — ни одного видео с кнопками или без пустого постера, и ни одного видео, показанного до первого кадра
 WATCH = """() => { window.__w = { bad: [], vids: 0, early: 0 }; const tick = () => {
     for (const v of document.querySelectorAll('video')) { __w.vids++; if (v.controls || !/^data:image/.test(v.poster || '')) __w.bad.push('controls/poster');
@@ -133,6 +135,44 @@ with sync_playwright() as pw:
     chk('после вступления — ролик мира 1 заново', s['video'] == 'world_01.mp4' and s['t'] > 0.3, s)
     tap(p); p.wait_for_function("SHOP.phase === 'fight' && !SHOP.paused", timeout=20000)
     chk('бой мира 1 с начала', p.evaluate("SHOP.roundFrom") == 1 and p.evaluate("SHOP.phase") == 'fight')
+
+    print('--- вход в мир 2 после босса мира 1 (v117): ролик — сразу за картой перехода; пропуск → арена → «Начать волну» → ролика нет')
+    seen_vid = set(); t0 = time.time()
+    while time.time() - t0 < 240:
+        s = p.evaluate(ST)
+        if s['on']: seen_vid.add(s['video']); break
+        if p.evaluate(WIN): win_btn(p, 'Дальше')
+        elif s['wave'] >= 10 and s['phase'] == 'rest': pass                     # босс убит — ждём карту перехода и ролик
+        elif s['phase'] == 'fight': p.evaluate("for (const e of enemies.slice()) hurtEnemy(e, 1e9)")
+        elif s['map']: soft_go(p)
+        elif s['phase'] == 'rest': p.evaluate("SHOP.startWave()")
+        time.sleep(0.4)
+    s = wait(p, lambda s: s['video'] == 'world_02.mp4' and s['t'] > 0.6 and s['vis'] > 0.9, 30)
+    chk('босс мира 1 убит → карта перехода → ролик мира 2 (до арены, без нажатия «Начать волну»)', s['video'] == 'world_02.mp4' and s['t'] > 0.6 and s['wave'] == 10 and s['phase'] == 'rest' and s['paused'], s)
+    tap(p); s = wait(p, lambda s: not s['on'] and not s['cine'], 10); time.sleep(1.5); s = p.evaluate(ST)
+    chk('касание — ролик пропущен, герой на арене мира 2, бой ещё не начат', not s['on'] and s['phase'] == 'rest' and s['wave'] == 10 and p.evaluate('WORLD') == 2, s)
+    again = 0
+    p.evaluate("SHOP.closeShop && SHOP.open && SHOP.closeShop()"); time.sleep(0.3)
+    p.evaluate("document.querySelector('.go.bg').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))")
+    t0 = time.time()
+    while time.time() - t0 < 6:
+        s = p.evaluate(ST); again += 1 if (s['on'] or s['cine']) else 0
+        if s['map']: soft_go(p)
+        time.sleep(0.1)
+    s = p.evaluate(ST)
+    chk('«Начать волну» на арене — ролика нет, первый бой мира 2 идёт', again == 0 and s['phase'] == 'fight' and s['wave'] == 11, [again, s])
+    for i in range(60):
+        p.evaluate("for (const e of enemies.slice()) hurtEnemy(e, 1e9)"); time.sleep(0.4)
+        if p.evaluate(ST)['phase'] == 'rest': break
+    time.sleep(2.5); again = 0; p.evaluate("SHOP.closeShop && SHOP.open && SHOP.closeShop()"); time.sleep(0.3); p.evaluate("document.querySelector('.go.bg').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))")
+    t0 = time.time()
+    while time.time() - t0 < 6:
+        s = p.evaluate(ST); again += 1 if (s['on'] or s['cine']) else 0
+        if s['map']: soft_go(p)
+        time.sleep(0.1)
+    s = p.evaluate(ST)
+    chk('следующая «Начать волну» — ролика тоже нет, бой идёт', again == 0 and s['phase'] == 'fight' and s['wave'] > 11, [again, s])
+    p.evaluate("for (const e of enemies.slice()) hurtEnemy(e, 1e9)"); time.sleep(1)
 
     print('--- финал')
     p.evaluate("enemies.length = 0; ROUND.queue.length = 0; ROUND.fin = null; wave = 100; SHOP.phase = 'rest'; window.__m = 0; PATHMAP.show({ mode: 'short', t0: 0, t1: 0, onMid() {}, onDone() { window.__m = 1; } })")

@@ -5,7 +5,7 @@
 'use strict';
 const BM = { zones: [], snakes: [], smoke: [], mirrors: [] };
 const vfxOf = (e, i) => e.ch.vfx && e.ch.vfx[i] ? e.ch.vfx[i].img : null;
-const bossCd = e => (e.phase >= 3 ? 0.65 : e.phase >= 2 ? 0.82 : 1) * ((tune1(e) || {}).cdk || 1);
+const bossCd = e => (e.phase >= 3 ? 0.65 : e.phase >= 2 ? 0.82 : 1) * ((tune1(e) || {}).cdk || 1) * (typeof LEVEL !== 'undefined' ? LEVEL.K().cd : 1);
 // зона на земле: картинка, урон/эффект пока герой внутри (tick), тянет к центру (pull)
 function gzone(o) { BM.zones.push(Object.assign({ t: 0, dur: 4, tick: 0.5, acc: 0, R: 120, a: 0 }, o)); }
 // дым: облака дыма живут 8 с (SMOKE для Ока Ясности)

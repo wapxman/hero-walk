@@ -15,6 +15,7 @@ const HARD = (() => {
   const off = () => offAll() || !!window.NO_SOFT || (typeof LIMBO !== 'undefined' && LIMBO.on) || P.dead > 0 || SHOP.phase !== 'fight';
   const at = () => BAL.at(Math.max(1, wave));
   const live = e => e.hp > 0 && e.dieT == null;
+  const LK = () => (typeof LEVEL !== 'undefined' ? LEVEL.K().cd : 1);      // v117: уровень сложности — приёмы чаще
   const T = { speed: 1, gap: 1, dur: 1, dmg: 1, hp: 1 };      // общие множители (для замеров и подстройки): ?hard=dmg:1.2,hp:0.9
   if (/[?&]hard=off/.test(location.search)) window.HARD_OFF = 1;      // как до v115 — для сравнения замеров
   { const m = /[?&]hard=([^&]+)/.exec(location.search); if (m) for (const kv of m[1].split(',')) { const [k, v] = kv.split(':'); if (k in T && +v > 0) T[k] = +v; } }
@@ -35,11 +36,11 @@ const HARD = (() => {
   // ---------- 1. надзиратель ----------
   const NAME = { slow: 'Вязкая хватка', shackle: 'Оковы', ring: 'Кольцо', mute: 'Безмолвие' }, COL = { slow: '#8fd0ff', shackle: '#b9a0ff', ring: '#ffb060', mute: '#ff8fb0' };
   const seq = () => { const M = at().M; return M === 1 ? ['slow', 'shackle', 'slow', 'ring'] : M === 2 ? ['shackle', 'slow', 'ring', 'slow', 'mute'] : ['shackle', 'slow', 'mute', 'ring']; };
-  const gap = () => { const a = at(), g = a.M === 1 ? 11 : a.M <= 3 ? 9 : a.M <= 6 ? 7.5 : 6.5; return (g - 0.5 * Math.floor((a.W - 1) / 3)) * T.gap; };
+  const gap = () => { const a = at(), g = a.M === 1 ? 11 : a.M <= 3 ? 9 : a.M <= 6 ? 7.5 : 6.5; return (g - 0.5 * Math.floor((a.W - 1) / 3)) * T.gap * LK(); };
   const D = { t: 5, n: 0, pick: null, round: -1, casts: {} };
   const held = k => S.pin > 0 || S.bind > 0 || SK.RINGS.length > 0 || (k === 'mute' && P.ss.silence > 0) || P.ss.stun > 0 || P.ss.freeze > 0;
   function fire(k, e) {
-    const a = at(), M = a.M, soft = M === 1 && a.C === 1, dm = e.dm || 1, d = T.dur;
+    const a = at(), M = a.M, soft = M === 1 && a.C === 1 && LVN() < 3, dm = e.dm || 1, d = T.dur;
     D.casts[k] = (D.casts[k] || 0) + 1;
     if (k === 'slow') {
       if (soft) warn(P.x, P.y, 135, 1.15, 0, { onHitP: () => slowHero(0.6, 2.2 * d) });
@@ -78,7 +79,7 @@ const HARD = (() => {
   }
   {
     const _ue = updateEnemy;
-    updateEnemy = function (e, dt) { e.hStamp = stamp; if (e.boss && !off()) bossKit(e, dt); return _ue(e, dt); };
+    updateEnemy = function (e, dt) { e.hStamp = stamp; if ((e.boss || (e.mini && LVN() >= 5)) && !off()) bossKit(e, dt); return _ue(e, dt); };
     const _cu = combatUpdate; combatUpdate = function (dt) { _cu(dt); director(dt); };
     const _cg = combatGround;
     combatGround = function (t) {
@@ -93,10 +94,11 @@ const HARD = (() => {
   // ---------- 2. боссы добираются до героя ----------
   const KIT = { b_blackknight: ['leap', 'shackle'], b_plaguelord: ['pull', 'leap'], b_serpentqueen: ['pull', 'shackle'], b_toadking: ['shackle', 'leap'], b_forgegolem: ['pull', 'leap'],
     b_frostqueen: ['pull', 'shackle'], b_mirrorlord: ['shackle', 'leap'], b_ashlord: ['pull', 'leap'], b_skyjudge: ['shackle', 'leap'], b_voidmage: ['pull', 'shackle'] };
-  const BN = { leap: 'Прыжок', pull: 'Притяжение', shackle: 'Оковы' };
+  const BN = { leap: 'Прыжок', pull: 'Притяжение', shackle: 'Оковы' }, KIT_MINI = ['leap', 'shackle'];      // v117: мини-боссы — с уровня 5
   function bossKit(e, dt) {
-    const kit = KIT[e.type] || KIT[String(e.type).replace(/^tb_/, 'b_')]; if (!kit || !live(e)) return;
-    const a = at(), soft = a.M === 1 && a.C === 1, d = gdist(P, e), far = d > 320;
+    let kit = KIT[e.type] || KIT[String(e.type).replace(/^tb_/, 'b_')] || (e.mini ? KIT_MINI : null); if (!kit || !live(e)) return;
+    if (e.boss && LVN() >= 7) kit = kit.concat(['leap', 'pull', 'shackle'].filter(k => !kit.includes(k)));      // v117: с уровня 7 у босса все три приёма
+    const a = at(), soft = a.M === 1 && a.C === 1 && LVN() < 3, d = gdist(P, e), far = d > 320;
     e.hFar = far ? (e.hFar || 0) + dt : Math.max(0, (e.hFar || 0) - dt * 2);
     e.hCd = (e.hCd == null ? 6 : e.hCd) - dt; e.hAll = (e.hAll == null ? 12 : e.hAll) - dt;
     // герой далеко дольше секунды — босс прибавляет ходу

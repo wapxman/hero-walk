@@ -99,7 +99,8 @@ const SK = (() => {
   function schedule(e, dt, d) {
     const L = DEF[e.type]; if (!L) return false;
     const soft = SOFT1(), keep = soft ? SOFT1_SK[e.type] : null, tn = tune1(e);   // мир 1 мягче: рядовые без умений, у мини-боссов и босса — по одному простому
-    if (soft && softRank(e)) return false;
+    const softR = softRank(e), LK = typeof LEVEL !== 'undefined' ? LEVEL.K().cd : 1;   // always — умение есть и у рядовых мягкого мира 1 (крюк мясника, v117)
+    if (softR && !L.some(s => s.always)) return false;
     if (!e.sk) {
       e.sk = L.map((s, i) => ({ cd: (s.first != null ? s.first : 1.5 + Math.random() * 1.5) + i * 0.6 }));
       e.skHp = 1;
@@ -113,6 +114,7 @@ const SK = (() => {
     for (let i = 0; i < L.length; i++) {
       const s = L[i], st = e.sk[i];
       if (st.cd > 0 || s.passive) continue;
+      if (softR && !s.always) continue;
       if (keep && !keep.includes(s.ph)) continue;
       if (tn && tn.off && tn.off.includes(s.ph)) continue;
       if (s.can && !s.can(e, d)) continue;
@@ -120,7 +122,7 @@ const SK = (() => {
       // (BAL.RANK_SK). Иначе толпа из десятка одинаковых врагов держала героя в оглушении и жгла без шансов увернуться.
       if (!e.boss && !e.mini && !e.elite) {
         const now = P.heroT || 0, G = BAL.RANK_SK;
-        if (now - rankAt < G.gap || now - (rankOf.get(L) || -99) < G.same) continue;
+        if (now - rankAt < G.gap * LK || now - (rankOf.get(L) || -99) < G.same * LK) continue;
         rankAt = now; rankOf.set(L, now);
       }
       st.cd = ((tn && tn.cd && tn.cd[s.ph]) || s.cd) * (e.phase >= 3 ? 0.75 : 1);
