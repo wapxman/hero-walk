@@ -88,6 +88,9 @@
     for (const t of [...r.mel, ...r.rng, ...r.elite, ...(r.mini || []), r.boss, r.final, ...(SUMMON[m] || []), ...(m === 10 ? ['v_warlock'] : [])]) if (t && KIND[t]) S.add(KIND[t].ch);
     return S;
   }
+  // отпустить картинку сразу: просто забыть её мало — браузер держит раскодированное, пока сам не соберёт мусор (а собирает он
+  // редко: сами объекты картинок крошечные). Снятый адрес освобождает память тут же.
+  function free(im) { try { if (im.close) im.close(); else if (im.getContext) im.width = im.height = 0; else { im.onload = im.onerror = null; im._warm = 0; im.removeAttribute('src'); } } catch (e) {} }
   let nextWorld = 0;      // мир, который готовим заранее (после победы над боссом) — его листы не отпускаем
   function evict(m) {
     if (net()) return 0;
@@ -97,7 +100,7 @@
     let n = 0;
     for (const id in CHARS) {
       const c = CHARS[id]; if (!c || !c.mul || c.hero || !c.loading || keep.has(id)) continue;
-      for (const k in c.mul) { const a = c.mul[k], im = a.img; if (im) { n++; try { if (im.close) im.close(); else if (im.getContext) im.width = im.height = 0; else im.onload = null; } catch (e) {} } a.img = null; a.ok = false; a._pin = null; }
+      for (const k in c.mul) { const a = c.mul[k], im = a.img; if (im) { n++; free(im); if (a._pin && a._pin !== im) free(a._pin); } a.img = null; a.ok = false; a._pin = null; }
       c.loading = false; c.ok = false;
     }
     return n;

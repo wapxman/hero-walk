@@ -34,7 +34,7 @@ function arenaImg(src) {
 function arenaSrc(m, i) { const w = WORLDS[m - 1], list = ARENAS[m] || []; return w ? (i > 0 && list[i - 1] ? list[i - 1] : w.ground) : null; }
 let arenaNext = null;
 function arenaPre(m, i) { const src = arenaSrc(m, i); if (!src || src === curGround) return; arenaNext = src; arenaImg(src); arenaTrim(curGround); }
-function arenaTrim(cur) { for (const k in ARENA_IMG) if (k !== cur && k !== arenaNext && k !== curGround) delete ARENA_IMG[k]; }
+function arenaTrim(cur) { for (const k in ARENA_IMG) if (k !== cur && k !== arenaNext && k !== curGround) { const g = ARENA_IMG[k]; delete ARENA_IMG[k]; if (g !== img.ground) try { g.onload = g.onerror = null; g.removeAttribute('src'); } catch (e) {} } }
 // арена части мира: картинка земли меняется, раскладка остаётся (ARENAS в data.js)
 let ARENA_I = 0;
 function setArena(m, i, quiet) {

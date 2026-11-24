@@ -159,7 +159,8 @@ def one(tab, url, url2, emu):
         if s: break
         time.sleep(0.03)
     R['arena5_fight'] = round(tab.ev("performance.now()") - t); tab.until(SPR, 60, 0.03); R['arena5_sprites'] = round(tab.ev("performance.now()") - t)
-    # ролики: до первого кадра
+    # ролики: до первого кадра (сначала 6 с покоя — чтобы загрузка листов мира 5 не мешала замеру)
+    time.sleep(6)
     for k, f in (('video_intro', 'intro.mp4'), ('video_world', 'world_05.mp4'), ('video_finale', 'finale.mp4')):
         t = tab.ev("(CINE.replay('%s'), performance.now())" % f)
         ok = tab.until("(() => { const v = document.querySelector('#cine video'); return !!v && v.currentTime > 0; })()", 30, 0.02)
