@@ -289,3 +289,8 @@
 - Смена языка (`LANG.set`) сразу перезагружает голоса героев (`voiceReload`) и фразы боссов (`BV.reload`); заготовленный ролик другого языка выбрасывается.
 - Подписи фраз боссов в английской версии = слова английского голоса (`BOSS_LINES` из `voice_en/en_texts.py` Клауди). Имена в английском тексте — по её списку (Horgat, Mor, Ess, Durgar, Hjolm…).
 - Проверка: `python tools/voice_en_check.py` (входит в сборку; нужен обычный Chrome).
+
+## Имя пакета в Google Play (26.11)
+- Утверждено Создателем: **`uz.tenworlds.game`** (`hero-walk-apk/store.properties`, `APPLICATION_ID`). Приложение с этим пакетом заведено в Play Console — менять нельзя. Старые сборки `uz.duelarena.game` — другое приложение, ставятся рядом.
+- Внутреннее имя кода приложения (namespace в `app/build.gradle`, папка `uz/duelarena/game`) осталось прежним — это не имя пакета в магазине. Запуск на эмуляторе: `adb shell am start -n uz.tenworlds.game/uz.duelarena.game.MainActivity`; данные — `pm clear uz.tenworlds.game`.
+- Политика конфиденциальности: https://wapxman.github.io/ten-worlds/privacy.html (ссылки в самой игре нет). AAB в Play заливает Клауди.

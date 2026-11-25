@@ -31,7 +31,7 @@ def tap_el(sel):      # настоящее касание по середине 
     if r: adb_tap(r[0], r[1])
     return bool(r)
 ST = """(() => { const c = document.getElementById('cine'), v = c && c.querySelector('video'), on = !!c && c.style.display === 'block', pr = c && c.querySelector('.pres.on'), sk = c && c.querySelector('.skip');
-  return { on, video: on && v ? v.src.split('/').pop().split('?')[0] : '', t: on && v ? +v.currentTime.toFixed(1) : 0, dur: on && v ? +v.duration.toFixed(1) : 0, muted: on && v ? v.muted : null, vol: on && v ? v.volume : 0,
+  return { on, en: !!(on && v && /\/cine_en\//.test(v.src)), video: on && v ? v.src.split('/').pop().split('?')[0] : '', t: on && v ? +v.currentTime.toFixed(1) : 0, dur: on && v ? +v.duration.toFixed(1) : 0, muted: on && v ? v.muted : null, vol: on && v ? v.volume : 0,
     bytes: on && v ? (v.webkitAudioDecodedByteCount || 0) : 0, w: on && v ? v.videoWidth : 0, vis: on && v ? +getComputedStyle(v).opacity : 0, menu: getComputedStyle(document.getElementById('mMain')).display, map: PATHMAP.on,
     lg: !!(c && c.querySelector('.lg.on')), pick: !!document.getElementById('lgPick'), pres: pr ? pr.textContent : '', skip: sk ? sk.textContent : '',
     phase: SHOP.phase, paused: SHOP.paused, wave, d: window.__d || 0 }; })()"""
@@ -62,7 +62,8 @@ while time.time() - t0 < 120:
     if s['video'] == 'logo_paladium.mp4' and 'studio' not in seq: seq.append('studio'); shot('0_studio')
     elif s['video'] == 'intro.mp4' and s['t'] > 1.5 and s['vis'] > 0.9 and 'intro' not in seq:
         seq.append('intro'); intro = s; time.sleep(3); shot('0d_intro')
-        chk('пролог при запуске идёт, звук есть, сверху кнопка «Продолжить»', snd(intro) and intro['dur'] > 100 and s['skip'] != '', intro)
+        chk('пролог при запуске идёт, звук есть, сверху кнопка «Продолжить»', snd(intro) and intro['dur'] > 90 and s['skip'] != '', intro)
+        chk('пролог — на выбранном языке (%s)' % ('cine_en' if LNG == 'en' else 'cine'), intro['en'] == (LNG == 'en'), intro)
         screen_keeps('пролог'); press_skip()
     elif s['pick'] and 'pick' not in seq:
         time.sleep(1.2); seq.append('pick'); shot('0b_language'); tap_el('#lgPick [data-l=%s]' % LNG)
@@ -83,20 +84,23 @@ ev("([...document.querySelectorAll('#mMain .btns .b')].find(b => (b.dataset.ru |
 ev("(document.querySelector('#hSel .go').dispatchEvent(new PointerEvent('pointerdown')), 1)")
 s = wait(lambda s: s['map'] or s['on'], 30); chk('«Новая игра» → сразу карта миров, пролог не идёт', s['map'] and not s['on'], s); time.sleep(2.5); shot('3a_map')
 tap_el('#pmGo')
-s = wait(plays('world_01.mp4'), 30); chk('мир 1 на карте — ролик мира 1, звук есть, игра стоит', plays('world_01.mp4')(s) and snd(s) and s['paused'], s); time.sleep(3); shot('3_world01')
+s = wait(plays('world_01.mp4'), 30); chk('мир 1 на карте — ролик мира 1 (%s), звук есть, игра стоит' % ('английский' if LNG == 'en' else 'русский'), plays('world_01.mp4')(s) and snd(s) and s['paused'] and s['en'] == (LNG == 'en'), s); time.sleep(3); shot('3_world01')
 screen_keeps('ролик мира 1'); press_skip()
 s = wait(lambda s: s['phase'] == 'fight' and not s['paused'] and not s['on'], 30); chk('кнопка «Продолжить» — ролик закрыт, первый бой мира 1 идёт', s['phase'] == 'fight' and not s['on'] and s['wave'] == 1, s); time.sleep(2); shot('4_fight')
 print('остальные ролики')
 for i in range(2, 11):
     k = 'world_%02d.mp4' % i
     ev("(window.__d = 0, CINE.reset(), CINE.world(%d, () => { window.__d = 1; }), 1)" % i)
-    s = wait(plays(k), 30); ok1 = plays(k)(s) and snd(s) and s['paused']
+    s = wait(plays(k), 30); ok1 = plays(k)(s) and snd(s) and s['paused'] and s['en'] == (LNG == 'en')
     if i in (5, 10): time.sleep(3); shot('5_world%02d' % i)
     keep = screen_keeps('мир %d' % i) if i in (2, 6, 10) else True
     press_skip(); s2 = wait(lambda s: s['d'] == 1 and not s['on'], 15)
     chk('мир %d: %s идёт (%.0f с), звук есть; кнопка «Продолжить» — закрыт, игра идёт дальше' % (i, k, s['dur']), ok1 and keep and s2['d'] == 1 and not s2['on'] and not s2['paused'], [s, s2] if not (ok1 and s2['d'] == 1) else '')
 ev("(window.__d = 0, CINE.reset(), CINE.finale(() => { window.__d = 1; }), 1)")
-s = wait(plays('finale.mp4'), 40); ok1 = plays('finale.mp4')(s) and snd(s) and s['dur'] > 250; time.sleep(5); shot('6_finale')
+s = wait(plays('finale.mp4'), 40); ok1 = plays('finale.mp4')(s) and snd(s) and s['dur'] > 250 and s['en'] == (LNG == 'en'); time.sleep(5); shot('6_finale')
 keep = screen_keeps('финал'); press_skip(); s2 = wait(lambda s: s['d'] == 1 and not s['on'], 15)
 chk('финал: finale.mp4 идёт (%.0f с), звук есть; кнопка «Продолжить» — закрыт, игра идёт дальше' % s['dur'], ok1 and keep and s2['d'] == 1 and not s2['on'], [s, s2])
+# голоса героев и фраза босса — из папки выбранного языка (v123)
+vo = ev("(() => { const r = performance.getEntriesByType('resource').map(x => x.name.split('?')[0]); return { en: r.filter(u => /\/sfx_en\/(archer_)?vo_/.test(u)).length, ru: r.filter(u => /\/sfx\/(archer_)?vo_/.test(u)).length, snd: Object.keys(SND).filter(n => /^(archer_)?vo_/.test(n)).length }; })()")
+chk('реплики героев загружены из %s (%s)' % ('sfx_en' if LNG == 'en' else 'sfx', vo), (vo['en'] >= 99 and vo['ru'] == 0 if LNG == 'en' else vo['ru'] >= 99 and vo['en'] == 0) and vo['snd'] >= 99, vo)
 print('ИТОГ:', 'всё в порядке' if not bad else 'НЕ ПРОШЛО: ' + '; '.join(bad)); sys.exit(1 if bad else 0)

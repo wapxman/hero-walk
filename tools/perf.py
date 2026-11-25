@@ -17,7 +17,7 @@ import sys, os, time, json, subprocess, statistics, urllib.request, argparse
 import websocket
 sys.stdout.reconfigure(encoding='utf-8', line_buffering=True)
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__))); OUT = os.path.join(ROOT, 'tests', 'perf'); os.makedirs(OUT, exist_ok=True)
-ADB = os.path.expandvars(r'%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe'); PKG = 'uz.duelarena.game'
+ADB = os.path.expandvars(r'%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe'); PKG = 'uz.tenworlds.game'
 ap = argparse.ArgumentParser(); ap.add_argument('mode'); ap.add_argument('rest', nargs='*'); ap.add_argument('--label', default='run'); ap.add_argument('--runs', type=int, default=3); ap.add_argument('--root', default='')      # --root: папка с другой версией игры (для замера «до»)
 A = ap.parse_args()
 GAME = A.root or ROOT
