@@ -129,7 +129,7 @@ const HARD = (() => {
   // (ниже 40 % здоровья — трое; в мягком мире 1 — один). Не больше шести союзников на арене разом: пока их шесть — призыва нет.
   // Прежний призыв трёх одинаковых (combat.js: bossSkills) у боссов этим заменён. Горн-Голем (мир 5) зовёт своей «Закалкой» — ему
   // общий призыв не добавлен.
-  const ALLY = { first: 10, gap: 17, gapLow: 13, n: 2, nLow: 3, max: 6, skip: { b_forgegolem: 1, tb_forgegolem: 1 } };
+  const ALLY = { first: 10, gap: 17, gapLow: 13, n: 2, nLow: 3, max: 6, paid: 2, skip: { b_forgegolem: 1, tb_forgegolem: 1 } };
   function bossAllies(e, dt) {
     e.summonCd = 1e9;                                         // старый призыв трёх одинаковых — выключен
     if (!live(e) || ALLY.skip[e.type] || e.clone) return;
@@ -144,13 +144,14 @@ const HARD = (() => {
     const R0 = rosterOf(Math.max(1, wave)), kinds = [...new Set(R0.mel.concat(R0.rng))].filter(t => KIND[t] && !KIND[t].boss);
     for (let i = kinds.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [kinds[i], kinds[j]] = [kinds[j], kinds[i]]; }
     const n = Math.min(soft ? 1 : low ? ALLY.nLow : ALLY.n, ALLY.max - allies, kinds.length);
-    e.hSum = (low ? ALLY.gapLow : ALLY.gap) * T.gap; D.casts.allies = (D.casts.allies || 0) + 1;
+    e.hSum = (low ? ALLY.gapLow : ALLY.gap) * T.gap; D.casts.allies = (D.casts.allies || 0) + 1; e.hSumN = (e.hSumN || 0) + 1;
     tag(e, 'Ко мне!', '#ffb36a');
     const call = () => {
       if (!live(e)) return;
       kinds.slice(0, n).forEach((t, i) => {
         spawnEnemy(t); const m = enemies[enemies.length - 1], ang = Math.atan2(P.y - e.y, P.x - e.x) + (i - (n - 1) / 2) * 1.2 + rnd(-0.2, 0.2);
         m.x = e.x + Math.cos(ang) * 150; m.y = e.y + Math.sin(ang) * 150 * YK; collide(m); m.ally = 1;
+        if (e.hSumN > ALLY.paid) { m.noLoot = 1; m.k = Object.create(m.k); m.k.xp = 0.001; }      // v121: награда — за первые призывы; затяжной бой с боссом не должен качать героя сверх модели
         fx.push({ type: 'quake', x: m.x, y: m.y, t: 0, dur: 0.6, R: 60 });
       });
       snd('boss_roar', 0.8, 1.12);
