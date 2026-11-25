@@ -43,12 +43,12 @@ try:
         s = p.evaluate("(() => { const r = { ls: {}, cap: 0 }; for (const id of ['fang', 'vdagger', 'bblade', 'reaper', 'divine', 'satanic']) r.ls[id] = ALL[id].st.ls; SHOP.bag = ['satanic', 'divine', 'reaper', 'bblade']; SHOP.recompute(); r.cap = P.ls; "
                        "SHOP.bag = ['octarine']; SHOP.recompute(); r.spl1 = P.spl; SHOP.bag = ['bloodstone']; SHOP.recompute(); r.spl2 = P.spl; r.un = [ALL.satanic.act.ls, ALL.satanic.act.cap]; SHOP.bag = []; SHOP.recompute(); "
                        "r.leech = KIND.leechworm.leech; r.troll = String(SK.ON_HIT.mb_trollminer); return r; })()")
-        want = {'fang': 0.0325, 'vdagger': 0.0585, 'bblade': 0.065, 'reaper': 0.078, 'divine': 0.078, 'satanic': 0.0975}
-        chk('предметы: вампиризм ×0,65 (5→3,25 %, 9→5,85 %, 10→6,5 %, 12→7,8 %, 15→9,75 %), потолок 16 %', all(abs(s['ls'][k] - v) < 1e-9 for k, v in want.items()) and abs(s['cap'] - 0.16) < 1e-9, s)
-        chk('вампиризм умений 6,5 % и 13 %; «Кровавая жажда» +32,5 % (потолок 49 %)', abs(s['spl1'] - 0.065) < 1e-9 and abs(s['spl2'] - 0.13) < 1e-9 and abs(s['un'][0] - 0.325) < 1e-9 and abs(s['un'][1] - 0.49) < 1e-9, s)
-        chk('враги: Пиявец 39 %, Тролль-рудокоп в трансе 13 %', abs(s['leech'] - 0.39) < 1e-9 and '0.13' in s['troll'] and '0.2)' not in s['troll'], s)
+        want = {'fang': 0.0211, 'vdagger': 0.038, 'bblade': 0.0423, 'reaper': 0.0507, 'divine': 0.0507, 'satanic': 0.0634}      # v121: ещё ×0,65
+        chk('предметы: вампиризм ×0,65 дважды (5→2,11 %, 9→3,8 %, 10→4,23 %, 12→5,07 %, 15→6,34 %), потолок 10,5 %', all(abs(s['ls'][k] - v) < 1e-9 for k, v in want.items()) and abs(s['cap'] - 0.105) < 1e-9, s)
+        chk('вампиризм умений 4,23 % и 8,45 %; «Кровавая жажда» +21,1 % (потолок 32 %)', abs(s['spl1'] - 0.0423) < 1e-9 and abs(s['spl2'] - 0.0845) < 1e-9 and abs(s['un'][0] - 0.211) < 1e-9 and abs(s['un'][1] - 0.32) < 1e-9, s)
+        chk('враги: Пиявец 25,35 %, Тролль-рудокоп в трансе 8,45 %', abs(s['leech'] - 0.2535) < 1e-9 and '0.0845' in s['troll'], s)
         s = p.evaluate("(() => { " + clear + "SHOP.bag = ['fang']; SHOP.recompute(); spawnEnemyBase('v_butcher'); const e = enemies[0]; e.hp = e.max = 1e7; P.maxHp = 1e6; P.hp = 1000; P.crit = 0; HIT.atk = true; const h0 = e.hp; hurtEnemy(e, 1000); HIT.atk = false; const dealt = h0 - e.hp, heal = P.hp - 1000; SHOP.bag = []; SHOP.recompute(); return { dealt, heal, k: heal / dealt }; })()")
-        chk('в бою: «Клык упыря» возвращает 3,25 % нанесённого ударом урона', abs(s['k'] - 0.0325) < 0.0005, s)
+        chk('в бою: «Клык упыря» возвращает 2,11 % нанесённого ударом урона', abs(s['k'] - 0.0211) < 0.0005, s)
 
         print('склянки: не больше пяти, пьются сами')
         s = p.evaluate("(() => { const r = { max: [HEAL.max, FLASK_MAX] }; SHOP.gold = 1e6; for (const f of FLASKS) { SHOP.flasks[f.id] = 0; for (let i = 0; i < 9; i++) SHOP.buy('flask', f.id); } r.bought = Object.assign({}, SHOP.flasks); "
@@ -95,8 +95,8 @@ try:
             n_ok = all((len(g) == 1 if m == 1 else len(g) == 2) for g in groups)
             chk('мир %d: за %d с боя босс дважды призвал союзников — рядовые своего мира, в одном призыве разные виды (%s)' % (m, sec, 'по одному: мир 1 мягкий' if m == 1 else 'по двое'),
                 len(groups) >= 2 and n_ok and all(len(set(g)) == len(g) and all(t in kinds for t in g) for g in groups), [groups, q.evaluate("(() => { const e = enemies.find(x => x.boss); return { ph: SHOP.phase, paused: SHOP.paused, dead: P.dead, limbo: LIMBO.on, map: PATHMAP.on, cover: ARENA_COVER.busy, boss: e ? [e.type, e.hSum, e.summonCd, e.hp > 0] : null, n: enemies.length, wave, w: WORLD, hid: document.hidden }; })()")])
-        q.evaluate("(() => { clearInterval(window.__gi); enemies.length = 0; ROUND.queue.length = 0; wave = 40; applyWorld(4); SHOP.phase = 'fight'; ROUND.endW = 40; spawnEnemy('b_toadking'); const e = enemies.find(x => x.boss); e.hp = e.max = 1e9; e.x = P.x + 500; e.y = P.y; e.hSum = 0; for (let i = 0; i < 6; i++) { spawnEnemyBase('bogghoul'); const m = enemies[enemies.length - 1]; m.speed = 0; m.hp = m.max = 1e9; m.atkCd = 1e9; } return 1; })()"); time.sleep(9)
-        chk('на арене уже шесть союзников — босс новых не зовёт', q.evaluate("enemies.filter(x => !x.boss).length") == 6, q.evaluate("enemies.map(x => x.type)"))
+        q.evaluate("(() => { clearInterval(window.__gi); enemies.length = 0; ROUND.queue.length = 0; wave = 40; applyWorld(4); SHOP.phase = 'fight'; ROUND.endW = 40; spawnEnemy('b_toadking'); const e = enemies.find(x => x.boss); e.hp = e.max = 1e9; e.x = P.x + 500; e.y = P.y; e.hSum = 0; for (let i = 0; i < 6; i++) { spawnEnemyBase('bogghoul'); const m = enemies[enemies.length - 1]; m.speed = 0; m.hp = m.max = 1e9; m.atkCd = 1e9; m.ally = 1; } return 1; })()"); time.sleep(9)
+        chk('на арене уже шесть союзников — босс новых не зовёт', q.evaluate("enemies.filter(x => x.ally).length") == 6, q.evaluate("enemies.map(x => x.type)"))
         q.evaluate("(() => { enemies.length = 0; ROUND.queue.length = 0; wave = 50; applyWorld(5); SHOP.phase = 'fight'; ROUND.endW = 50; spawnEnemy('b_forgegolem'); const e = enemies.find(x => x.boss); e.hp = e.max = 1e9; return 1; })()"); time.sleep(1.5)
         s = q.evaluate("(() => { const e = enemies.find(x => x.boss); return { skip: !!HARD.ALLY.skip.b_forgegolem, old: e.summonCd, hSum: e.hSum == null ? null : e.hSum }; })()")
         chk('Горн-Голем (мир 5) общего призыва не получил — он зовёт своей «Закалкой»; старый призыв трёх одинаковых выключен', s['skip'] and s['old'] > 1e8 and s['hSum'] is None, s)

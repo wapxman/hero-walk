@@ -55,8 +55,10 @@ try:
     with sync_playwright() as pw:
         br = pw.chromium.launch(channel='chrome', args=['--autoplay-policy=no-user-gesture-required'])
         cx = br.new_context(viewport={'width': 1280, 'height': 720}); p = cx.new_page(); errs = []; p.on('pageerror', lambda e: errs.append(str(e)[:200]))
-        p.goto('http://127.0.0.1:%d/index.html?cine=1' % PORT, timeout=120000); p.wait_for_function("typeof CINE !== 'undefined' && document.getElementById('mMain') !== null", timeout=120000)
-        time.sleep(7); p.mouse.click(640, 360); time.sleep(1.5); p.mouse.click(640, 360); time.sleep(2.5)
+        p.goto('http://127.0.0.1:%d/index.html?cine=1&lang=ru' % PORT, timeout=120000); p.wait_for_function("typeof CINE !== 'undefined' && document.getElementById('mMain') !== null", timeout=120000)
+        time.sleep(7); p.mouse.click(640, 360); time.sleep(1.5); p.mouse.click(640, 360); time.sleep(1.5); p.mouse.click(640, 360)      # v121: лого студии, лого игры, «PALLADIUM представляет»
+        p.wait_for_function("(() => { const v = document.querySelector('#cine video'); return v && v.src.indexOf('intro.mp4') >= 0 && v.currentTime > 0.3; })()", timeout=30000)      # пролог при запуске
+        p.evaluate("document.querySelector('#cine .skip').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }))"); p.wait_for_function("!CINE.on", timeout=15000); time.sleep(1.5)
         print('первый показ')
         run(p, 'intro.mp4', 'первый показ', "CINE.reset(); CINE.intro(() => { window.__d = 1; })")
         for i in range(1, 11): run(p, 'world_%02d.mp4' % i, 'первый показ', "CINE.reset(); CINE.world(%d, () => { window.__d = 1; })" % i)

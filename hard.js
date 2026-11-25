@@ -79,7 +79,7 @@ const HARD = (() => {
   }
   {
     const _ue = updateEnemy;
-    updateEnemy = function (e, dt) { e.hStamp = stamp; if ((e.boss || (e.mini && LVN() >= 5)) && !off()) bossKit(e, dt); if (e.boss && !off()) bossAllies(e, dt); return _ue(e, dt); };
+    updateEnemy = function (e, dt) { e.hStamp = stamp; if ((e.boss || (e.mini && LVN() >= 5)) && !off()) bossKit(e, dt); if (e.boss && !off()) bossAllies(e, dt); if ((e.boss || e.mini) && !off()) reinforce(e, dt); return _ue(e, dt); };
     const _cu = combatUpdate; combatUpdate = function (dt) { _cu(dt); director(dt); };
     const _cg = combatGround;
     combatGround = function (t) {
@@ -138,7 +138,7 @@ const HARD = (() => {
     // босс занят своим умением — ждём, но не дольше 6 с: потом союзники приходят и без его взмаха (иначе занятой босс не звал бы никого)
     const busy = !!(e.act || e.leap || e.skMove || e.skBusy > 0 || e.silT > 0);
     if (busy && e.hSum > -6) return;
-    const allies = enemies.filter(x => x !== e && live(x) && !x.boss).length;
+    const allies = enemies.filter(x => x !== e && live(x) && x.ally).length;      // считаем только призванных им самим: подкрепления (п. 5) призыву не мешают
     if (allies >= ALLY.max) { e.hSum = 3; return; }
     const a = at(), soft = a.M === 1 && a.C === 1 && LVN() < 3, low = e.hp < e.max * 0.4;
     const R0 = rosterOf(Math.max(1, wave)), kinds = [...new Set(R0.mel.concat(R0.rng))].filter(t => KIND[t] && !KIND[t].boss);
@@ -157,5 +157,41 @@ const HARD = (() => {
     };
     if (busy) call(); else startAct(e, 'cast', 1.0, 0.55, call);
   }
-  return { D, T, KIT, ALLY, spdK };
+  // ---------- 5. подкрепления (v121, просьба Создателя 25.11) ----------
+  // Пока жив мини-босс или босс, на арену выходят четвёрки рядовых этого мира — из входов арены, как в обычной волне (по одному
+  // с паузой около секунды). Первая четвёрка — через 8 с после его появления; следующая — когда от прежних осталось двое или
+  // меньше, но не чаще раза в 12 с; на арене не больше восьми рядовых разом. Убит мини-босс или босс — новых четвёрок нет, а те,
+  // кто ещё не вышел, не выходят. У боссов это добавляется к призыву по двое (bossAllies).
+  // Чтобы на этом нельзя было бесконечно копить золото и опыт: награда идёт за первые две четвёрки, дальше враги выходят без неё.
+  const RF = { first: 8, gap: 12, n: 4, left: 2, max: 8, paid: 2, step: [0.7, 1.3] };
+  const rfQ = [];      // кто ждёт выхода: { type, by, t, paid }
+  function reinforce(e, dt) {
+    if (!live(e) || e.clone) return;
+    e.rfT = (e.rfT == null ? RF.first : e.rfT) - dt;
+    if (e.rfT > 0 || rfQ.some(q => q.by === e)) return;
+    const small = enemies.filter(x => live(x) && !x.boss && !x.mini).length;
+    if (small > RF.left) return;
+    const R0 = rosterOf(Math.max(1, wave)), kinds = R0.mel.concat(R0.rng).filter(t => KIND[t] && !KIND[t].boss);
+    if (!kinds.length) return;
+    e.rfN = (e.rfN || 0) + 1; e.rfT = RF.gap; D.casts.reinforce = (D.casts.reinforce || 0) + 1;
+    let t = 0.2; for (let i = 0; i < RF.n; i++) { rfQ.push({ type: kinds[Math.floor(Math.random() * kinds.length)], by: e, t, paid: e.rfN <= RF.paid }); t += rnd(RF.step[0], RF.step[1]); }
+    if (typeof needChar === 'function') for (const q of rfQ) if (KIND[q.type]) needChar(CHARS[KIND[q.type].ch]);
+  }
+  function rfTick(dt) {
+    if (!rfQ.length) return;
+    if (off()) { rfQ.length = 0; return; }
+    for (let i = rfQ.length - 1; i >= 0; i--) {
+      const q = rfQ[i];
+      if (!live(q.by)) { rfQ.splice(i, 1); continue; }                      // хозяин убит — остальные не выходят
+      if ((q.t -= dt) > 0) continue;
+      if (enemies.filter(x => live(x) && !x.boss && !x.mini).length >= RF.max) { q.t = 0.5; continue; }
+      rfQ.splice(i, 1);
+      const sp = pickSpawn(); spawnEnemy(q.type); const m = enemies[enemies.length - 1];
+      m.x = sp.x + rnd(-70, 70); m.y = sp.y + rnd(-40, 40); collide(m); m.reinf = 1;
+      if (!q.paid) { m.noLoot = 1; m.k = Object.create(m.k); m.k.xp = 0.001; }
+    }
+  }
+  { const _cu2 = combatUpdate; combatUpdate = function (dt) { _cu2(dt); rfTick(dt); };
+    if (typeof SHOP !== 'undefined') { const _ok = SHOP.onKill; SHOP.onKill = function (e) { if (e && e.noLoot) return; return _ok.apply(this, arguments); }; } }
+  return { D, T, KIT, ALLY, RF, rfQ, spdK };
 })();

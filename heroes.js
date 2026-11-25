@@ -16,7 +16,7 @@ const HEROES = {
     hp: 600, range: 600, cd: { q: 6, e: 9, f: 12, r: 28 }, mana: { q: 60, e: 50, f: 80, r: 150 },
     skills: ['Ледяная стрела', 'Кольцо стужи — взрыв льда', 'Оковы — заморозка цели', 'Град — дождь сосулек', 'Буря — ульт'] },
   archer: { def: ARCHER, name: 'Эйра', role: 'лучница', icons: 'ui/sk_icons_archer.webp', portrait: 'ui/h_portrait_archer.webp',
-    hp: 520, range: 720, cd: { q: 9, e: 6, f: 15, r: 0 }, mana: { q: 70, e: 60, f: 90, r: 0 },
+    hp: 520, range: 660, cd: { q: 9, e: 6, f: 15, r: 0 }, mana: { q: 70, e: 60, f: 90, r: 0 },
     skills: ['Меткий выстрел', 'Шквал — волна вперёд: отброс и немота', 'Залп — 3 волны по 5 стрел', 'Щит листьев — снимает путы, в конце взрыв', 'Верный глаз — пассивка: урон, дальность, пронзающие стрелы'] },
 };
 let HERO_ID = 'mage';
@@ -159,7 +159,7 @@ function fx3(k, x, y, w, h, ax, ay, alpha, rot, ground) {
 const MARK_R = 350;
 const markOn = () => (window.NETC && NETC.on) ? P.focus > 0 : !!P.mark;   // в онлайне решает сервер (флаг приходит в P.focus)
 const markK = () => markOn() ? 1.12 + 0.01 * (skLv('r') - 1) : 1;      // v119: 20 уровней — шаг вдвое меньше
-const markRange = () => markOn() ? 1.10 + 0.005 * (skLv('r') - 1) : 1;
+const markRange = () => markOn() ? 1.05 + 0.0025 * (skLv('r') - 1) : 1;      // v121: вдвое меньше (было +10 % и до +19,5 %)
 const markPierce = () => 0.25 + 0.01 * (skLv('r') - 1) + (typeof ITEMFX !== 'undefined' && ITEMFX.pas('agh') ? ITEMFX.pas('agh').pierce : 0);   // Скипетр древних: +15 %
 // урон умения: щиты боссов видят его как умение, а не как обычную атаку
 function eiraSpell(fn) { const g = typeof heroSpell !== 'undefined'; if (g) heroSpell++; try { fn(); } finally { if (g) heroSpell--; } }

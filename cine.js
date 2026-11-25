@@ -1,6 +1,7 @@
 // Заставки и рассказ (v108). Проигрыватель; сами картинки, видео и голос делает Клауди и кладёт в
 // night_19_11/cinema/game/, оттуда их переносит в игру tools/cine_install.py (папка cine/ и список cine/index.js).
-//   запуск:      лого игры (cine/logo_game.webp) → лого студии (cine/logo_paladium.mp4) → главное меню (оба лого пропускаются касанием)
+//   запуск (v121, каждый раз): лого студии (cine/logo_paladium.mp4) → лого игры (cine/logo_game.webp) → при первом запуске выбор языка
+//                (lang.js) → надпись «PALLADIUM представляет» → пролог cine/intro.mp4 → главное меню. Лого и надпись — касанием, пролог — кнопкой
 //   пролог:      cine/intro.mp4 — после «Новая игра» (выбор героя → пролог → карта миров); при «Продолжить» не идёт (v118)
 //   «История»:   кнопка в главном меню — список открытых роликов (пролог, ролики открытых миров, финал после победы); любой можно пересмотреть (v118)
 //   видео (v113): готовится заранее и показывается только с первым кадром — до этого чёрный экран, никаких системных значков «плей»
@@ -9,7 +10,7 @@
 //                при «Начать волну», при возврате на карту и при входе в уже открытый мир ролик не идёт (v118). Если ролика нет — прежние слайды:
 //                cine/world_NN/1.webp, 2.webp, (3.webp) с наездом, голос vo.mp3 и субтитры text.json
 //   финал:       после босса мира 10 — cine/finale.mp4 (нет ролика — слайды cine/finale/)
-// Любой ролик пропускается касанием в любом месте экрана (v116; надпись «Пропустить» — подсказка); игра на это время стоит,
+// Ролик книги закрывается только кнопкой «Продолжить» вверху (v121; касание по экрану ролик больше не закрывает); игра на это время стоит,
 // музыка притушена (под видео — выключена). Ролик следующего мира грузится заранее, пока игрок на карте.
 // text.json: { "lines": [ { "t": 0, "text": "…", "slide": 1 }, { "t": 4.5, "text": "…", "slide": 2 } ] } — t в секундах от начала голоса;
 // строка стоит на экране до следующей. slide (необязательно) — с этой строки показывать картинку с таким номером;
@@ -70,6 +71,10 @@ const CINE = (() => {
   #cine .skip { position: absolute; right: 3vh; top: 3vh; padding: 1.3vh 2.6vh; border-radius: 1.2vh; background: rgba(10,14,22,.6); border: .2vh solid rgba(255,255,255,.45);
     color: #fff; font: bold 2.5vh system-ui, sans-serif; cursor: pointer; user-select: none; z-index: 2; }
   #cine .skip:active { transform: scale(.95); }
+  #cine .pres { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2.4vh; opacity: 0; transition: opacity .9s; font-family: Georgia, 'Times New Roman', serif; text-align: center; }
+  #cine .pres.on { opacity: 1; }
+  #cine .pres .l0 { font-size: 8.5vh; letter-spacing: 1.6vh; color: #f3d98a; text-shadow: 0 0 3vh rgba(243,201,106,.45); padding-left: 1.6vh; }
+  #cine .pres .l1 { font-size: 3.4vh; letter-spacing: .9vh; color: #d9d2c2; text-transform: uppercase; padding-left: .9vh; }
   #mMain .b.story { position: absolute; right: 3vh; top: 14vh; width: 46vh; }`;
   document.head.appendChild(css);
   let R = null, solid = false, solidT = 0;
@@ -89,7 +94,7 @@ const CINE = (() => {
     return new Promise(r => setTimeout(() => { R.style.display = 'none'; R.innerHTML = ''; r(); }, fast ? 0 : 600));
   }
   function skipBtn(parent, fn) {
-    const b = document.createElement('div'); b.className = 'skip'; b.textContent = 'Пропустить'; parent.appendChild(b);
+    const b = document.createElement('div'); b.className = 'skip'; b.textContent = 'Продолжить'; parent.appendChild(b);
     b.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); fn(); });
     return b;
   }
@@ -134,7 +139,7 @@ const CINE = (() => {
     return new Promise(done => {
       const r = root(o.now), v = PRE[file] || mkVideo(file); delete PRE[file]; let over = false, seen1 = false; const born = performance.now();
       const vis = () => { if (over) return; if (document.hidden) { try { v.pause(); } catch (e) {} } else v.play().catch(() => {}); };
-      const tapEnd = () => { if (o.tap || performance.now() - born > 700) end(); };
+      const tapEnd = () => { if (o.tap) end(); };      // v121: касание по экрану закрывает только лого студии; ролики книги — только кнопкой «Продолжить»
       const end = () => { if (over) return; over = true; document.removeEventListener('visibilitychange', vis); r.removeEventListener('pointerdown', tapEnd); try { v.pause(); } catch (e) {} done(); };
       document.addEventListener('visibilitychange', vis);
       const wait = el('wait', r);
@@ -220,9 +225,28 @@ const CINE = (() => {
   const has = k => !!M[k] && (k !== 'intro.mp4' || CFG.intro);   // CFG.intro = false — вступление не играет ни при запуске, ни из меню
   const nSlides = k => (M[k] && M[k].n) || 0;
   // запуск игры: лого игры показывает заставка меню (menu.js), здесь — лого студии; потом done() — главное меню
+  // v121, при каждом запуске: лого студии Palladium → лого игры TEN WORLDS → (первый запуск: выбор языка) → надпись
+  // «Palladium представляет» → вступительный ролик (пролог) → главное меню. Лого и надпись пропускаются касанием, пролог — кнопкой.
+  function card(lines, sec) {
+    return new Promise(done => {
+      const r = root(true), c = el('pres', r); let over = false;
+      c.innerHTML = lines.map((t, i) => '<div class="l' + i + '">' + t + '</div>').join('');
+      const end = () => { if (over) return; over = true; c.classList.remove('on'); setTimeout(done, 500); };
+      requestAnimationFrame(() => c.classList.add('on')); setTimeout(end, sec * 1000);
+      r.addEventListener('pointerdown', end, { once: true });
+    });
+  }
   function boot(done) {
-    if (OFF || on || !has('logo_paladium.mp4')) return done();
-    session(async setSkip => { await video('logo_paladium.mp4', setSkip, { tap: true }); done(); await hide(); });
+    if (OFF || on) return done();
+    session(async setSkip => {
+      if (has('logo_paladium.mp4')) await video('logo_paladium.mp4', setSkip, { tap: true });
+      preload('intro.mp4');
+      if (has('logo_game.webp')) await logo('logo_game.webp', CFG.logoSec);
+      if (typeof LANG !== 'undefined' && LANG.pick && !LANG.chosen) await LANG.pick(root(true));
+      await card(['PALLADIUM', 'представляет'], 2.8);
+      if (has('intro.mp4')) await video('intro.mp4', setSkip, { now: true });
+      done(); await hide();
+    });
   }
   // вступление: «История» в меню (then нет) и «Новая игра» (then — начать бой; чёрный экран встаёт сразу)
   function intro(then) {
@@ -322,5 +346,5 @@ const CINE = (() => {
   })();
 
   if (window.BOOT_KIND === '') preload('logo_paladium.mp4');      // обычный запуск: лого студии грузится, пока стоит лого игры
-  return { boot, intro, preload, world, finale, unlocked, replay, CFG, skip() { if (skipNow) skipNow(); }, get on() { return on; }, get solid() { return solid; }, reset() { seen = {}; try { localStorage.removeItem(KEY); } catch (e) {} } };
+  return { boot, intro, preload, world, finale, unlocked, replay, CFG, skip() { if (skipNow) skipNow(); }, get on() { return on; }, get off() { return OFF; }, get solid() { return solid; }, reset() { seen = {}; try { localStorage.removeItem(KEY); } catch (e) {} } };
 })();

@@ -55,14 +55,14 @@ try:
 
         print('12 слотов предметов')
         ids = ['bloodstone'] * 12 + ['rune']
-        s = p.evaluate("(ids) => { SHOP.bag = []; SHOP.gold = 1e6; SHOP.bag = ids.slice(0, 11); const got = ids.slice(0, 11).map(() => true).concat([buyItem('rune'), buyItem('rune')]); SHOP.recompute(); SHOP.refresh(); const sl = [...document.querySelectorAll('#hInv .hs')], r = sl.map(x => x.getBoundingClientRect()); "
+        s = p.evaluate("(ids) => { SHOP.bag = []; SHOP.gold = 1e6; SHOP.bag = ids.slice(0, 11); const got = ids.slice(0, 11).map(() => true).concat([buyItem('rune'), buyItem('rune')]); SHOP.recompute(); SHOP.refresh(); const sl = [...document.querySelectorAll('#hInv > .hs')], r = sl.map(x => x.getBoundingClientRect()); "
                        "return { max: BAG_MAX, bag: SHOP.bag.length, got, slots: sl.length, filled: sl.filter(x => x.innerHTML).length, w: r[0].width, h: innerHeight, left: r[0].left, right: r[11].right, row: Math.abs(r[0].top - r[5].top) < 2 && Math.abs(r[6].top - r[11].top) < 2 && r[6].top > r[0].bottom - 2 && Math.abs(r[0].left - r[6].left) < 2, right5: r[5].right, bottom: r[11].bottom, vw: innerWidth }; }", ids)
         chk('в сумке 12 мест: 12-й предмет покупается, 13-й не влезает', s['max'] == 12 and s['bag'] == 12 and s['got'][11] and not s['got'][12], s)
         chk('внизу экрана 12 слотов в два ряда по шесть (v120: крупнее), все на экране и заполнены', s['slots'] == 12 and s['filled'] == 12 and s['row'] and s['left'] >= 0 and s['right5'] <= s['vw'] and s['bottom'] <= s['h'] and s['w'] > 0.075 * s['h'], s)
         p.screenshot(path=os.path.join(OUT, '2_slots.png'))
         p.evaluate("SHOP.phase = 'rest'; enemies.length = 0; SHOP.openShop()"); time.sleep(0.8)
-        s = p.evaluate("(() => { const c = [...document.querySelectorAll('#shBag .ci')], r = c.map(x => x.getBoundingClientRect()), go = document.getElementById('shGo').getBoundingClientRect(); return { n: c.length, right: r[r.length - 1].right, go: go.left, row: Math.abs(r[0].top - r[r.length - 1].top) < 2 }; })()")
-        chk('в лавке сумка — 12 ячеек в ряд, не налезает на кнопку «В бой»', s['n'] == 12 and s['row'] and s['right'] < s['go'], s)
+        s = p.evaluate("(() => { const c = [...document.querySelectorAll('#shBag .ci')], r = c.map(x => x.getBoundingClientRect()), go = document.getElementById('shGo').getBoundingClientRect(); return { n: c.length, right: r[5].right, go: go.left, row: Math.abs(r[0].top - r[5].top) < 2 && Math.abs(r[6].top - r[11].top) < 2 && r[6].top > r[0].bottom - 2 && Math.abs(r[0].left - r[6].left) < 2, w: r[0].width, hud: document.querySelector('#hInv > .hs').getBoundingClientRect().width, bottom: r[11].bottom, h: innerHeight, pic: c.filter(x => x.firstElementChild && x.firstElementChild.getBoundingClientRect().width > 5).length }; })()")
+        chk('в лавке сумка — 12 ячеек в два ряда по шесть (v121), того же размера, что слоты в бою; картинки предметов видны', s['n'] == 12 and s['row'] and abs(s['w'] - s['hud']) < 0.02 * s['h'] and s['bottom'] <= s['h'] + 1 and s['pic'] == 12, s)
         p.screenshot(path=os.path.join(OUT, '3_shop_bag.png')); p.evaluate("SHOP.closeShop(); SHOP.bag = []; SHOP.recompute(); SHOP.refresh()")
         s = p.evaluate("(() => { SHOP.bag = Object.keys(PARTS).slice(0, 12); SAVE.save(); const d = SAVE.read(); return d.bag.length; })()"); chk('12 предметов записываются в сохранение', s == 12, s)
         p.evaluate("SHOP.bag = []; SHOP.recompute(); SHOP.refresh()")

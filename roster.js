@@ -14,7 +14,7 @@ const KIND = {
   // ---- Проклятое болото (мир 2) ----
   bogghoul: { nm: 'Болотный упырь', ch: 'bogghoul', mel: 1, hp: 125, rad: 22, speed: 172, dmg: [10, 14], cd: 0.75, reach: 66, xp: 10, gold: 7, col: '#4a5a3a' },
   toadwitch: { nm: 'Жабья ведьма', ch: 'toadwitch', rng: 1, hp: 125, rad: 22, speed: 104, dmg: [15, 20], cd: 1.7, want: 470, shot: 540, pcol: '190,220,60', xp: 14, gold: 11, col: '#5a7a2a' },
-  leechworm: { nm: 'Пиявец', ch: 'leechworm', mel: 1, hp: 140, rad: 24, speed: 135, dmg: [9, 12], cd: 0.7, reach: 64, leech: 0.39, xp: 11, gold: 8, col: '#5a2a3a' },
+  leechworm: { nm: 'Пиявец', ch: 'leechworm', mel: 1, hp: 140, rad: 24, speed: 135, dmg: [9, 12], cd: 0.7, reach: 64, leech: 0.2535, xp: 11, gold: 8, col: '#5a2a3a' },
   drownedknight: { nm: 'Утопленник', ch: 'drownedknight', mel: 1, hp: 330, rad: 30, speed: 88, dmg: [24, 30], cd: 1.6, reach: 96, xp: 20, gold: 15, col: '#2a4a5a' },
   wisplantern: { nm: 'Фонарщик', ch: 'wisplantern', rng: 1, hp: 115, rad: 22, speed: 92, dmg: [18, 24], cd: 2.0, want: 520, shot: 430, pcol: '110,240,210', xp: 14, gold: 11, col: '#2a5a5a' },
   // ---- Осенняя долина (мир 3) ----

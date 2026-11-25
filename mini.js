@@ -228,7 +228,7 @@
       cast(e) { e.trance = 5; const sp0 = e.speed; e.speed *= 1.25; mark({ img: V2(e), on: e, at: e.ch.top * e.ch.U * e.sc * 0.5, dur: 5, size: 220, add: 1 });
         MOV.push({ t: 0, dur: 5, update(m, dt) { e.trance = Math.max(0, 5 - m.t); if (e.atkCd > 0) e.atkCd -= dt * 0.8; if (m.t >= m.dur || !alive(e)) { e.speed = sp0; e.trance = 0; } } }); } },
   ];
-  ON_HIT.mb_trollminer = e => { if (e.trance > 0) e.hp = Math.min(e.max, e.hp + (e.k.dmg[0] + e.k.dmg[1]) / 2 * e.dm * 0.13); };   // вампиризм 13 % в трансе (v120: было 20 %)
+  ON_HIT.mb_trollminer = e => { if (e.trance > 0) e.hp = Math.min(e.max, e.hp + (e.k.dmg[0] + e.k.dmg[1]) / 2 * e.dm * 0.0845); };   // вампиризм 8,45 % в трансе (v120 и v121: дважды −35 %, было 20 %)
   DEF.mb_gemscorpion = [
     { ph: 'Удар из-под земли', col: '#ff9ad8', cd: 12, can: (e, d) => d > 180 && d < 700,
       cast(e) { const [dx, dy, d] = dirTo2(e, P), tx = P.x, ty = P.y; e.hide = 1; e.untarget = 0.9; e.skBusy = 0.9; e.act = hold('cast1', 0.9);

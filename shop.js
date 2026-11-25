@@ -213,7 +213,7 @@ SHOP.flaskPrice = f => BAL.price(f.id === 'heal' ? 40 + 5 * (BAL.mw(wave + 1) - 
   #hInv { bottom: calc(2.4vh + var(--sab)); left: 50%; transform: translateX(-60%); display: flex; gap: 1vh; align-items: center; }
   .hs { position: relative; width: 8.2vh; height: 8vh; background-image: ${U('h_slot')}; }
   /* v120: 12 слотов — два ряда по шесть; склянка лечения справа на оба ряда */
-  #hInv { display: grid; grid-template-columns: repeat(6, auto) auto; gap: .5vh .6vh; bottom: calc(1.2vh + var(--sab)); }
+  #hInv { display: grid; grid-template-columns: repeat(6, auto) auto auto; gap: .5vh .6vh; bottom: calc(1.2vh + var(--sab)); }
   #hInv #hFlask { grid-column: 7; grid-row: 1 / span 2; align-self: center; }
   .hs .ic { position: absolute; left: 17%; top: 17%; width: 66%; height: 66%; }
   .hs b { position: absolute; right: .6vh; bottom: .3vh; font: bold 2vh system-ui; }

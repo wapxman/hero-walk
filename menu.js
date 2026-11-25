@@ -91,7 +91,7 @@
   // режим экрана выбора: play — одиночная игра, online — дуэль или кооператив, view — просто посмотреть героев
   // new — «Новая игра»: как play, но после «В бой» идёт вступление и сразу мир 1 (save.js), без карты миров
   function openSelect(kind) {
-    window.NEWGAME = kind === 'new'; if (kind === 'new') { kind = 'play'; if (typeof CINE !== 'undefined') CINE.preload('intro.mp4'); }
+    window.NEWGAME = kind === 'new'; if (kind === 'new') kind = 'play';
     hideMain(); sel.style.display = 'flex'; if (typeof LAZY !== 'undefined') LAZY.start();
     plaque.textContent = kind === 'view' ? 'ГЕРОИ' : 'ВЫБЕРИ ГЕРОЯ';
     const go = sel.querySelector('.go'); go.style.display = kind === 'view' ? 'none' : 'flex';
@@ -138,14 +138,15 @@
   }
   option('Музыка', [[true, 'Вкл'], [false, 'Выкл']], () => mus.on, v => { if (mus.on !== v) musicToggle(); });
   option('Звуки', [[true, 'Вкл'], [false, 'Выкл']], () => SET.sfx, v => { SET.sfx = v; put('hw_sfx', v ? '1' : '0'); });
-  option('Камера', [[1.35, 'Ближе'], [1.65, 'Обычно'], [1.95, 'Дальше']], () => SET.cam, v => { SET.cam = CFG.cam = v; put('hw_cam', v); });
+  option('Камера', [[1.35, 'Близко'], [1.65, 'Обычно'], [1.95, 'Далеко']], () => SET.cam, v => { SET.cam = CFG.cam = v; put('hw_cam', v); });
   option('Графика', [['hi', 'Чётко'], ['lo', 'Экономно']], () => SET.q, v => { SET.q = v; put('hw_q', v); DPR_CAP = v === 'lo' ? 1.25 : 2; resize(); });
+  if (typeof LANG !== 'undefined') option('Язык', [['ru', 'Русский'], ['en', 'English']], () => LANG.cur, v => LANG.set(v));      // v121: английская версия (lang.js)
   tap(mk('div', 'b', pn, 'Готово'), () => { st.style.display = 'none'; if (!started) showMain(); });
   function openSettings() { st.style.display = 'flex'; }
   // в паузе: настройки и выход в меню вместо «Сменить героя»
   if (SHOP.el && SHOP.el.pause) {
     const p = SHOP.el.pause, tip = p.querySelector('.tip');
-    for (const b of p.querySelectorAll('.mb')) if (b.textContent === 'Сменить героя') b.textContent = 'В главное меню';
+    for (const b of p.querySelectorAll('.mb')) if ((b.dataset.ru || b.textContent) === 'Сменить героя') { b.textContent = 'В главное меню'; delete b.dataset.ru; }
     const s = document.createElement('div'); s.className = 'mb bg'; s.textContent = 'Настройки';
     s.addEventListener('pointerdown', x => { x.stopPropagation(); openSettings(); });
     p.insertBefore(s, tip);
@@ -170,11 +171,15 @@
     timeUp = true; if (done || (!bgOk && !auto)) return; done = true;
     // после лого игры — лого студии и (в первый запуск) вступление: cine.js; чёрная заставка уходит, когда они кончились
     const fin = () => { sp.style.opacity = '0'; setTimeout(() => sp.remove(), 750); if (auto) sel.style.display = 'flex'; else if (newgame) openSelect('new'); else showMain(); };
-    if (!auto && !back2menu && typeof CINE !== 'undefined') { sp.classList.remove('on'); CINE.boot(fin); } else fin();
+    if (cineBoot()) { sp.classList.remove('on'); CINE.boot(fin); } else fin();
   }
   const logo = new Image();
-  logo.onload = () => { if (!back2menu) requestAnimationFrame(() => sp.classList.add('on')); };
+  const cineBoot = () => !auto && !back2menu && typeof CINE !== 'undefined' && !CINE.off;      // v121: весь запуск (лого, язык, пролог) ведёт cine.js
+  logo.onload = () => { if (!back2menu && !cineBoot()) requestAnimationFrame(() => sp.classList.add('on')); };
   logo.src = LOGO + V;
   sp.addEventListener('pointerdown', endSplash);
-  setTimeout(endSplash, auto || back2menu ? 50 : 2600);   // после «В главное меню» — сразу меню, без логотипа
+  // после «В главное меню» — сразу меню, без логотипа. Обычный запуск: ждём, пока страница собрана (cine.js подключается позже этого
+  // файла), и сразу отдаём запуск ему; под автопрогоном (заставки выключены) — прежнее лого игры на 2,6 с
+  if (auto || back2menu) setTimeout(endSplash, 50);
+  else addEventListener('load', () => setTimeout(endSplash, cineBoot() ? 40 : 2600));
 })();

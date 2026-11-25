@@ -137,7 +137,7 @@ function progOpen(on) {
 function skHint(k) {
   const l = P.skLv[k];
   if (k === 'dash') return 'перезарядка ' + DASH.cdOf().toFixed(1) + ' с, дальность ' + Math.round(DASH.distOf());
-  if (HERO_ID === 'archer' && k === 'r') return 'Верный глаз: +' + (12 + (l - 1)) + '% урона, +' + (10 + 0.5 * (l - 1)) + '% дальности, ' + (25 + (l - 1)) + '% стрел пронзающие';
+  if (HERO_ID === 'archer' && k === 'r') return 'Верный глаз: +' + (12 + (l - 1)) + '% урона, +' + (5 + 0.25 * (l - 1)) + '% дальности, ' + (25 + (l - 1)) + '% стрел пронзающие';
   return 'сила ×' + (1 + 0.07 * (l - 1)).toFixed(2) + ', перезарядка −' + Math.round(2 * (l - 1)) + '%';
 }
 function progUI() {

@@ -2,3 +2,5 @@ candidates/
 apk/
 dev_cfg.json
 tests/
+tools/lang_strings.json
+tools/lang_todo.json

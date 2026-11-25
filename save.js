@@ -79,7 +79,7 @@ const SAVE = (() => {
     if (!window.NEWGAME) return chooser();
     window.NEWGAME = false;
     const go = () => { if (typeof LEVEL !== 'undefined' && LEVEL.TEST) { start(1, 0); fight(); } else chooser(); };      // v118: после пролога — карта миров; игрок выбирает мир 1 → ролик мира → первая арена
-    if (typeof CINE !== 'undefined') CINE.intro(go); else go();
+    go();      // v121: пролог идёт при запуске игры, при «Новой игре» — только то, что по сценарию (ролик мира при входе в мир)
   }
   // перед каждым боем — карта «Путь героев»: выбрать главу (текущую или пройденную) и нажать «Продолжить»
   let real = null, direct = false;
@@ -129,7 +129,7 @@ const SAVE = (() => {
   if (go) go.addEventListener('pointerdown', () => { if (!/[?&](mode|auto)=/.test(location.search) && !(window.NETC && NETC.S && NETC.S.mode !== 'single')) SAVE.begin(); });
   // главное меню, первая кнопка (подсвечена): есть сохранение — «Продолжить» героем из сохранения сразу на карту миров;
   // сохранения нет — «Новая игра» (выбор героя → вступление → мир 1)
-  const mb = [...document.querySelectorAll('#mMain .b')].find(b => b.textContent === 'Играть');
+  const mb = [...document.querySelectorAll('#mMain .b')].find(b => (b.dataset.ru || b.textContent) === 'Играть');
   const saved = SAVE.anySave();
   if (mb) {
     mb.classList.add('hl'); mb.textContent = saved ? 'Продолжить' : 'Новая игра';
