@@ -43,7 +43,8 @@ chk('в приложении: не тест, файл ключей ещё не �
 PICK = "(() => { const e = document.getElementById('lgPick'), c = document.getElementById('cine'); return !!e && !!c && c.style.display === 'block' && +getComputedStyle(e).opacity > 0.5; })()"
 until("CINE.on", 20)      # запуск: дождаться, что заставки начались (иначе меню «видно» ещё до них)
 t0 = time.time()
-while time.time() - t0 < 150 and not ev("getComputedStyle(document.getElementById('mMain')).display === 'block' && !CINE.on && !document.getElementById('mSplash')"):
+MENU = "getComputedStyle(document.getElementById('mMain')).display === 'block' && !CINE.on && !document.getElementById('mSplash') && LANG.chosen && (document.getElementById('cine') || { style: {} }).style.display !== 'block'"
+while time.time() - t0 < 150 and not (ev(MENU) and (time.sleep(0.7) or ev(MENU))):
     if ev(PICK): time.sleep(1.0); tap_el('#lgPick [data-l=ru]')
     elif ev("!!document.querySelector('#cine .skip')"): time.sleep(1.0); tap_el('#cine .skip')
     time.sleep(0.5)
