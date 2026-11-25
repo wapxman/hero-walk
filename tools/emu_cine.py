@@ -55,6 +55,9 @@ def press_skip(): time.sleep(0.6); return tap_el('#cine .skip')      # наст�
 
 print('страница:', pg['title'], pg['url'], '| версия', ev("typeof V === 'string' ? V : ''"), '| звук телефона (музыка):', subprocess.run([ADB, 'shell', 'cmd', 'media_session', 'volume', '--stream', '3', '--get'], capture_output=True, text=True).stdout.strip()[-40:])
 print('запуск')
+for _ in range(100):      # страница ещё грузится — ждём, пока появятся меню и карта
+    if ev("!!document.getElementById('mMain') && typeof PATHMAP !== 'undefined' && typeof SHOP !== 'undefined'") is True: break
+    time.sleep(0.2)
 seq = []; t0 = time.time(); intro = None
 while time.time() - t0 < 120:
     s = ev(ST)
@@ -100,7 +103,15 @@ ev("(window.__d = 0, CINE.reset(), CINE.finale(() => { window.__d = 1; }), 1)")
 s = wait(plays('finale.mp4'), 40); ok1 = plays('finale.mp4')(s) and snd(s) and s['dur'] > 250 and s['en'] == (LNG == 'en'); time.sleep(5); shot('6_finale')
 keep = screen_keeps('финал'); press_skip(); s2 = wait(lambda s: s['d'] == 1 and not s['on'], 15)
 chk('финал: finale.mp4 идёт (%.0f с), звук есть; кнопка «Продолжить» — закрыт, игра идёт дальше' % s['dur'], ok1 and keep and s2['d'] == 1 and not s2['on'], [s, s2])
-# голоса героев и фраза босса — из папки выбранного языка (v123)
-vo = ev("(() => { const r = performance.getEntriesByType('resource').map(x => x.name.split('?')[0]); return { en: r.filter(u => /\/sfx_en\/(archer_)?vo_/.test(u)).length, ru: r.filter(u => /\/sfx\/(archer_)?vo_/.test(u)).length, snd: Object.keys(SND).filter(n => /^(archer_)?vo_/.test(n)).length }; })()")
-chk('реплики героев загружены из %s (%s)' % ('sfx_en' if LNG == 'en' else 'sfx', vo), (vo['en'] >= 99 and vo['ru'] == 0 if LNG == 'en' else vo['ru'] >= 99 and vo['en'] == 0) and vo['snd'] >= 99, vo)
+# голоса героев — на выбранном языке (v123): длина звука в памяти совпадает с файлом из нужной папки
+def ev_async(code):
+    global n; n += 1
+    ws.send(json.dumps({'id': n, 'method': 'Runtime.evaluate', 'params': {'expression': code, 'awaitPromise': True, 'returnByValue': True}}))
+    while True:
+        m = json.loads(ws.recv())
+        if m.get('id') == n: return json.loads(m['result'].get('result', {}).get('value') or 'null')
+vo = ev_async("""(async () => { const names = ['vo_attack_1', 'vo_kill_2', 'archer_vo_attack_3', 'archer_vo_death_1', 'vo_move_4'], out = { en: 0, ru: 0, n: names.length, all: Object.keys(SND).filter(x => /^(archer_)?vo_/.test(x)).length };
+  const dur = async u => { const b = await (await fetch(u)).arrayBuffer(); return (await new Promise((ok, no) => AC.decodeAudioData(b, ok, no))).duration; };
+  for (const x of names) { const e = await dur('sfx_en/' + x + '.mp3'), r = await dur('sfx/' + x + '.mp3'), c = SND[x].duration; if (Math.abs(c - e) < 0.005) out.en++; if (Math.abs(c - r) < 0.005) out.ru++; } return JSON.stringify(out); })()""")
+chk('реплики героев в памяти — %s (сверено 5 из %d по длине звука)' % ('английские' if LNG == 'en' else 'русские', vo['all']), vo['all'] >= 99 and (vo['en'] == vo['n'] and vo['ru'] == 0 if LNG == 'en' else vo['ru'] == vo['n'] and vo['en'] == 0), vo)
 print('ИТОГ:', 'всё в порядке' if not bad else 'НЕ ПРОШЛО: ' + '; '.join(bad)); sys.exit(1 if bad else 0)
