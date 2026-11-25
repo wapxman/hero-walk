@@ -39,9 +39,11 @@ def walk(pl): ev("((id) => { const L = LIMBO.L, s = L.st[id]; P.x = s.p[0] * L.s
 def away(): ev("(() => { const L = LIMBO.L; P.x = L.fire[0] * L.size[0] * AK; P.y = L.fire[1] * L.size[1] * AK + 150; return 1; })()"); time.sleep(0.8)
 VIS = lambda i: ev("(() => { const e = document.getElementById(%s); return !!e && getComputedStyle(e).display !== 'none'; })()" % json.dumps(i))
 print('страница:', pg['url'], '| версия', ev("typeof V === 'string' ? V : ''"))
+PICK = "(() => { const e = document.getElementById('lgPick'), c = document.getElementById('cine'); return !!e && !!c && c.style.display === 'block' && +getComputedStyle(e).opacity > 0.5; })()"
+until("CINE.on", 20)      # запуск: дождаться, что заставки начались (иначе меню «видно» ещё до них)
 t0 = time.time()
-while time.time() - t0 < 150 and not ev("getComputedStyle(document.getElementById('mMain')).display === 'block' && !CINE.on"):
-    if ev("!!document.getElementById('lgPick')"): time.sleep(1.0); tap_el('#lgPick [data-l=ru]')
+while time.time() - t0 < 150 and not ev("getComputedStyle(document.getElementById('mMain')).display === 'block' && !CINE.on && !document.getElementById('mSplash')"):
+    if ev(PICK): time.sleep(1.0); tap_el('#lgPick [data-l=ru]')
     elif ev("!!document.querySelector('#cine .skip')"): time.sleep(1.0); tap_el('#cine .skip')
     time.sleep(0.5)
 ev("([...document.querySelectorAll('#mMain .btns .b')].find(b => (b.dataset.ru || b.textContent) === 'Новая игра').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })), 1)"); time.sleep(1.5)
@@ -57,7 +59,14 @@ ev("(hurtPlayer(1e9), 1)"); chk('герой погиб — Междумирье'
 shot('1_plaza'); chk('фон площади загружен (новый)', ev("!!img.ground && img.ground.naturalWidth === 1536 && /limbo\\/bg\\.webp/.test(img.ground.src)"), ev("img.ground && img.ground.src"))
 walk('alma'); chk('подошёл к библиотеке — книга открылась', VIS('almaBook')); time.sleep(2.0); shot('2_book')
 s = ev("(() => { const c = [...document.querySelectorAll('#almaBook .grid .c')], bg = getComputedStyle(document.querySelector('#almaBook .bx')).backgroundImage, R = document.querySelector('#almaBook .pg.r'), bx = document.querySelector('#almaBook .bx').getBoundingClientRect(); return { n: c.length, open: c.filter(x => x.dataset.open === '1').length, bg: /alma\\/book/.test(bg), title: R.querySelector('h3').textContent, fit: R.scrollHeight <= R.clientHeight + 2, box: [Math.round(bx.width), Math.round(bx.height), innerWidth, innerHeight], pics: c.filter(x => { const v = x.querySelector('canvas'); const d = v.getContext('2d').getImageData(0, 0, v.width, v.height).data; let n = 0; for (let i = 3; i < d.length; i += 16) if (d[i] > 40) n++; return n > 60; }).length }; })()")
-chk('книга: 10 боссов, открыт встреченный (Бранд), портреты нарисованы, запись помещается на странице без прокрутки', s['n'] == 10 and s['open'] == 1 and s['bg'] and s['title'] == 'Бранд' and s['pics'] == 10 and s['fit'], s)
+chk('книга: 10 боссов, открыт встреченный (Бранд), портреты нарисованы', s['n'] == 10 and s['open'] == 1 and s['bg'] and s['title'] == 'Бранд' and s['pics'] == 10, s)
+# все записи боссов и мини-боссов (на обоих языках) должны помещаться на странице без прокрутки — шрифт телефона шире браузерного
+FIT = """(() => { const D = ALMA.D(), keep = JSON.stringify(D.seen), bad = [], R = () => document.querySelector('#almaBook .pg.r'); for (const t of ALMA_TEXTS.bosses.concat(ALMA_TEXTS.minibosses)) D.seen[t.id] = 1;
+  const l0 = LANG.cur; for (const lg of ['ru', 'en']) { LANG.set(lg); for (const tb of [0, 1]) { document.querySelectorAll('#almaBook .tabs div')[tb].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+    for (let pg = 0; pg < 2; pg++) { for (const c of [...document.querySelectorAll('#almaBook .grid .c')]) { document.querySelector('#almaBook .grid .c[data-id="' + c.dataset.id + '"]').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true })); LANG.apply(); const r = R(); if (r.scrollHeight > r.clientHeight + 2) bad.push([lg, c.dataset.id, r.scrollHeight - r.clientHeight]); }
+      const n = document.querySelector('#almaBook .pager .ar.n'); if (n.classList.contains('no')) break; n.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true })); } } }
+  LANG.set(l0); D.seen = JSON.parse(keep); document.querySelectorAll('#almaBook .tabs div')[0].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true })); return bad; })()"""
+bad_fit = ev(FIT); chk('все 40 записей боссов и мини-боссов помещаются на странице без прокрутки (рус. и англ.)', bad_fit == [], bad_fit)
 tap_el('#almaBook .tabs div:nth-child(2)'); time.sleep(1.5); shot('3_book_minis')
 chk('настоящее касание по вкладке «Мини-боссы» — 20 записей на странице', ev("document.querySelectorAll('#almaBook .grid .c').length") == 20)
 tap_el('#almaBook .tabs div:nth-child(4)'); time.sleep(1.0); shot('4_book_items'); chk('вкладка «Предметы» открывается', ev("ALMA.ui.tab") == 'item')

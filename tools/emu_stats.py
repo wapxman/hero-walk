@@ -40,9 +40,11 @@ def until(code, sec):
 call('Network.enable')
 print('страница:', pg['url'], '| версия', ev("typeof V === 'string' ? V : ''"))
 chk('в приложении: не тест, файл ключей ещё не спрашивали или уже есть', ev("!METRICS.TEST && METRICS.on && METRICS.keys !== 'no'"), ev("[METRICS.TEST, METRICS.on, METRICS.keys, METRICS.state]"))
+PICK = "(() => { const e = document.getElementById('lgPick'), c = document.getElementById('cine'); return !!e && !!c && c.style.display === 'block' && +getComputedStyle(e).opacity > 0.5; })()"
+until("CINE.on", 20)      # запуск: дождаться, что заставки начались (иначе меню «видно» ещё до них)
 t0 = time.time()
-while time.time() - t0 < 150 and not ev("getComputedStyle(document.getElementById('mMain')).display === 'block' && !CINE.on"):
-    if ev("!!document.getElementById('lgPick')"): time.sleep(1.0); tap_el('#lgPick [data-l=ru]')
+while time.time() - t0 < 150 and not ev("getComputedStyle(document.getElementById('mMain')).display === 'block' && !CINE.on && !document.getElementById('mSplash')"):
+    if ev(PICK): time.sleep(1.0); tap_el('#lgPick [data-l=ru]')
     elif ev("!!document.querySelector('#cine .skip')"): time.sleep(1.0); tap_el('#cine .skip')
     time.sleep(0.5)
 ev("([...document.querySelectorAll('#mMain .btns .b')].find(b => (b.dataset.ru || b.textContent) === 'Новая игра').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })), 1)"); time.sleep(1.5)

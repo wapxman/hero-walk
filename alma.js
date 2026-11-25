@@ -123,15 +123,15 @@ const ALMA = (() => {
   #almaBook .pager .ar { width: 2.6em; height: 2.6em; background: ${U('ui/arrow')} center / contain no-repeat; cursor: pointer; }
   #almaBook .pager .ar.p { transform: scaleX(-1); }
   #almaBook .pager .ar.no { opacity: .25; pointer-events: none; }
-  #almaBook .r h3 { margin: 0; font: bold 1.35em Georgia, serif; color: #5a1f10; }
-  #almaBook .r .sub { font-style: italic; font-size: .92em; margin-top: .15em; }
-  #almaBook .r .ln { font-size: .86em; margin-top: .3em; }
+  #almaBook .r h3 { margin: 0; font: bold 1.25em Georgia, serif; color: #5a1f10; }
+  #almaBook .r .sub { font-style: italic; font-size: .86em; margin-top: .15em; }
+  #almaBook .r .ln { font-size: .8em; margin-top: .3em; }
   #almaBook .r .ln b { color: #5a1f10; }
   #almaBook .r .pic { float: right; width: 8.6em; height: 8.6em; margin: 0 0 .2em .5em; }
   #almaBook .r .pic.ci { width: 5em; height: 5em; }
-  #almaBook .r p { font-size: .85em; line-height: 1.27; margin: .55em 0 0; text-align: justify; }
-  #almaBook .r .sk { clear: both; font-size: .85em; margin-top: .6em; }
-  #almaBook .r .sk i { display: block; font-style: normal; padding-left: .9em; text-indent: -.9em; margin-top: .12em; }
+  #almaBook .r p { font-size: .76em; line-height: 1.22; margin: .45em 0 0; text-align: justify; }
+  #almaBook .r .sk { clear: both; font-size: .76em; margin-top: .45em; }
+  #almaBook .r .sk i { display: inline-block; width: 49%; vertical-align: top; font-style: normal; padding-left: .9em; text-indent: -.9em; margin-top: .1em; box-sizing: border-box; }
   #almaBook .r .rc { display: flex; flex-wrap: wrap; gap: .3em .7em; margin-top: .3em; align-items: center; }
   #almaBook .r .rc .ci { width: 2.4em; height: 2.4em; flex: none; }
   #almaBook .r .rc span { display: flex; align-items: center; gap: .3em; }
