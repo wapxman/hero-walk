@@ -264,6 +264,7 @@ SHOP.pick = (function (orig) {
   const IT = i => typeof i === 'string' ? '<span class="it" style="background:url(' + i + V2 + ') center / 100% 100% no-repeat"></span>'
     : '<span class="it" style="background-position:' + (i % 4) * 100 / 3 + '% ' + Math.floor(i / 4) * 100 / (IT_ROWS - 1) + '%"></span>';
   const ICN = it => IT(it.img || it.ic);
+  SHOP.itemIcon = ICN;      // v122: картинка предмета для справочника (alma.js)
   const css = document.createElement('style');
   css.textContent = `
   .it { display: block; background-image: ${U('items')}; background-size: 400% ${IT_ROWS * 100}%; background-repeat: no-repeat; }

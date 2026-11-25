@@ -183,6 +183,7 @@ window.androidBack = function () {
   if (vis('mMain')) return false;
   if (vis('hSel')) { if (window.MENU) { MENU.showMain(); return true; } return false; }
   if (typeof PATHMAP !== 'undefined' && PATHMAP.on) return true;
+  if (typeof ALMA !== 'undefined' && ALMA.cur) { ALMA.close(); return true; }
   if (SHOP.open) { SHOP.closeShop(); return true; }
   if (typeof SHOP.togglePause === 'function') { SHOP.togglePause(); return true; }
   return false;
