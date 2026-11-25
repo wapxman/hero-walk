@@ -159,7 +159,7 @@
 2. `python tools/balance_sim.py` (если трогали баланс), `python tools/autotest.py` — должен быть зелёным.
 3. Коммит и `git push origin HEAD` — веб-версия обновится.
 4. Если менялись `data.js`, `roster.js`, `net/shared.js` или `server/server.js` — выложить сервер онлайна:
-   `tar -czf - data.js roster.js net/shared.js server/server.js | ssh -i ~/.ssh/abpartners_game abpartne@web2.webspace.uz 'cd game && tar -xzf - && kill $(cat server.pid); sleep 1; bash run.sh; sleep 2; tail -2 server.log'`
+   `tar -czf - data.js roster.js net/shared.js server/server.js | ssh web2game 'cd game && tar -xzf - && kill $(cat server.pid); sleep 1; bash run.sh; sleep 2; tail -2 server.log'`
    (сервер: `~/game/server/server.js`, порт 30777, wss; `run.sh` — сторож из cron, поднимает сервер сам).
 5. APK: `bash tools/build_apk.sh` — сам запускает автопрогон и **не собирает APK, если он красный**. Кладёт в `apk/` два файла: `DuelArena-vNN.apk` и `DuelArena-vNN-test-all-worlds.apk`
    (APK около 960 МБ, в git не идёт). Проект сборки — `C:\Users\User\Desktop\GitHub\hero-walk-apk`.
@@ -277,3 +277,15 @@
 - Память — ключ `hw_alma` (общая для героев, «Новая игра» её не стирает). Мир на время считается, только если начат с первой волны; время — боевое.
 - Картинки и тексты пересобирает `python tools/alma_prep.py` (из папки Клауди `Desktop/villains/alma_mater`). Английский: `lang/src/05_alma.json` (тексты), `06_alma_ui.json` (подписи).
 - `alma.js` подключён **до** `dmgshow.js` (тот забирает цифры критов). Проверка: `python tools/alma_check.py` (входит в сборку).
+
+## Сервер онлайна: доступ через web2game (26.11)
+- Хостинг заблокировал наш домашний адрес (144.124.199.186): напрямую `web2.webspace.uz` по ssh с этого ПК не отвечает (так не был выложен сервер версий v120–v121).
+- Обход настроен Клауди в `~/.ssh/config`: хост **`web2game`** — тот же `abpartne@web2.webspace.uz` с ключом `abpartners_game`, но через мини-ПК (`ProxyJump minipc`). Ключ остаётся на этом ПК. Во всех командах выпуска — `ssh web2game`.
+- После выкладки сверять: `ssh web2game 'cd game && tail -2 server.log && md5sum data.js roster.js net/shared.js server/server.js'` с местными файлами.
+
+## v123 (26.11): английская озвучка
+- Файлы рядом с русскими: `sfx_en/` (99 реплик героев: `vo_*` — Ganfaul, `archer_vo_*` — Эйра), `sfx_en/bv/` (30 фраз боссов `b_<босс>_l1..3`), `cine_en/` (12 роликов книги). Список — `voice_en.js` (`VOICE_EN`), его и папки пересобирает `python tools/voice_en_install.py` из `night_19_11/cinema/story_book` (`voice_en/sfx_en`, `game_en`).
+- При английском языке игра берёт файл из английской папки, только если он есть в `VOICE_EN`; не загрузился — русский (`sfxLoad` в `combat.js`, `load` в `bossvo.js`, `url` и обработчик `error` в `cine.js`). Звуки умений, крики мини-боссов, лого — общие.
+- Смена языка (`LANG.set`) сразу перезагружает голоса героев (`voiceReload`) и фразы боссов (`BV.reload`); заготовленный ролик другого языка выбрасывается.
+- Подписи фраз боссов в английской версии = слова английского голоса (`BOSS_LINES` из `voice_en/en_texts.py` Клауди). Имена в английском тексте — по её списку (Horgat, Mor, Ess, Durgar, Hjolm…).
+- Проверка: `python tools/voice_en_check.py` (входит в сборку; нужен обычный Chrome).

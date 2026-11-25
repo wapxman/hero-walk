@@ -62,6 +62,8 @@ const LANG = (() => {
     if (l !== 'ru' && l !== 'en') return; cur = l; chosen = true; cache.clear();
     try { localStorage.setItem(KEY, l); } catch (e) {}
     apply();
+    // v123: голоса героев и боссов — на новом языке (combat.js, bossvo.js)
+    try { if (typeof voiceReload === 'function') voiceReload(); if (typeof BV !== 'undefined' && BV.reload) BV.reload(); } catch (e) {}
   }
   // ---- экран выбора языка (первый запуск): две кнопки в стиле игры на чёрном экране заставок ----
   function pick(root) {

@@ -25,7 +25,9 @@ const CINE = (() => {
   const KEY = 'hw_cine';
   let seen = {}; try { seen = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {}
   const mark = k => { seen[k] = 1; try { localStorage.setItem(KEY, JSON.stringify(seen)); } catch (e) {} };
-  const url = p => 'cine/' + p + (typeof V === 'string' ? V : '');
+  // v123: ролики книги при английском языке — из cine_en/ (те, что есть в списке VOICE_EN.cine; остальное — общее, из cine/)
+  const enCine = p => typeof LANG !== 'undefined' && LANG.cur === 'en' && typeof VOICE_EN !== 'undefined' && !!(VOICE_EN.cine && VOICE_EN.cine[p]);
+  const url = p => (enCine(p) ? 'cine_en/' : 'cine/') + p + (typeof V === 'string' ? V : '');
   const online = () => !!((window.NETC && NETC.on) || (typeof TEAM !== 'undefined' && TEAM.on));
   let on = false, duck = null, frozen = false;
 
@@ -128,7 +130,7 @@ const CINE = (() => {
     const v = document.createElement('video');
     v.playsInline = true; v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', ''); v.controls = false; v.poster = BLANK;
     v.setAttribute('disablepictureinpicture', ''); v.setAttribute('disableremoteplayback', ''); v.setAttribute('controlslist', 'nodownload nofullscreen noremoteplayback');
-    v.preload = 'auto'; v.src = url(file); try { v.load(); } catch (e) {}
+    v.preload = 'auto'; v.__url = url(file); v.src = v.__url; try { v.load(); } catch (e) {}
     return v;
   }
   function preload(file) { if (!OFF && has(file) && !PRE[file]) { for (const k in PRE) if (k !== 'logo_paladium.mp4') { try { PRE[k].removeAttribute('src'); PRE[k].load(); } catch (e) {} delete PRE[k]; } PRE[file] = mkVideo(file); } }   // заранее держим один ролик
@@ -137,7 +139,8 @@ const CINE = (() => {
   function video(file, setSkip, o) {
     o = o || {};
     return new Promise(done => {
-      const r = root(o.now), v = PRE[file] || mkVideo(file); delete PRE[file]; let over = false, seen1 = false; const born = performance.now();
+      if (PRE[file] && PRE[file].__url !== url(file)) { try { PRE[file].removeAttribute('src'); PRE[file].load(); } catch (e) {} delete PRE[file]; }      // v123: заготовлен ролик на другом языке
+      const r = root(o.now), v = PRE[file] || mkVideo(file); delete PRE[file]; let over = false, seen1 = false, ruTry = false; const born = performance.now();
       const vis = () => { if (over) return; if (document.hidden) { try { v.pause(); } catch (e) {} } else v.play().catch(() => {}); };
       const tapEnd = () => { if (o.tap) end(); };      // v121: касание по экрану закрывает только лого студии; ролики книги — только кнопкой «Продолжить»
       const end = () => { if (over) return; over = true; document.removeEventListener('visibilitychange', vis); r.removeEventListener('pointerdown', tapEnd); try { v.pause(); } catch (e) {} if (!o.tap && seen1 && typeof METRICS !== 'undefined') METRICS.cine(file, v.ended || (v.duration > 0 && v.currentTime >= v.duration - 0.6)); done(); };
@@ -146,7 +149,9 @@ const CINE = (() => {
       const first = () => { if (seen1 || over) return; seen1 = true; v.classList.add('on'); wait.classList.remove('on'); };
       v.classList.remove('on');
       try { if (v.currentTime > 0) v.currentTime = 0; } catch (e) {}      // v119: ролик всегда идёт с самого начала
-      v.addEventListener('ended', end); v.addEventListener('error', end);
+      v.addEventListener('ended', end);
+      // английский ролик не загрузился — показываем русский (один раз), и только если и он не идёт — закрываем
+      v.addEventListener('error', () => { if (!ruTry && !over && /cine_en\//.test(v.__url || '')) { ruTry = true; v.__url = 'cine/' + file + (typeof V === 'string' ? V : ''); v.src = v.__url; try { v.load(); } catch (e) {} v.play().catch(() => {}); } else end(); });
       v.addEventListener('timeupdate', () => { if (v.currentTime > 0) first(); });
       if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(first);
       r.appendChild(v);

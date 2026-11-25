@@ -28,12 +28,23 @@ function audioInit() {
   const C = window.AudioContext || window.webkitAudioContext;
   if (!C) return;
   AC = new C();
-  for (const name in SFX_SETS) for (let i = 1; i <= SFX_SETS[name]; i++) {
-    const n = name + '_' + i;
-    fetch('sfx/' + n + '.mp3' + V).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); })
-      .then(b => AC.decodeAudioData(b, buf => { SND[n] = buf; }, () => {})).catch(() => {});
-  }
+  for (const name in SFX_SETS) for (let i = 1; i <= SFX_SETS[name]; i++) sfxLoad(name + '_' + i);
   musicStart();
+}
+// v123: английская озвучка. Реплики героев (vo_*, archer_vo_*) при английском языке берутся из sfx_en/ — только те, что есть в
+// списке VOICE_EN (voice_en.js); нет файла или он не загрузился — русский из sfx/. Остальные звуки общие.
+const VO_RX = /^(archer_)?vo_/;
+const voiceEn = (kind, n) => typeof LANG !== 'undefined' && LANG.cur === 'en' && typeof VOICE_EN !== 'undefined' && !!(VOICE_EN[kind] && VOICE_EN[kind][n]);
+function sfxLoad(n) {
+  const get = u => fetch(u + V).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); }).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no)));
+  const lang = typeof LANG !== 'undefined' ? LANG.cur : 'ru', ru = () => get('sfx/' + n + '.mp3');
+  (VO_RX.test(n) && voiceEn('sfx', n) ? get('sfx_en/' + n + '.mp3').catch(ru) : ru())
+    .then(buf => { if ((typeof LANG !== 'undefined' ? LANG.cur : 'ru') === lang || !VO_RX.test(n)) SND[n] = buf; }).catch(() => {});
+}
+// язык сменили (экран выбора языка, настройки) — голоса героев загружаются заново на новом языке
+function voiceReload() {
+  if (!AC) return;
+  for (const name in SFX_SETS) if (VO_RX.test(name)) for (let i = 1; i <= SFX_SETS[name]; i++) sfxLoad(name + '_' + i);
 }
 let stepT = 0;
 for (const ev of ['touchstart', 'touchend', 'pointerup', 'click', 'mousedown', 'keydown']) addEventListener(ev, audioInit, { passive: true });

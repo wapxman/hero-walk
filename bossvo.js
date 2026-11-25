@@ -8,7 +8,16 @@ const BV = (() => {
   const voOf = t => BOSSVO[t] ? t : null;
   function load(n) {
     if (asked[n] || !AC) return; asked[n] = 1;
-    fetch('sfx/bv/' + n + '.mp3' + V).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); }).then(b => AC.decodeAudioData(b, buf => { BUF[n] = buf; }, () => {})).catch(() => { asked[n] = 0; });
+    // v123: фразы боссов (_l1..3) при английском языке — из sfx_en/bv/, если есть в списке VOICE_EN; не загрузилась — русская
+    const get = u => fetch(u + V).then(r => { if (!r.ok) throw 0; return r.arrayBuffer(); }).then(b => new Promise((ok, no) => AC.decodeAudioData(b, ok, no)));
+    const lang = typeof LANG !== 'undefined' ? LANG.cur : 'ru', ru = () => get('sfx/bv/' + n + '.mp3');
+    (typeof voiceEn === 'function' && voiceEn('bv', n) ? get('sfx_en/bv/' + n + '.mp3').catch(ru) : ru())
+      .then(buf => { if ((typeof LANG !== 'undefined' ? LANG.cur : 'ru') === lang || !/_l\d$/.test(n)) BUF[n] = buf; else asked[n] = 0; }).catch(() => { asked[n] = 0; });
+  }
+  // язык сменили — фразы боссов забываем; у тех, кто сейчас на арене, грузим заново
+  function reload() {
+    for (const n in asked) if (/_l\d$/.test(n)) { delete asked[n]; delete BUF[n]; }
+    if (typeof enemies !== 'undefined') for (const e of enemies) if (BOSSVO[e.type]) preload(e.type);
   }
   function preload(t) {
     const v = BOSSVO[t]; if (!v) return;
@@ -97,5 +106,5 @@ const BV = (() => {
       was = P.dead;
     };
   }
-  return { play, line, skill, preload, BUF };
+  return { play, line, skill, preload, reload, BUF };
 })();
