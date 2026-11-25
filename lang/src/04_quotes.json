@@ -39,5 +39,8 @@
 "НОВАЯ ИГРА": "NEW GAME",
 "Начать заново? Прогресс будет потерян: пройденные миры, уровень героя, золото, предметы,": "Start over? Your progress will be lost: cleared worlds, hero level, gold, items,",
 "прокачка и склянки будут стёрты.": "upgrades and flasks will be erased.",
-"мир": "world"
+"мир": "world",
+"Статистика": "Analytics",
+"Отправлять": "Send",
+"Нет": "No"
 }

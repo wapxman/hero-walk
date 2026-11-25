@@ -38,7 +38,7 @@ const LIMBO = (() => {
   function forgeBuy(id) {
     const c = forgeCost(id);
     if (forgeLv(id) >= FORGE_MAX || SHOP.gold < c) { snd('hero_shot', 0.2, 0.6); return; }
-    SHOP.gold -= c; if (SHOP.led) SHOP.led.forge += c; P.forge = P.forge || {}; P.forge[id] = forgeLv(id) + 1;
+    SHOP.gold -= c; if (SHOP.led) SHOP.led.forge += c; if (typeof METRICS !== 'undefined') METRICS.goldOut(c, 'Forge', id); P.forge = P.forge || {}; P.forge[id] = forgeLv(id) + 1;
     snd('coins', 0.6, 0.8); burst(X(L.st.forge.p[0]), Y(L.st.forge.p[1]) - 40, 30, '255,170,60');
     if (typeof progSave === 'function') progSave();
     SHOP.refresh(); forgeUI();

@@ -65,6 +65,8 @@ async def world(br, w, res):
         if not shot: await p.screenshot(path=os.path.join(OUT, 'world_%02d.png' % w))
         r['run'] = await p.evaluate("({ rounds: BOT.rounds, deaths: BOT.deaths, stuck: BOT.stuck, hang: BOT.hang, perf: BOT.perf, buys: BOT.buys, made: Object.keys(BOT.made), seen: BOT.seen, casts: BOT.casts, lvl: P.lvl, gold: SHOP.gold, bag: SHOP.bag.map(id => ALL[id].nm), wave, sec: 0 })")
         r['run']['sec'] = round(time.time() - t0)
+        # v122: статистика (stats.js) в автопрогоне работает в тестовом режиме — события только пишутся в лог
+        r['stats'] = await p.evaluate("(() => { if (typeof METRICS === 'undefined') return null; const L = METRICS.log; return { n: L.length, test: METRICS.TEST, sdk: !!window.gameanalytics, done: [...new Set(L.filter(e => e[0] === 'prog' && e[1] === 'Complete').map(e => e[2] + ':' + e[3]))], fail: L.filter(e => e[0] === 'prog' && e[1] === 'Fail').length, gold: L.filter(e => e[0] === 'res').length }; })()")
         # полигон умений
         r['skills'] = []
         if not A.skip_skills:
@@ -161,6 +163,10 @@ for w in WORLDS:
     if run['wave'] < w * 10: red(w, f"пройдено волн до {run['wave']} из {w * 10}")
     for h in run['hang']: red(w, f"зависание: волна {h['wave']} не кончалась 12 игровых минут (остались: {', '.join(sorted(set(h['left']))) or 'никого'}, в очереди {h['queue']}; {h.get('why', '')})")
     if run['stuck']: yel(w, f"бот не смог пройти {run['stuck']} раунд(а) даже с бронёй ×{A.armor} — пропущены")
+    stt = r.get('stats')
+    if not stt or not stt['test'] or stt['sdk']: red(w, f"статистика: в автопрогоне должна только писать в лог (сейчас: {stt})")
+    elif not run['stuck'] and len([x for x in stt['done'] if x.startswith('World%02d:' % w)]) < 10: red(w, f"статистика: в логе пройдено волн мира {len(stt['done'])} из 10 ({', '.join(stt['done'])})")
+    elif stt['fail'] != run['deaths'] and not run['stuck']: yel(w, f"статистика: гибелей в логе {stt['fail']}, у бота {run['deaths']}")
     if abs(run['lvl'] - m['lvl']) > 3: red(w, f"уровень в конце мира {run['lvl']}, по модели {m['lvl']}")
     inc = sum(x['gold1'] - x['gold'] for x in run['rounds'])
     if not run['stuck'] and abs(inc - m['coin']) > 0.35 * m['coin']: red(w, f"золото за мир {inc}, по модели {m['coin']} (без сундуков)")

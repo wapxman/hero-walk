@@ -77,7 +77,7 @@ const SAVE = (() => {
   // Ролик мира идёт после выбора мира на карте, перед первой ареной (cine.js).
   function begin() {
     if (!window.NEWGAME) return chooser();
-    window.NEWGAME = false;
+    window.NEWGAME = false; if (typeof METRICS !== 'undefined') METRICS.newGame();
     const go = () => { if (typeof LEVEL !== 'undefined' && LEVEL.TEST) { start(1, 0); fight(); } else chooser(); };      // v118: после пролога — карта миров; игрок выбирает мир 1 → ролик мира → первая арена
     go();      // v121: пролог идёт при запуске игры, при «Новой игре» — только то, что по сценарию (ролик мира при входе в мир)
   }

@@ -23,7 +23,7 @@ if [ "$1" != "--no-test" ]; then
   PYTHONIOENCODING=utf-8 python tools/level_check.py > tests_lv.log 2>&1 || { grep -a "НЕТ\|ИТОГ\|Error" tests_lv.log | cut -c1-300; rm -f tests_lv.log; echo "ПРОВЕРКА УРОВНЕЙ КРАСНАЯ — APK не собран"; exit 1; }
   rm -f tests_lv.log; echo "уровни и крюк в порядке"
   # v119: мана, 20 уровней умений и рывка, 12 слотов, босс мира 5, цифры урона; умения героев видны; ролики идут с начала и до конца
-  for t in v119_check v120_check v121_check lang_check fx_check cine_full; do
+  for t in v119_check v120_check v121_check lang_check stats_check fx_check cine_full; do
     PYTHONIOENCODING=utf-8 python tools/$t.py > tests_x.log 2>&1 || { grep -a "НЕТ\|ИТОГ\|Error" tests_x.log | cut -c1-300; rm -f tests_x.log; echo "ПРОВЕРКА $t КРАСНАЯ — APK не собран"; exit 1; }
     rm -f tests_x.log; echo "$t: в порядке"
   done
@@ -36,6 +36,8 @@ sed -i -E "s/android:versionCode=\"[0-9]+\"/android:versionCode=\"$V\"/; s/andro
 rm -rf $W && mkdir -p $W
 (cd ../hero-walk && git archive HEAD) | tar -x -C $W
 rm -rf $W/apk $W/tests $W/tools $W/server $W/lang/src $W/*.md $W/dbg.png   # служебное в APK не идёт
+# v122: ключи статистики (GameAnalytics) — отдельным файлом, которого нет в git; нет файла ключей — сборка идёт без статистики
+PYTHONIOENCODING=utf-8 python ../hero-walk/tools/stats_keys.py android $W || echo "ВНИМАНИЕ: сборка без статистики"
 gbuild ../hero-walk/apk/DuelArena-v$V.apk > /tmp/apk_a.log 2>&1 || { tail -20 /tmp/apk_a.log; exit 1; }
 sed -i 's#<head>#<head><script>window.ALL_WORLDS=1</script>#' $W/index.html
 gbuild ../hero-walk/apk/DuelArena-v$V-test-all-worlds.apk > /tmp/apk_b.log 2>&1 || { tail -20 /tmp/apk_b.log; exit 1; }

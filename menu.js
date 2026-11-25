@@ -140,6 +140,7 @@
   option('Звуки', [[true, 'Вкл'], [false, 'Выкл']], () => SET.sfx, v => { SET.sfx = v; put('hw_sfx', v ? '1' : '0'); });
   option('Камера', [[1.35, 'Близко'], [1.65, 'Обычно'], [1.95, 'Далеко']], () => SET.cam, v => { SET.cam = CFG.cam = v; put('hw_cam', v); });
   option('Графика', [['hi', 'Чётко'], ['lo', 'Экономно']], () => SET.q, v => { SET.q = v; put('hw_q', v); DPR_CAP = v === 'lo' ? 1.25 : 2; resize(); });
+  if (typeof METRICS !== 'undefined') option('Статистика', [[true, 'Отправлять'], [false, 'Нет']], () => METRICS.on, v => METRICS.set(v));      // v122: обезличенная статистика игры (stats.js)
   if (typeof LANG !== 'undefined') option('Язык', [['ru', 'Русский'], ['en', 'English']], () => LANG.cur, v => LANG.set(v));      // v121: английская версия (lang.js)
   tap(mk('div', 'b', pn, 'Готово'), () => { st.style.display = 'none'; if (!started) showMain(); });
   function openSettings() { st.style.display = 'flex'; }

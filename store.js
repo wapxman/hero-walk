@@ -46,15 +46,17 @@ const STORE = (() => {
 
   // ---------- ответы приложения ----------
   function cb(kind, ok, tag) {
-    if (kind === 'pro') { if (ok) { if (!pro) toast('PRO куплен — рекламы больше не будет'); pro = true; refreshMenu(); } const w = wait; if (w && w.kind === 'pro') { wait = null; w.done(!!ok); } return; }
-    if (kind === 'shown') { if (wait) { wait.shown = true; clearTimeout(wait.t0); } return; }      // приложение: реклама открылась на экране
+    if (kind === 'pro') { if (ok) { if (!pro) toast('PRO куплен — рекламы больше не будет'); if (!pro && wait && wait.kind === 'pro' && typeof METRICS !== 'undefined') METRICS.purchase('PRO'); pro = true; refreshMenu(); } const w = wait; if (w && w.kind === 'pro') { wait = null; w.done(!!ok); } return; }
+    if (kind === 'shown') { if (wait) { if (!wait.shown && typeof METRICS !== 'undefined') METRICS.ad('Show', wait.kind, wait.tag); wait.shown = true; clearTimeout(wait.t0); } return; }      // приложение: реклама открылась на экране
     const w = wait; if (!w || w.kind !== kind) return;
-    wait = null; clearTimeout(w.timer); clearTimeout(w.t0); mute(false); w.done(!!ok);
+    wait = null; clearTimeout(w.timer); clearTimeout(w.t0); mute(false);
+    if (typeof METRICS !== 'undefined') { if (!w.shown) METRICS.ad(ok ? 'Show' : 'FailedShow', kind, w.tag); if (ok && kind === 'reward') METRICS.ad('RewardReceived', kind, w.tag); }
+    w.done(!!ok);
   }
   // показать рекламу и дождаться ответа; если ответа нет слишком долго — идём дальше, игра не должна зависнуть
   function ad(kind, tag, done) {
     mute(true);
-    wait = { kind, done, timer: setTimeout(() => cb(kind, 0, tag), CFG.safetySec * 1000) };
+    wait = { kind, tag, done, timer: setTimeout(() => cb(kind, 0, tag), CFG.safetySec * 1000) };
     // v115: реклама могла не открыться и не ответить (на телефоне Создателя так не стартовала волна 100: игра ждала ответа 5 минут,
     // а «Начать волну» только открывала карту). Не открылась за showSec — идём дальше без неё. Открылась — приложение шлёт 'shown',
     // а если страницу закрыло чужое окно (document.hidden), значит реклама на экране — тоже ждём её конца.
@@ -157,7 +159,7 @@ const STORE = (() => {
       bossGold = 0;
       if (BOT || online() || !B || !call('rewardedReady')) return next();
       win('Босс повержен!', 'Золото за босса: ' + g + '. Посмотрите рекламу — и получите ещё столько же.',
-        [['Удвоить золото за рекламу', () => { freeze(true); ad('reward', 'gold', ok => { freeze(false); if (ok) { SHOP.addGold(g); toast('+' + g + ' золота'); snd('coins', 0.8); } next(); }); }, 'gold'], ['Дальше', next]]);
+        [['Удвоить золото за рекламу', () => { freeze(true); ad('reward', 'gold', ok => { freeze(false); if (ok) { if (typeof METRICS !== 'undefined') METRICS.goldTag('Ad'); SHOP.addGold(g); toast('+' + g + ' золота'); snd('coins', 0.8); } next(); }); }, 'gold'], ['Дальше', next]]);
     };
   }
 

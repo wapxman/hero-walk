@@ -140,7 +140,7 @@ const CINE = (() => {
       const r = root(o.now), v = PRE[file] || mkVideo(file); delete PRE[file]; let over = false, seen1 = false; const born = performance.now();
       const vis = () => { if (over) return; if (document.hidden) { try { v.pause(); } catch (e) {} } else v.play().catch(() => {}); };
       const tapEnd = () => { if (o.tap) end(); };      // v121: касание по экрану закрывает только лого студии; ролики книги — только кнопкой «Продолжить»
-      const end = () => { if (over) return; over = true; document.removeEventListener('visibilitychange', vis); r.removeEventListener('pointerdown', tapEnd); try { v.pause(); } catch (e) {} done(); };
+      const end = () => { if (over) return; over = true; document.removeEventListener('visibilitychange', vis); r.removeEventListener('pointerdown', tapEnd); try { v.pause(); } catch (e) {} if (!o.tap && seen1 && typeof METRICS !== 'undefined') METRICS.cine(file, v.ended || (v.duration > 0 && v.currentTime >= v.duration - 0.6)); done(); };
       document.addEventListener('visibilitychange', vis);
       const wait = el('wait', r);
       const first = () => { if (seen1 || over) return; seen1 = true; v.classList.add('on'); wait.classList.remove('on'); };
