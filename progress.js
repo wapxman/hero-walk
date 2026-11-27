@@ -65,6 +65,13 @@ const PE = {};
   css.textContent = `
   #hHero .pt { pointer-events: auto; cursor: pointer; touch-action: manipulation; }
   #hHero .plus { position: absolute; left: 0; top: 0; width: 5vh; height: 5vh; background: ${U('i_plus')} center / 100% 100% no-repeat; display: none; animation: shPulse 1.2s ease-in-out infinite; pointer-events: none; }
+  /* v124 (Создатель 27.11): есть непотраченные очки — портрет в пульсирующем золотом кольце, под ним подпись «Прокачка +N» (нажимается, как и портрет) */
+  #hHero .upr { position: absolute; left: .7vh; top: .7vh; width: 12.6vh; height: 12.6vh; border-radius: 50%; box-shadow: 0 0 0 .35vh rgba(255,226,122,.95), 0 0 2.4vh .9vh rgba(255,226,122,.7);
+    display: none; pointer-events: none; animation: upGlow 1.2s ease-in-out infinite; }
+  #hHero .upl { position: absolute; left: .4vh; top: 14.8vh; padding: .55vh 1.5vh; border-radius: 1.2vh; background: rgba(10,14,22,.8); border: .25vh solid rgba(255,226,122,.8); color: #ffe9a8;
+    font: bold 2.2vh system-ui, sans-serif; white-space: nowrap; display: none; pointer-events: auto; cursor: pointer; touch-action: manipulation; animation: shPulse 1.2s ease-in-out infinite; }
+  #hHero.up .upr, #hHero.up .upl { display: block; }
+  @keyframes upGlow { 0%, 100% { opacity: .2; } 50% { opacity: 1; } }
   #hHero .xp { position: absolute; left: 15.5vh; top: 11.3vh; width: 32.5vh; height: 1.3vh; background: rgba(8,12,24,.75); border-radius: .7vh; box-shadow: 0 0 0 .2vh rgba(190,200,220,.45); overflow: hidden; }
   #hHero .xp i { position: absolute; inset: 0; background: ${U('h_xp')} center / 100% 100% no-repeat; }
   #hProg { position: fixed; inset: 0; z-index: 9; display: none; align-items: center; justify-content: center; background: rgba(2,6,12,.5); color: #fff;
@@ -93,8 +100,11 @@ const PE = {};
   const hero = document.getElementById('hHero');
   const pt = hero.querySelector('.pt');
   PE.badge = document.createElement('div'); PE.badge.className = 'plus'; hero.appendChild(PE.badge);
+  PE.hero = hero; PE.upr = document.createElement('div'); PE.upr.className = 'upr'; hero.appendChild(PE.upr);
+  PE.upl = document.createElement('div'); PE.upl.className = 'upl'; hero.appendChild(PE.upl);
   PE.xp = document.createElement('div'); PE.xp.className = 'xp'; PE.xp.innerHTML = '<i></i>'; hero.appendChild(PE.xp);
   tap(pt, () => progOpen(true));
+  tap(PE.upl, () => progOpen(true));
   const box = PE.box = document.createElement('div'); box.id = 'hProg';
   for (const ev of ['touchstart', 'mousedown', 'pointerdown']) box.addEventListener(ev, x => x.stopPropagation(), { passive: true });
   box.innerHTML = '<div class="pn"><div class="tt"></div><div class="cl"></div><div class="col c1"></div><div class="col c2"></div></div>';
@@ -144,6 +154,7 @@ function progUI() {
   if (!PE.box) return;
   const need = xpNeedP(P.lvl), pct = P.lvl >= LVL_MAX ? 100 : Math.min(100, 100 * P.xp / need);
   PE.badge.style.display = P.sp > 0 || P.stp > 0 ? 'block' : 'none';
+  { const n = (P.sp || 0) + (P.stp || 0), k = n > 0 ? '▲ Прокачка +' + n : ''; if (k !== PE.upK) { PE.upK = k; PE.hero.classList.toggle('up', n > 0); PE.upl.textContent = k; } }
   PE.xp.firstChild.style.clipPath = 'inset(0 ' + (100 - pct).toFixed(1) + '% 0 0)';
   if (PE.box.style.display !== 'flex') return;
   const h = HEROES[HERO_ID];
@@ -176,5 +187,5 @@ const _shootP = shoot;
 shoot = function () { _shootP(); P.atkCd /= P.atkSpd || 1; };
 // при смене героя — его собственная прокачка
 const _setHeroP = setHero;
-setHero = function (id) { _setHeroP(id); progLoad(); };
+setHero = function (id) { _setHeroP(id); progLoad(); if (typeof heroEv !== 'undefined') heroEv.lvl = 0; };      // v124: смена героя — не «новый уровень» (фраза уровня не звучит)
 progLoad();

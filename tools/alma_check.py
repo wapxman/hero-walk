@@ -75,7 +75,7 @@ try:
         walk(p, 'alma'); time.sleep(0.6)
         chk('подошёл к библиотеке — открылась книга', p.evaluate(VIS, 'almaBook') and p.evaluate("ALMA.cur") == 'book')
         time.sleep(1.5); s = p.evaluate(BOOK); shot(p, '2_book_bosses')
-        chk('вкладки: Боссы, Мини-боссы, Враги, Предметы', p.evaluate("[...document.querySelectorAll('#almaBook .tabs div')].map(d => d.textContent)") == ['Боссы', 'Мини-боссы', 'Враги', 'Предметы'])
+        chk('вкладки: Боссы, Мини-боссы, Враги, Предметы, Герои (v124)', p.evaluate("[...document.querySelectorAll('#almaBook .tabs div')].map(d => d.textContent)") == ['Боссы', 'Мини-боссы', 'Враги', 'Предметы', 'Герои'])
         chk('боссы: 10 записей, открыт только встреченный (Бранд), у остальных «???» и тёмный силуэт', s['n'] == 10 and s['open'] == ['b_blackknight'] and s['names'].count('???') == 9 and s['locked'] == 9 and s['names'][0] == 'Бранд', s)
         chk('картинки у всех десяти есть (кадр из листа босса), записи умещаются на странице', s['pics'] == 10 and s['inPage'], [s['pics'], s['inPage']])
         chk('запись босса: имя, титул, мир, описание и умения из текстов Клауди; здоровье и урон — из игры', s['title'] == 'Бранд' and all(x in s['text'] for x in ('Железный маршал Хоргата', 'Чёрный Рыцарь', 'Королевский замок', 'Тысячу лет мир Хоргат', 'Умения', 'Таран', 'Призрачная конница', 'Здоровье', 'Урон')), s['text'][:300])

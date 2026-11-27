@@ -26,14 +26,25 @@ var TEAM = { on: false, host: false, peer: null };
   T.peerAlive = peerAlive;
 
   // ---------- подключение ----------
-  T.connect = function (room) {
+  // сокет к серверу: один на игру вдвоём и на зал ожидания (v124). opened — что сделать, когда связь есть
+  function wsMake(opened) {
     const url = (NETC.S && NETC.S.url) || new URLSearchParams(location.search).get('server') || 'wss://abpartners.uz:30777';
+    let w; try { w = ws = new WebSocket(url); } catch (e) { return false; }
+    w.onopen = () => { if (ws === w) opened(); };
+    w.onmessage = m => { if (ws !== w || typeof m.data !== 'string') return; let j; try { j = JSON.parse(m.data); } catch (e) { return; } if (j && typeof j === 'object') try { onMsg(j); } catch (e) { console.error('team', e); } };
+    w.onclose = () => {
+      if (ws !== w) return;
+      if (T.on) { say(P.x, P.y - CH * HS() * 1.4, 'Связь потеряна — дальше в одиночку', '#ff9a6a'); status(''); solo(); }
+      else if (LB.on) { LB.st = 'off'; LB.joined = null; lbDraw(); } else status('Сервер недоступен');
+    };
+    w.onerror = () => {};
+    return true;
+  }
+  const myInfo = () => ({ hero: HERO_ID, name: nick(), lvl: (typeof P !== 'undefined' && P.lvl) || 1, world: myWorld(), v: String(V).replace(/\D/g, '') });
+  // прежний вход по коду комнаты (ссылки и сценарии проверки): пусто — к любому ждущему; ведущий начинает игру сразу, не дожидаясь напарника
+  T.connect = function (room) {
     status('Подключение к серверу…');
-    try { ws = new WebSocket(url); } catch (e) { status('Сервер недоступен'); return; }
-    ws.onopen = () => ws.send(JSON.stringify({ t: 'join', mode: 'team', room: room || undefined, hero: HERO_ID, name: HEROES[HERO_ID].name, v: String(V).replace(/\D/g, '') }));
-    ws.onmessage = m => { if (typeof m.data !== 'string') return; let j; try { j = JSON.parse(m.data); } catch (e) { return; } if (j && typeof j === 'object') try { onMsg(j); } catch (e) { console.error('team', e); } };
-    ws.onclose = () => { if (T.on) { say(P.x, P.y - CH * HS() * 1.4, 'Связь потеряна — дальше в одиночку', '#ff9a6a'); status(''); solo(); } else status('Сервер недоступен'); };
-    ws.onerror = () => {};
+    if (!wsMake(() => ws.send(JSON.stringify(Object.assign({ t: 'join', mode: 'team', room: room || undefined }, myInfo(), { name: HEROES[HERO_ID].name }))))) status('Сервер недоступен');
   };
   // напарника нет (вышел или связь пропала): игра продолжается одиночной — все злодеи мои, волны выпускаю сам
   function solo() {
@@ -43,6 +54,15 @@ var TEAM = { on: false, host: false, peer: null };
     hostW = null;
   }
   function onMsg(m) {
+    // зал ожидания (v124)
+    if (m.t === 'teamList') { LB.list = Array.isArray(m.list) ? m.list : []; LB.got = true; if (LB.on && LB.st === 'idle') lbDraw(); return; }
+    if (LB.on) {
+      if (m.t === 'error') { LB.err = m.msg || 'Ошибка сервера'; LB.st = 'idle'; LB.joined = null; lbDraw(); lbAsk(); return; }
+      if (m.t === 'tjoined' && m.host && !m.peer) { LB.joined = m; LB.room = m.room; lbDraw(); return; }      // я в комнате один: ждём напарника в зале, игра не начинается
+      if (m.t === 'tpeer' && LB.joined) { const j = Object.assign({}, LB.joined, { peer: m.peer }); lbClose(); onMsg(j); if (T.host) sendAll(); return; }   // напарник пришёл — начинаем
+      if (m.t === 'tjoined') lbClose();      // вошёл к ждущему игроку — начинаем сразу
+      else if (m.t === 'tleft') return;
+    }
     if (m.t === 'error') { status(m.msg || 'Ошибка сервера'); return; }
     if (m.t === 'tjoined') {
       T.host = !!m.host; me = T.host ? 0 : 1; T.room = m.room; T.peer = m.peer || null; nextId = 1;
@@ -437,4 +457,119 @@ var TEAM = { on: false, host: false, peer: null };
       if (n % 15 === 0) for (const [id, e] of byId) if (enemies.indexOf(e) < 0 && corpses.indexOf(e) < 0) { byId.delete(id); if (mine(e)) send({ k: 'gone', id }); }
     }, 66);
   }
+
+  // ---------- зал ожидания (v124, Создатель 27.11) ----------
+  // «Онлайн» в главном меню → выбор героя → «Далее» → этот экран. Одиночной игры и дуэли здесь нет — только поход вдвоём.
+  //   слева список «Ищут напарника» (открытые комнаты, где один игрок ждёт): «Играть» — и вы вдвоём;
+  //   «Искать напарника» — самому встать в этот список; «Комната для друга» — закрытая комната: её код говорят другу,
+  //   друг входит через «Войти по коду» (цифры набираются на экране, клавиатура телефона не нужна).
+  // Игра начинается, когда в комнате двое. Рамка, лента, кнопки и портреты — готовые картинки игры.
+  const LB = { on: false, st: 'idle', list: [], got: false, joined: null, room: '', err: '', code: '', el: null, iv: 0 };
+  function nick() {
+    let n = null; try { n = localStorage.getItem('hw_nick'); } catch (e) {}
+    if (!n) { n = 'Игрок ' + (1000 + Math.floor(Math.random() * 9000)); try { localStorage.setItem('hw_nick', n); } catch (e) {} }
+    return n;
+  }
+  function myWorld() { try { const d = SAVE.read(); return Math.max(1, Math.min(10, BAL.at(((d && d.wave) || 0) + 1).M)); } catch (e) { return 1; } }
+  const raw = o => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); };
+  const lbAsk = () => { if (LB.on && LB.st === 'idle') raw({ t: 'teamList' }); };
+  const lbJoin = extra => raw(Object.assign({ t: 'join', mode: 'team' }, myInfo(), extra));
+  function lbOpen() {
+    if (!LB.el) lbBuild();
+    LB.on = true; LB.st = 'conn'; LB.err = ''; LB.joined = null; LB.got = false; LB.list = []; LB.code = '';
+    LB.el.style.display = 'block'; lbDraw();
+    const ready = () => { LB.st = 'idle'; lbDraw(); lbAsk(); };
+    if (ws && ws.readyState === 1 && !T.on) ready(); else if (!wsMake(ready)) { LB.st = 'off'; lbDraw(); }
+    clearInterval(LB.iv); LB.iv = setInterval(lbAsk, 2500);
+  }
+  function lbClose() { LB.on = false; clearInterval(LB.iv); if (LB.el) LB.el.style.display = 'none'; }
+  function lbBack() { lbClose(); if (ws && !T.on) { const w = ws; ws = null; try { w.close(); } catch (e) {} } }      // назад к выбору героя: комнату (если была) сервер снимет сам
+  function lbCancel() { raw({ t: 'teamLeave' }); LB.joined = null; LB.st = 'idle'; LB.err = ''; lbDraw(); lbAsk(); }
+  function lbBuild() {
+    const U = n => 'url(ui/' + n + '.webp' + V + ')', css = document.createElement('style');
+    css.textContent = `
+    #tmLobby { position: fixed; inset: 0; z-index: 12; display: none; color: #fff; font-family: system-ui, sans-serif; text-shadow: 0 .15vh .4vh #000; user-select: none; -webkit-user-select: none;
+      background: #05080e ${U('menu_bg')} center / cover no-repeat; --pw: min(58vw, 108vh); }
+    #tmLobby::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(5,8,16,.78), rgba(2,4,9,.94)); }
+    #tmLobby > * { position: absolute; }
+    #tmLobby .hd { left: 50%; top: calc(1.2vh + var(--sat)); transform: translateX(-50%); width: 58vh; height: 10.9vh; background: ${U('map/ribbon')} center / 100% 100% no-repeat; display: flex; align-items: center;
+      justify-content: center; font: bold 4vh Georgia, 'Times New Roman', serif; color: #5a2408; text-shadow: none; padding-bottom: .9vh; box-sizing: border-box; }
+    #tmLobby .back { left: calc(2.4vh + var(--sal)); top: calc(2.4vh + var(--sat)); width: 22vh; height: 7vh; background: ${U('h_plaque')} center / 100% 100% no-repeat; display: flex; align-items: center;
+      justify-content: center; font: bold 2.4vh system-ui; cursor: pointer; }
+    #tmLobby .pn { left: calc(4vw + var(--sal)); top: 15vh; width: var(--pw); aspect-ratio: 3 / 2; background: ${U('panel')} center / 100% 100% no-repeat; font-size: calc(var(--pw) / 62); }
+    #tmLobby .pn .tt { position: absolute; left: 24%; top: 5.5%; width: 52%; height: 10.5%; display: flex; align-items: center; justify-content: center; font: bold 1.45em Georgia, serif; color: #ffe9a8; white-space: nowrap; }
+    #tmLobby .ls { position: absolute; left: 6.5%; right: 6.5%; top: 19%; bottom: 9.5%; overflow-y: auto; overflow-x: hidden; touch-action: pan-y; display: flex; flex-direction: column; gap: .4em; font-size: 1.6em; }
+    #tmLobby .rw { display: flex; align-items: center; gap: .8em; background: rgba(8,16,32,.6); border-radius: .6em; padding: .35em .7em; flex: none; }
+    #tmLobby .rw i { width: 3.6em; height: 3.6em; flex: none; background: center / contain no-repeat; }
+    #tmLobby .rw .tx { flex: 1; min-width: 0; } #tmLobby .rw .tx b { display: block; font-size: 1.15em; color: #ffe9a8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #tmLobby .rw .tx span { font-size: .9em; color: #cfd8ea; white-space: nowrap; }
+    #tmLobby .rw .pl { width: 9.5em; height: 3.2em; flex: none; background: ${U('btn_green')} center / 100% 100% no-repeat; display: flex; align-items: center; justify-content: center; font: bold 1.1em system-ui; cursor: pointer; }
+    #tmLobby .rw .pl:active, #tmLobby .bt:active, #tmLobby .k:active { transform: scale(.95); }
+    #tmLobby .no { margin: auto; text-align: center; font: 1.05em/1.5 Georgia, serif; color: #cfd8ea; padding: 0 1.2em; }
+    #tmLobby .act { left: calc(4vw + var(--sal) + var(--pw) + 2vw); right: calc(2vw + var(--sar)); top: 13vh; bottom: 2vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.5vh; }
+    #tmLobby .me { display: flex; align-items: center; gap: 1.4vh; margin-bottom: .6vh; }
+    #tmLobby .me i { width: 10.5vh; height: 10.5vh; background: center / contain no-repeat; }
+    #tmLobby .me b { display: block; font-size: 2.8vh; color: #ffe9a8; } #tmLobby .me span { font-size: 2.1vh; color: #cfd8ea; }
+    #tmLobby .bt { width: min(40vh, 100%); height: 9vh; background: ${U('h_button')} center / 100% 100% no-repeat; display: flex; align-items: center; justify-content: center; font: bold 2.6vh system-ui; color: #ffe9a8;
+      letter-spacing: .04em; cursor: pointer; text-align: center; }
+    #tmLobby .bt.s { width: min(30vh, 80%); height: 7.2vh; background-image: ${U('h_plaque')}; color: #fff; font-size: 2.3vh; }
+    #tmLobby .note { font: 2.3vh/1.35 Georgia, serif; color: #d9e2f2; text-align: center; max-width: 46vh; }
+    #tmLobby .big { font: bold 8vh Georgia, serif; color: #ffe27a; letter-spacing: 1.2vh; padding-left: 1.2vh; line-height: 1; }
+    #tmLobby .spin { width: 4.6vh; height: 4.6vh; border-radius: 50%; border: .4vh solid rgba(255,255,255,.14); border-top-color: rgba(255,226,122,.85); animation: acSpin 1s linear infinite; }
+    #tmLobby .kp { display: grid; grid-template-columns: repeat(3, 8.6vh); gap: .7vh; }
+    #tmLobby .k { width: 8.6vh; height: 8.4vh; background: ${U('h_slot')} center / 100% 100% no-repeat; display: flex; align-items: center; justify-content: center; font: bold 3.3vh system-ui; cursor: pointer; }
+    #tmLobby .err { color: #ffb36a; font: bold 2.2vh system-ui; text-align: center; min-height: 2.6vh; }`;
+    document.head.appendChild(css);
+    const el = LB.el = document.createElement('div'); el.id = 'tmLobby'; document.body.appendChild(el);
+    for (const ev of ['pointerdown', 'touchstart', 'mousedown', 'click']) el.addEventListener(ev, e => e.stopPropagation());
+  }
+  function lbDraw() {
+    const el = LB.el; if (!el) return;
+    const mk = (tag, cls, parent, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; parent.appendChild(e); return e; };
+    const tap = (e, fn) => e.addEventListener('pointerdown', x => { x.stopPropagation(); x.preventDefault(); fn(); });
+    const heroLine = o => (HEROES[o.hero] ? HEROES[o.hero].name : '') + ' · ур. ' + (o.lvl || 1) + ' · мир ' + (o.world || 1);
+    const face = (i, hero) => { i.style.backgroundImage = 'url(' + (HEROES[hero] || HEROES.mage).portrait + V + ')'; };
+    const top = el.querySelector('.ls') ? el.querySelector('.ls').scrollTop : 0;
+    el.innerHTML = '';
+    mk('div', 'hd', el, 'Игра вдвоём'); tap(mk('div', 'back', el, '← Назад'), lbBack);
+    const pn = mk('div', 'pn', el); mk('div', 'tt', pn, 'Ищут напарника'); const ls = mk('div', 'ls', pn);
+    if (LB.st === 'conn') mk('div', 'no', ls, 'Подключение к серверу…');
+    else if (LB.st === 'off') mk('div', 'no', ls, 'Сервер недоступен');
+    else if (!LB.list.length) mk('div', 'no', ls, LB.got ? 'Пока никто не ищет напарника. Нажмите «Искать напарника» — и вас увидят другие игроки.' : '…');
+    else for (const o of LB.list) {
+      const r = mk('div', 'rw', ls); r.dataset.room = o.room; face(mk('i', '', r), o.hero);
+      const tx = mk('div', 'tx', r); mk('b', '', tx, o.name || 'Игрок'); mk('span', '', tx, heroLine(o));
+      const b = mk('div', 'pl', r, 'Играть');
+      if (LB.st === 'idle') tap(b, () => { LB.st = 'join'; LB.err = ''; lbDraw(); lbJoin({ room: o.room, must: 1 }); }); else b.style.opacity = '.4';
+    }
+    ls.scrollTop = top;
+    const act = mk('div', 'act', el), me = mk('div', 'me', act); face(mk('i', '', me), HERO_ID);
+    { const d = mk('div', '', me); mk('b', '', d, nick()); mk('span', '', d, heroLine(myInfo())); }
+    if (LB.st === 'idle') {
+      tap(mk('div', 'bt', act, 'Искать напарника'), () => { LB.st = 'wait'; LB.err = ''; lbDraw(); lbJoin({ make: 'public' }); });
+      tap(mk('div', 'bt', act, 'Комната для друга'), () => { LB.st = 'friend'; LB.err = ''; lbDraw(); lbJoin({ make: 'friend' }); });
+      tap(mk('div', 'bt', act, 'Войти по коду'), () => { LB.st = 'code'; LB.code = ''; LB.err = ''; lbDraw(); });
+    } else if (LB.st === 'wait') {
+      mk('div', 'spin', act); mk('div', 'note', act, 'Вы в списке — ждём напарника…'); tap(mk('div', 'bt s', act, 'Отмена'), lbCancel);
+    } else if (LB.st === 'friend') {
+      mk('div', 'note', act, 'Код комнаты'); mk('div', 'big', act, LB.joined ? String(LB.room) : '····');
+      mk('div', 'note', act, 'Скажите код другу — он войдёт через «Войти по коду»'); mk('div', 'spin', act); tap(mk('div', 'bt s', act, 'Отмена'), lbCancel);
+    } else if (LB.st === 'code') {
+      mk('div', 'note', act, 'Введите код комнаты друга'); mk('div', 'big', act, (LB.code + '····').slice(0, 4));
+      const kp = mk('div', 'kp', act);
+      for (const k of ['1', '2', '3', '4', '5', '6', '7', '8', '9', '←', '0', 'OK']) {
+        const b = mk('div', 'k', kp, k); b.dataset.k = k;
+        tap(b, () => {
+          if (k === '←') LB.code = LB.code.slice(0, -1);
+          else if (k === 'OK') { if (LB.code.length === 4) { LB.st = 'join'; LB.err = ''; lbDraw(); lbJoin({ room: LB.code, must: 1 }); return; } }
+          else if (LB.code.length < 4) LB.code += k;
+          lbDraw();
+        });
+      }
+      tap(mk('div', 'bt s', act, 'Отмена'), () => { LB.st = 'idle'; lbDraw(); lbAsk(); });
+    } else if (LB.st === 'join' || LB.st === 'conn') { mk('div', 'spin', act); mk('div', 'note', act, 'Подключение к серверу…'); }
+    else if (LB.st === 'off') tap(mk('div', 'bt', act, 'Повторить'), lbOpen);
+    mk('div', 'err', act, LB.err || '');
+  }
+  window.LOBBY = { open: lbOpen, close: lbBack, get on() { return LB.on; }, get st() { return LB.st; }, LB };
 })();

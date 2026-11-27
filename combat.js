@@ -72,10 +72,14 @@ function snd(name, vol, rate) {
 // через один <audio>, подключённый к своему регулятору громкости. Один элемент, а не два:
 // на iPhone играть разрешено только тому элементу, который запущен касанием.
 // Файлы заранее выровнены по громкости (−16 LUFS), поэтому треки не скачут друг относительно друга.
-const MUSIC = [['m1', 'Ertaga bor izimiz'], ['m2', 'Ton nom dans le mien'], ['m3', "Jusqu'au dernier feu"],
-  ['m4', 'Un seul serment'], ['m5', 'The Final Stand'], ['m6', 'Ton nom dans le mien II'], ['m7', "Jusqu'au dernier feu II"]];
+// v124 (Создатель 27.11): узбекская m1 убрана; в общий круг добавлены g1–g4; у боссов миров — своя музыка b1–b6.
+const MUSIC = [['m2', 'Ton nom dans le mien'], ['m3', "Jusqu'au dernier feu"], ['m4', 'Un seul serment'], ['m5', 'The Final Stand'],
+  ['m6', 'Ton nom dans le mien II'], ['m7', "Jusqu'au dernier feu II"], ['g1', 'Ten Worlds I'], ['g2', 'Ten Worlds II'], ['g3', 'Ten Worlds III'], ['g4', 'Ten Worlds IV']];
+// Музыка боссов: пока на арене жив босс мира, вместо общего круга играет его трек (по кругу); босс пал или герой ушёл — общий круг идёт дальше.
+// Шесть треков на десять миров: какой мир какой трек — здесь. Мини-боссы идут под общую музыку.
+const BOSS_MUSIC = { 1: 'b1', 2: 'b2', 3: 'b3', 4: 'b4', 5: 'b5', 6: 'b6', 7: 'b2', 8: 'b4', 9: 'b5', 10: 'b3' };
 const MUS_VOL = 0.3, MUS_FADE = 2.5;   // музыка тише эффектов; плавный вход и выход, сек
-const mus = { el: null, g: null, i: 0, on: true, fails: 0, btn: null, nextBtn: null };
+const mus = { el: null, g: null, i: 0, on: true, fails: 0, btn: null, nextBtn: null, boss: null, bad: {}, sw: 0 };
 function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) {} return null; }
 function musicStart() {
   if (mus.el || !AC) return;
@@ -85,9 +89,9 @@ function musicStart() {
   el.preload = 'auto';
   mus.g = AC.createGain(); mus.g.gain.value = 0;
   AC.createMediaElementSource(el).connect(mus.g); mus.g.connect(AC.destination);
-  el.addEventListener('ended', () => musicNext());
+  el.addEventListener('ended', () => { if (mus.boss) musicLoad(); else musicNext(); });      // трек босса идёт по кругу, пока босс жив
   el.addEventListener('playing', () => { mus.fails = 0; });
-  el.addEventListener('error', () => { if (++mus.fails < MUSIC.length) musicNext(); });
+  el.addEventListener('error', () => { if (mus.boss) { mus.bad[mus.boss] = 1; mus.boss = null; } if (++mus.fails < MUSIC.length) musicNext(); });   // трек босса не загрузился — общий круг
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) el.pause(); else if (mus.on) el.play().catch(() => {});
   });
@@ -95,13 +99,26 @@ function musicStart() {
 }
 function musicLabel() { if (typeof SHOP !== 'undefined' && SHOP.pauseLabels) SHOP.pauseLabels(); }
 function musicLoad() {
-  mus.el.src = 'music/' + MUSIC[mus.i][0] + '.mp3' + V;
+  mus.el.src = 'music/' + (mus.boss || MUSIC[mus.i][0]) + '.mp3' + V;
   mus.g.gain.cancelScheduledValues(AC.currentTime); mus.g.gain.value = 0; mus.v = 0;
   if (mus.on) mus.el.play().catch(() => {});
   store('hw_mus_i', mus.i);
   musicLabel();
 }
 function musicNext() { if (!mus.el) return; mus.i = (mus.i + 1) % MUSIC.length; musicLoad(); }
+// какой трек босса сейчас нужен: идёт бой, и на арене жив босс мира (двойники и призванные не в счёт)
+function musicBossWant() {
+  if (typeof SHOP === 'undefined' || SHOP.phase !== 'fight' || (typeof LIMBO !== 'undefined' && LIMBO.on)) return null;
+  for (const e of enemies) if (e.boss && e.hp > 0 && !e.clone) { const id = BOSS_MUSIC[BAL.at(Math.max(1, wave)).M]; return id && !mus.bad[id] ? id : null; }
+  return null;
+}
+// смена трека без щелчка: текущий за 0,7 с уходит в тишину, потом грузится следующий (его плавный вход ведёт musicUpdate)
+function musicSwitch(fn) {
+  clearTimeout(mus.swT);
+  if (!mus.on || !AC || AC.state !== 'running' || mus.el.paused) { mus.sw = 0; return fn(); }
+  mus.sw = 1; mus.v = 0; mus.g.gain.cancelScheduledValues(AC.currentTime); mus.g.gain.setTargetAtTime(0, AC.currentTime, 0.18);
+  mus.swT = setTimeout(() => { mus.sw = 0; fn(); }, 700);
+}
 function musicToggle() {
   if (!mus.el) return;
   mus.on = !mus.on; store('hw_mus_on', mus.on ? '1' : '0');
@@ -110,7 +127,10 @@ function musicToggle() {
 }
 // каждый кадр: плавный вход/выход трека и приглушение под бурю и гибель
 function musicUpdate() {
-  if (!mus.el || !mus.on || AC.state !== 'running') return;
+  if (!mus.el) return;
+  { const want = musicBossWant();      // v124: вошли в бой с боссом — его трек; бой кончился — следующий трек общего круга
+    if (want !== mus.boss) { const was = mus.boss; mus.boss = want; musicSwitch(() => { if (want || !was) musicLoad(); else musicNext(); }); } }
+  if (!mus.on || AC.state !== 'running' || mus.sw) return;
   const el = mus.el, t = el.currentTime, d = el.duration;
   let k = Math.min(1, t / MUS_FADE);
   if (d > 0 && isFinite(d)) k = Math.min(k, Math.max(0, (d - t) / MUS_FADE));

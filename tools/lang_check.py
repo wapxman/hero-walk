@@ -32,9 +32,9 @@ DATA = """(() => { const S = new Set(), add = v => { if (typeof v === 'string') 
   for (const h in HEROES) { add(HEROES[h].name); add(HEROES[h].role); add(HEROES[h].skills); }
   for (const s of STATS) { add(s.name); add(s.desc); }
   if (typeof BOSSVO !== 'undefined') for (const b in BOSSVO) { add(BOSSVO[b].l); for (const k in (BOSSVO[b].s || {})) { add(k); add(k + '!'); } }
-  try { for (const it of CINE.unlocked()) { add(it.nm); add(it.nm.split('.')[0] + ' — не открыт'); } } catch (e) {}
+  try { for (const it of CINE.unlocked()) { add(it.nm); const c = it.nm.indexOf('. '); add(it.nm.slice(0, c)); add(it.nm.slice(c + 2)); } add('не открыт'); add('Открыто: 3 / 12'); } catch (e) {}      // v124: галерея «История»
   for (let m = 1; m <= 10; m++) { add('Мир ' + m + ' пройден!'); add('Волна ' + (m * 10) + ' — БОСС МИРА'); add('Волна ' + (m * 10 - 3) + '  · дальше без передышки'); add('В бой — волна ' + m); add('Мини-босс: ' + (Array.isArray(KIND[ROSTER[m].mini[0]].nm) ? KIND[ROSTER[m].mini[0]].nm[0] : KIND[ROSTER[m].mini[0]].nm)); }
-  for (const x of ['Раунд отбит  +96', '+220 маны', 'Уровень 7!  очки прокачки', 'Сундук: Меч ученика', 'Золото +30', 'КРИТ 250', 'Ур. врагов 6', 'Возрождение через 2', 'Собрано: Клинок воина', 'Верный глаз: враг ближе 300 — отойди', 'Таких склянок — не больше 5', 'трещина 2/3', 'время вспять +120', 'Щит 300', 'взрыв щита 120']) add(x);
+  for (const x of ['Раунд отбит  +96', '+220 маны', 'Уровень 7!  очки прокачки', 'Сундук: Меч ученика', 'Золото +30', 'КРИТ 250', 'Возрождение через 2', 'Собрано: Клинок воина', 'Верный глаз: враг ближе 300 — отойди', 'Таких склянок — не больше 5', 'трещина 2/3', 'время вспять +120', 'Щит 300', 'взрыв щита 120']) add(x);
   const miss = []; for (const s of S) { const r = LANG.t(s); if (/[А-Яа-яЁё]/.test(r)) miss.push(s + '  →  ' + r); }
   return { n: S.size, miss }; })()"""
 srv = subprocess.Popen([sys.executable, '-m', 'http.server', str(PORT), '--bind', '127.0.0.1', '--directory', ROOT], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

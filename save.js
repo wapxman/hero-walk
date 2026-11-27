@@ -178,6 +178,9 @@ window.androidBack = function () {
   const vis = id => { const e = document.getElementById(id); return !!e && getComputedStyle(e).display !== 'none'; };
   if (typeof CINE !== 'undefined' && CINE.on) { CINE.skip(); return true; }
   if (vis('stWin') || vis('stFake') || document.getElementById('mSplash')) return true;
+  if (typeof TALLY !== 'undefined' && TALLY.win) { TALLY.closeWin(); return true; }                          // v124: итоги мира — «Дальше»
+  if (typeof TALLY !== 'undefined' && TALLY.scr) { TALLY.close(); return true; }                             // экран «Статистика»
+  if (vis('cineList')) { document.getElementById('cineList').style.display = 'none'; return true; }      // галерея «История»
   if (vis('mNew')) { document.getElementById('mNew').style.display = 'none'; return true; }
   if (vis('mSet')) { document.querySelector('#mSet .b').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); return true; }
   if (vis('mMain')) return false;

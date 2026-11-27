@@ -103,12 +103,11 @@ if (LFX) {
   applyWorld = function (m) { _aw(m); const M = LOCFX.place[m]; if (M) for (const id in M) LFX.img(id); };
 }
 
-// ---------- выстрелы героев: 3 варианта у Ganfaul (shot_g1..g3) и у Эйры (shot_e1..e3), выбор запоминается ----------
+// ---------- выстрелы героев: у Ganfaul shot_g1, у Эйры shot_e1 ----------
+// v124 (Создатель 27.11): выбор «Выстрел: 1 / 2 / 3» убран — у каждого героя один вид выстрела (первый). Листы shot_g2/g3, shot_e2/e3 больше не грузятся.
 const SHOTS = {
-  key: () => 'hw_shot_' + HERO_ID,
-  get() { try { return Math.max(1, Math.min(3, +localStorage.getItem(SHOTS.key()) || 1)); } catch (e) { return 1; } },
-  set(n) { try { localStorage.setItem(SHOTS.key(), String(n)); } catch (e) {} },
-  id() { return 'shot_' + (HERO_ID === 'archer' ? 'e' : 'g') + SHOTS.get(); },
+  get() { return 1; },
+  id() { return 'shot_' + (HERO_ID === 'archer' ? 'e' : 'g') + '1'; },
 };
 if (LFX) {
   const _ds = drawShot;
@@ -124,29 +123,5 @@ if (LFX) {
     LFX.draw(ctx, id, performance.now() / 1000, 0, 0, w, { a: 'c' });
     ctx.restore();
   };
-  { const pre = () => { for (const h of ['g', 'e']) for (let i = 1; i <= 3; i++) if (LOCFX.defs['shot_' + h + i]) LFX.img('shot_' + h + i); }; if (typeof LAZY !== 'undefined') LAZY.run(pre); else setTimeout(pre, 2000); }
-  // переключатель «Выстрел: 1 / 2 / 3» — в выборе героя и в меню паузы
-  const css = document.createElement('style');
-  css.textContent = `.shotSel { display: flex; gap: 1vh; align-items: center; justify-content: center; font: bold 2.4vh system-ui; color: #ffe9a8; text-shadow: 0 .2vh .5vh #000; }
-  .shotSel b { width: 6.5vh; height: 6.5vh; display: flex; align-items: center; justify-content: center; border-radius: 1.2vh; background: rgba(10,22,40,.85);
-    border: .3vh solid rgba(160,190,230,.45); cursor: pointer; } .shotSel b.on { border-color: #ffe27a; box-shadow: 0 0 1.2vh rgba(255,226,122,.6); color: #fff; }`;
-  document.head.appendChild(css);
-  function selector() {
-    const d = document.createElement('div'); d.className = 'shotSel'; d.innerHTML = '<span>Выстрел:</span>';
-    for (let i = 1; i <= 3; i++) {
-      const b = document.createElement('b'); b.textContent = i; d.appendChild(b);
-      for (const ev of ['touchstart', 'mousedown']) b.addEventListener(ev, x => x.stopPropagation(), { passive: true });
-      b.addEventListener('pointerdown', e => { e.stopPropagation(); SHOTS.set(i); refresh(); });
-    }
-    return d;
-  }
-  const sels = [];
-  function refresh() { const n = SHOTS.get(); for (const s of sels) s.querySelectorAll('b').forEach((b, i) => b.classList.toggle('on', i + 1 === n)); }
-  const hs = document.getElementById('hSel'), go = hs && hs.querySelector('.go');
-  if (go) { const s = selector(); s.style.margin = '1vh 0'; go.parentNode.insertBefore(s, go); sels.push(s); }
-  const pause = SHOP.el && SHOP.el.pause, tip = pause && pause.querySelector('.tip');
-  if (pause) { const s = selector(); s.style.margin = '1vh 0'; pause.insertBefore(s, tip || null); sels.push(s); }
-  // выбор героя меняет HERO_ID — у каждого героя свой запомненный выстрел
-  if (hs) hs.addEventListener('pointerdown', () => setTimeout(refresh, 50), true);
-  refresh();
+  { const pre = () => { for (const h of ['g', 'e']) if (LOCFX.defs['shot_' + h + '1']) LFX.img('shot_' + h + '1'); }; if (typeof LAZY !== 'undefined') LAZY.run(pre); else setTimeout(pre, 2000); }
 }

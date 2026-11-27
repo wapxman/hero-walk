@@ -16,10 +16,28 @@ const ARENA_COVER = (() => {
   const el = document.createElement('div'); let wait = null, held = false, timer = 0;
   el.style.cssText = 'position:fixed;inset:0;background:#05080e;z-index:8;display:none;opacity:1;pointer-events:none;transition:opacity .35s';
   document.body.appendChild(el);
+  // v124 (Создатель 27.11): экран загрузки — только там, где игрок заметно ждёт. Если арену ждём дольше 0,4 с (первый вход в новый мир
+  // на телефоне — 1,5–2 с; медленная сеть на сайте), на затемнении появляются медальон главы (картинка с карты миров), «Глава N: название»,
+  // имя арены и колечко ожидания. Арена загрузилась быстро — ничего не появляется и не мелькает. Замеры — PERF_v120.md.
+  { const cs = document.createElement('style'); cs.textContent = '@keyframes acSpin { to { transform: rotate(360deg); } }'; document.head.appendChild(cs); }
+  const box = document.createElement('div'); let loadT = 0;
+  box.id = 'arenaLoad';
+  box.style.cssText = 'position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5vh;opacity:0;transition:opacity .3s;color:#ffe9a8;' +
+    'font-family:Georgia,"Times New Roman",serif;text-align:center;text-shadow:0 .3vh .8vh #000';
+  box.innerHTML = '<i style="width:27vh;height:27vh;background:center/contain no-repeat"></i><b style="font-size:4.2vh;letter-spacing:.1vh"></b><span style="font-size:2.7vh;color:#d9d2c2;min-height:3.4vh"></span>' +
+    '<u style="width:4.6vh;height:4.6vh;margin-top:1vh;border-radius:50%;border:.35vh solid rgba(255,255,255,.14);border-top-color:rgba(255,226,122,.85);animation:acSpin 1s linear infinite"></u>';
+  el.appendChild(box);
+  function showLoad() {
+    if (!wait || typeof PATHMAP === 'undefined' || !PATHMAP.NAMES) return;
+    const m = Math.max(1, Math.min(10, typeof WORLD === 'number' ? WORLD : 1)), an = typeof ARENA_I === 'number' && ARENA_I > 0 ? (PATHMAP.ARENA_NAMES[m - 1] || [])[ARENA_I - 1] : '';
+    box.children[0].style.backgroundImage = 'url(ui/map/m' + m + '.webp' + V + ')';
+    box.children[1].textContent = 'Глава ' + m + ': ' + PATHMAP.NAMES[m - 1]; box.children[2].textContent = an || '';
+    box.style.opacity = '1';
+  }
   const hold = () => { if (!held && !window.BOT && !(window.NETC && NETC.on) && typeof SHOP !== 'undefined' && !SHOP.paused) { SHOP.paused = true; held = true; } };   // бот автопрогона шагает игру сам — ему пауза не нужна
-  function on(src) { if (src) wait = src; clearTimeout(timer); el.style.transition = 'none'; el.style.display = 'block'; el.style.opacity = '1'; if (src) hold();
+  function on(src) { if (src) wait = src; clearTimeout(timer); el.style.transition = 'none'; el.style.display = 'block'; el.style.opacity = '1'; if (src) { hold(); clearTimeout(loadT); loadT = setTimeout(showLoad, 400); }
     timer = setTimeout(() => off(wait), 8000); }   // картинка не пришла — не держим экран закрытым вечно
-  function off(src) { if (src && wait && src !== wait) return; wait = null; clearTimeout(timer); if (held) { held = false; if (!(typeof PATHMAP !== 'undefined' && PATHMAP.on)) SHOP.paused = false; }   // открыта карта пути — паузу держит она
+  function off(src) { if (src && wait && src !== wait) return; wait = null; clearTimeout(timer); clearTimeout(loadT); box.style.opacity = '0'; if (held) { held = false; if (!(typeof PATHMAP !== 'undefined' && PATHMAP.on)) SHOP.paused = false; }   // открыта карта пути — паузу держит она
     void el.offsetWidth; el.style.transition = 'opacity .35s'; el.style.opacity = '0'; timer = setTimeout(() => { el.style.display = 'none'; }, 380); }
   return { on, off, settle() { if (!wait && el.style.display !== 'none' && el.style.opacity === '1') off(); }, get busy() { return !!wait; }, get held() { return held; } };
 })();

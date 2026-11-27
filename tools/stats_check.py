@@ -4,7 +4,7 @@
 2) Ключей нет (как сейчас в игре) и обычный игрок: SDK не грузится, запросов нет.
 3) Ключи есть, сети до GameAnalytics нет: SDK загрузился, запросы пытались уйти и оборвались — игра идёт, ошибок нет.
 4) Ключи есть, сервер отвечает: события действительно уходят (смотрим тела запросов).
-5) Выключатель «Статистика» в настройках: выключено — SDK не грузится, запросов нет.
+5) Выключатель «Аналитика» в настройках: выключено — SDK не грузится, запросов нет.
 6) Скорость: сколько времени статистика добавляет к кадру.
 Сервер страниц поднимает сам (порт 8785). Запуск: python tools/stats_check.py     Код выхода 1 — если что-то не прошло."""
 import sys, os, re, time, json, subprocess
@@ -155,10 +155,10 @@ try:
         p2.goto(BASE + '?allworlds&fakestore=web&stats=send', timeout=120000); p2.wait_for_function("typeof METRICS !== 'undefined' && document.getElementById('mMain') !== null", timeout=120000); p.wait_for_timeout(7000)
         chk('следующий запуск с выключенной статистикой: SDK не грузится, запросов нет', not p2.lib and len(p.ga) == n0 and p2.evaluate("!METRICS.on && !METRICS.live && METRICS.state === 'idle'"), [p2.lib, len(p.ga) - n0])
         p2.evaluate("[...document.querySelectorAll('#mMain .btns .b')].find(b => (b.dataset.ru || b.textContent) === 'Настройки')." + PD); p.wait_for_timeout(800)
-        row = p2.evaluate("(() => { const r = [...document.querySelectorAll('.row')].find(r => r.firstChild && r.firstChild.textContent === 'Статистика'); if (!r) return null; const o = [...r.querySelectorAll('.o')], b = r.getBoundingClientRect(); return { opts: o.map(x => x.textContent + (x.classList.contains('on') ? '*' : '')), vis: b.width > 0 && b.bottom <= innerHeight && b.top >= 0 }; })()")
-        chk('в настройках строка «Статистика»: Отправлять / Нет, отмечено «Нет», строка на экране', row and row['opts'] == ['Отправлять', 'Нет*'] and row['vis'], row)
+        row = p2.evaluate("(() => { const r = [...document.querySelectorAll('.row')].find(r => r.firstChild && r.firstChild.textContent === 'Аналитика'); if (!r) return null; const o = [...r.querySelectorAll('.o')], b = r.getBoundingClientRect(); return { opts: o.map(x => x.textContent + (x.classList.contains('on') ? '*' : '')), vis: b.width > 0 && b.bottom <= innerHeight && b.top >= 0 }; })()")
+        chk('в настройках строка «Аналитика»: Отправлять / Нет, отмечено «Нет», строка на экране', row and row['opts'] == ['Отправлять', 'Нет*'] and row['vis'], row)
         p2.screenshot(path=os.path.join(OUT, '1_settings.png'))
-        p2.evaluate("(() => { const r = [...document.querySelectorAll('.row')].find(r => r.firstChild.textContent === 'Статистика'); r.querySelector('.o')." + PD + "; })()"); p.wait_for_timeout(500)
+        p2.evaluate("(() => { const r = [...document.querySelectorAll('.row')].find(r => r.firstChild.textContent === 'Аналитика'); r.querySelector('.o')." + PD + "; })()"); p.wait_for_timeout(500)
         chk('включили обратно в настройках — запомнено', p2.evaluate("METRICS.on && localStorage.getItem('hw_stats') === '1'"))
         cx.close(); b.close()
 finally:

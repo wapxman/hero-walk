@@ -755,6 +755,8 @@ function onMessage(c, data, isBin) {
     if (!m || typeof m !== 'object') return;
     // «Вместе» (v104): бой ведут сами клиенты, сервер только сводит двоих в комнату и пересылает их сообщения (net/team.js)
     if (m.t === 'join' && m.mode === 'team') return teamJoin(c, m);
+    if (m.t === 'teamList') return teamList(c);                      // v124: зал ожидания — кто сейчас ищет напарника
+    if (m.t === 'teamLeave') { teamLeave(c); return; }               // v124: передумал ждать — комната снимается
     if (c.team) { if (m.t === 'tm') for (const x of c.team.clients) if (x !== c && x.ws.readyState === 1) send(x, data.toString()); return; }
     if (m.t === 'join') {
       leave(c);
@@ -810,18 +812,33 @@ function onMessage(c, data, isBin) {
 }
 // ---------- «Вместе»: комнаты на двоих, сервер — только почтальон ----------
 const teams = new Map();
+// v124 (зал ожидания): teamList — открытые комнаты, где один игрок ждёт напарника. В join: make 'public' — открыть свою комнату и встать
+// в этот список; make 'friend' — закрытая комната с новым кодом (код говорят другу); must — войти только в существующую комнату
+// (ошибся кодом — ответ «комнаты с таким кодом нет», а не новая пустая комната). Без этих полей всё работает, как у прежних версий:
+// пустой код — к любому ждущему, свой код — комната с этим кодом.
+function teamList(c) {
+  const list = [];
+  for (const r of teams.values()) {
+    if (r.private || r.clients.length !== 1 || r.clients[0] === c || r.clients[0].ws.readyState !== 1) continue;
+    const i = r.clients[0].tinfo || {}; list.push({ room: r.code, name: i.name, hero: i.hero, lvl: i.lvl, world: i.world, v: i.v });
+    if (list.length >= 30) break;
+  }
+  if (c.ws.readyState === 1) c.ws.send(JSON.stringify({ t: 'teamList', list }));
+}
 function teamJoin(c, m) {
   leave(c);
-  const want = m.room ? String(m.room).slice(0, 6) : null;
-  let r = want ? teams.get(want) : [...teams.values()].find(x => !x.private && x.clients.length === 1);
+  const want = m.room ? String(m.room).slice(0, 6) : null, make = m.make === 'public' || m.make === 'friend' ? m.make : null;
+  let r = make ? null : want ? teams.get(want) : [...teams.values()].find(x => !x.private && x.clients.length === 1);
   if (r && r.clients.length >= 2) return c.ws.send(JSON.stringify({ t: 'error', msg: 'комната заполнена' }));
-  if (!r) { let code = want; while (!code || teams.has(code)) code = String(1000 + Math.floor(Math.random() * 9000)); r = { code, clients: [], private: !!want }; teams.set(code, r); }
-  const me = { hero: String(m.hero || 'mage').slice(0, 12), name: String(m.name || 'Игрок').slice(0, 16), v: String(m.v || '').slice(0, 8) };
+  if (!r && m.must) return c.ws.send(JSON.stringify({ t: 'error', msg: 'комнаты с таким кодом нет' }));
+  if (!r) { let code = make ? null : want; while (!code || teams.has(code)) code = String(1000 + Math.floor(Math.random() * 9000)); r = { code, clients: [], private: make ? make === 'friend' : !!want }; teams.set(code, r); }
+  const me = { hero: String(m.hero || 'mage').slice(0, 12), name: String(m.name || 'Игрок').slice(0, 16), v: String(m.v || '').slice(0, 8),
+    lvl: Math.max(1, Math.min(999, m.lvl | 0)), world: Math.max(1, Math.min(10, m.world | 0)) };
   c.team = r; c.tinfo = me; r.clients.push(c);
   const other = r.clients.find(x => x !== c);
   c.ws.send(JSON.stringify({ t: 'tjoined', room: r.code, host: !other, peer: other ? other.tinfo : null }));
   if (other && other.ws.readyState === 1) other.ws.send(JSON.stringify({ t: 'tpeer', peer: me }));
-  log('team join', r.code, me.name, me.hero, 'игроков', r.clients.length);
+  log('team join', r.code, me.name, me.hero, 'игроков', r.clients.length, make || (want ? 'код' : 'любой'));
 }
 function teamLeave(c) {
   const r = c.team; if (!r) return;

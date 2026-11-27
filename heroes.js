@@ -377,6 +377,21 @@ function heroButton(b) {
 }
 
 // ---------- выбор героя перед боем ----------
+// v124 (Создатель 27.11): выбранный на экране выбора герой отвечает своей репликой — и Ganfaul, и Эйра («Я снова в строю.» / «Снова на охоте.»).
+// Раньше Ganfaul «говорил» случайно: при смене героя срабатывала фраза нового уровня из-за разницы уровней героев (теперь она при смене не звучит).
+// Новая реплика обрывает прежнюю: быстро выбрал второго героя — говорит он, а не договаривает первый.
+let pickSrc = null;
+function pickVoice() {
+  if (!AC || AC.state !== 'running') return;
+  try { if (localStorage.getItem('hw_sfx') === '0') return; } catch (e) {}      // звуки выключены в настройках
+  const set = (HERO_ID === 'archer' ? 'archer_vo_' : 'vo_') + 'respawn', k = SFX_SETS[set]; if (!k) return;
+  const n = set + '_' + (1 + Math.floor(Math.random() * k)), buf = SND[n]; if (!buf) return;
+  try { if (pickSrc) pickSrc.stop(); } catch (e) {}
+  const src = AC.createBufferSource(), g = AC.createGain(); src.buffer = buf; g.gain.value = 0.95; src.connect(g); g.connect(AC.destination); src.start(); pickSrc = src;
+  voWait = null; voAny = AC.currentTime; voBusy = AC.currentTime + buf.duration + 0.15;
+  pickVoice.log.push(set); if (pickVoice.log.length > 8) pickVoice.log.shift();
+}
+pickVoice.log = [];
 (function heroSelect() {
   let saved = 'mage';
   try { saved = localStorage.getItem(HERO_KEY) || 'mage'; } catch (e) {}
@@ -406,7 +421,7 @@ function heroButton(b) {
     const h = HEROES[id], c = document.createElement('div'); c.className = 'card';
     c.innerHTML = '<i style="background-image:url(' + h.portrait + V + ')"></i><b>' + h.name + '</b><em>' + h.role + '</em><ul>' +
       h.skills.map(x => '<li>' + x + '</li>').join('') + '</ul>';
-    c.addEventListener('pointerdown', () => { setHero(id); for (const k in cards) cards[k].classList.toggle('on', k === id); });
+    c.addEventListener('pointerdown', () => { setHero(id); for (const k in cards) cards[k].classList.toggle('on', k === id); pickVoice(); });
     row.appendChild(c); cards[id] = c;
   }
   cards[HERO_ID].classList.add('on');

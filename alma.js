@@ -101,6 +101,19 @@ const ALMA = (() => {
   const mk = (tag, cls, parent, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; if (parent) parent.appendChild(e); return e; };
   const tap = (e, fn) => e.addEventListener('pointerdown', x => { x.stopPropagation(); x.preventDefault(); fn(x); });
   const esc = s => String(s == null ? '' : s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  // v124 (Создатель 28.11: имена вылезали за рамки): текст, который не влез в своё место (по ширине или по высоте — в сетке книги
+  // подпись не больше двух строк), ужимается шрифтом шагами до 50 %. Идёт на следующем кадре — после перевода (LANG переводит
+  // разметку сразу при вставке). Проверка всех записей на двух языках — tools/alma_names_check.py.
+  const over = e => e.scrollWidth > e.clientWidth + 1 || e.scrollHeight > e.clientHeight + 1;
+  function fitText(root, sel) {
+    requestAnimationFrame(() => {
+      for (const e of root.querySelectorAll(sel)) {
+        e.style.fontSize = ''; if (!e.offsetParent || !over(e)) continue;
+        const f0 = parseFloat(getComputedStyle(e).fontSize);
+        for (let s = 0.94; s >= 0.5 && over(e); s -= 0.06) e.style.fontSize = (f0 * s).toFixed(2) + 'px';
+      }
+    });
+  }
   const css = document.createElement('style');
   css.textContent = `
   .alma { position: fixed; inset: 0; z-index: 9; display: none; align-items: center; justify-content: center; background: #07060c; user-select: none; -webkit-user-select: none; touch-action: none; }
@@ -109,7 +122,7 @@ const ALMA = (() => {
   .alma .lock { filter: brightness(0); opacity: .62; }
   /* книга */
   #almaBook .tabs { position: absolute; left: 0; right: 0; top: 1.4%; display: flex; justify-content: center; gap: .9em; }
-  #almaBook .tabs div { width: 8.6em; height: 2.3em; background: ${U('ui/btn_blue')} center / 100% 100% no-repeat; display: flex; align-items: center; justify-content: center; font: bold .95em system-ui, sans-serif; color: #e9f1ff; filter: brightness(.8); cursor: pointer; }
+  #almaBook .tabs div { width: 7.7em; height: 2.3em; background: ${U('ui/btn_blue')} center / 100% 100% no-repeat; display: flex; align-items: center; justify-content: center; font: bold .95em system-ui, sans-serif; color: #e9f1ff; filter: brightness(.8); cursor: pointer; }
   #almaBook .tabs div.on { background-image: ${U('ui/btn_green')}; filter: none; color: #ffe27a; }
   #almaBook .pg { position: absolute; top: 15.2%; height: 58.6%; color: #3a2412; }
   #almaBook .pg.l { left: 14.4%; width: 31.6%; }
@@ -118,7 +131,7 @@ const ALMA = (() => {
   #almaBook .c { position: relative; display: flex; flex-direction: column; align-items: center; border-radius: .4em; cursor: pointer; }
   #almaBook .c.sel { background: rgba(120, 70, 20, .18); box-shadow: 0 0 0 .1em rgba(120, 70, 20, .55); }
   #almaBook .c canvas, #almaBook .c .ci { width: 4.1em; height: 4.1em; }
-  #almaBook .c .nm { font-size: .6em; line-height: 1.05; text-align: center; max-height: 2.2em; overflow: hidden; margin-top: .1em; }
+  #almaBook .c .nm { width: 100%; font-size: .6em; line-height: 1.05; text-align: center; max-height: 2.2em; overflow: hidden; margin-top: .1em; }
   #almaBook .pager { position: absolute; left: 0; right: 0; bottom: -4.6em; display: flex; align-items: center; justify-content: center; gap: 1.2em; font-size: .8em; }
   #almaBook .pager .ar { width: 2.6em; height: 2.6em; background: ${U('ui/arrow')} center / contain no-repeat; cursor: pointer; }
   #almaBook .pager .ar.p { transform: scaleX(-1); }
@@ -168,12 +181,13 @@ const ALMA = (() => {
   function close() { if (BK) BK.el.style.display = 'none'; if (HL) HL.el.style.display = 'none'; cur = null; for (const k in PIM) delete PIM[k]; }
 
   // ---------- Альма-матер ----------
-  const TABS = [['boss', 'Боссы'], ['mini', 'Мини-боссы'], ['foe', 'Враги'], ['item', 'Предметы']];
+  const TABS = [['boss', 'Боссы'], ['mini', 'Мини-боссы'], ['foe', 'Враги'], ['item', 'Предметы'], ['hero', 'Герои']];      // v124: «Герои» — летопись героя (tally.js)
   const PER = 20, ui = { tab: 'boss', page: 0, sel: null };
   const LISTS = {};
   function list(tab) {
     if (LISTS[tab]) return LISTS[tab];
     let L = [];
+    if (tab === 'hero') return [];
     if (tab === 'boss') L = T.bosses.map(b => ({ k: 'b', id: b.id }));
     else if (tab === 'mini') L = T.minibosses.map(b => ({ k: 'm', id: b.id }));
     else if (tab === 'foe') { const seen = {}; for (let w = 1; w <= 10; w++) { const R = ROSTER[w]; if (!R) continue; for (const [arr, el] of [[R.mel, 0], [R.rng, 0], [R.elite, 1]]) for (const id of arr || []) if (!seen[id] && KIND[id]) { seen[id] = 1; L.push({ k: 'e', id, w, el }); } } }
@@ -197,6 +211,7 @@ const ALMA = (() => {
     close(); BK.el.style.display = 'flex'; cur = 'book'; BK.fit(); drawBook();
   }
   function drawBook() {
+    if (ui.tab === 'hero') { BK.tabEls.forEach((d, i) => d.classList.toggle('on', TABS[i][0] === ui.tab)); if (typeof TALLY !== 'undefined') TALLY.almaPage(BK.l, BK.r); else { BK.l.innerHTML = ''; BK.r.innerHTML = ''; } return; }
     const L = list(ui.tab), pages = Math.max(1, Math.ceil(L.length / PER)); ui.page = Math.max(0, Math.min(pages - 1, ui.page));
     BK.tabEls.forEach((d, i) => d.classList.toggle('on', TABS[i][0] === ui.tab));
     const part = L.slice(ui.page * PER, ui.page * PER + PER);
@@ -212,6 +227,7 @@ const ALMA = (() => {
     mk('div', 'cnt', pg, '<span>Открыто</span> <b>' + L.filter(isOpen).length + '</b> <span>из</span> <b>' + L.length + '</b> · <span>стр.</span> ' + (ui.page + 1) + '/' + pages);
     const b = mk('div', 'ar n' + (ui.page < pages - 1 ? '' : ' no'), pg);
     tap(a, () => { ui.page--; ui.sel = null; drawBook(); }); tap(b, () => { ui.page++; ui.sel = null; drawBook(); });
+    fitText(g, '.nm');
     drawEntry();
   }
   const ln = (p, label, val) => mk('div', 'ln', p, '<span>' + label + '</span>: <b>' + val + '</b>');
@@ -256,6 +272,7 @@ const ALMA = (() => {
         for (const id of RECIPES[e.id].from) { const o = !!D.items[id], x = mk('span', '', rc); const ic = mk('div', 'ci' + (o ? '' : ' lock'), x, SHOP.itemIcon(ALL[id])); mk('span', '', x, o ? esc(ALL[id].nm) : '???'); }
       }
     }
+    fitText(R, 'h3, .sub, .ln, .rc > span > span');
   }
   function stats(R, k) { const d = k.dmg || []; mk('div', 'ln', R, '<span>Здоровье</span> <b>' + k.hp + '</b> · <span>Урон</span> <b>' + (d.length > 1 && d[0] !== d[1] ? d[0] + '–' + d[1] : d[0] || 0) + '</b> <span>(в начале пути)</span>'); }
 
@@ -296,7 +313,7 @@ const ALMA = (() => {
     const C = HL.card; C.innerHTML = ''; mk('h3', '', C, title);
     for (const [a, b] of rows) mk('div', 'ln', C, '<span>' + a + '</span><b>' + b + '</b>');
     if (note) mk('div', 'nt', C, note);
-    tap(mk('div', 'cx', C), () => { C.style.display = 'none'; }); C.style.display = 'block';
+    tap(mk('div', 'cx', C), () => { C.style.display = 'none'; }); C.style.display = 'block'; fitText(C, 'h3, .ln');
   }
   const S = t => '<span>' + esc(t) + '</span>';
   function trophyCard(b) {

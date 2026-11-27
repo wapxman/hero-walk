@@ -1,7 +1,8 @@
 // Заставки и рассказ (v108). Проигрыватель; сами картинки, видео и голос делает Клауди и кладёт в
 // night_19_11/cinema/game/, оттуда их переносит в игру tools/cine_install.py (папка cine/ и список cine/index.js).
-//   запуск (v121, каждый раз): лого студии (cine/logo_paladium.mp4) → лого игры (cine/logo_game.webp) → при первом запуске выбор языка
-//                (lang.js) → надпись «PALLADIUM представляет» → пролог cine/intro.mp4 → главное меню. Лого и надпись — касанием, пролог — кнопкой
+//   запуск (v124, каждый раз): при первом запуске выбор языка (lang.js) → лого студии (cine/logo_paladium.mp4) → надпись «PALLADIUM представляет»
+//                → пролог cine/intro.mp4 → лого игры (cine/logo_game.webp) ОДИН раз: стоит по центру и уезжает на своё место в главном меню.
+//                Лого и надпись пропускаются касанием, пролог — кнопкой. До v124 лого игры шло до студии и мелькало ещё раз из menu.js.
 //   пролог:      cine/intro.mp4 — после «Новая игра» (выбор героя → пролог → карта миров); при «Продолжить» не идёт (v118)
 //   «История»:   кнопка в главном меню — список открытых роликов (пролог, ролики открытых миров, финал после победы); любой можно пересмотреть (v118)
 //   видео (v113): готовится заранее и показывается только с первым кадром — до этого чёрный экран, никаких системных значков «плей»
@@ -93,7 +94,7 @@ const CINE = (() => {
     if (!R) return Promise.resolve();
     clearTimeout(solidT); solid = false;
     R.classList.remove('on');
-    return new Promise(r => setTimeout(() => { R.style.display = 'none'; R.innerHTML = ''; r(); }, fast ? 0 : 600));
+    return new Promise(r => setTimeout(() => { R.style.display = 'none'; R.innerHTML = ''; R.style.backgroundColor = ''; R.style.transition = ''; r(); }, fast ? 0 : 600));
   }
   function skipBtn(parent, fn) {
     const b = document.createElement('div'); b.className = 'skip'; b.textContent = 'Продолжить'; parent.appendChild(b);
@@ -119,6 +120,28 @@ const CINE = (() => {
       const end = () => { if (over) return; over = true; done(); };
       im.onload = () => { l.style.backgroundImage = 'url("' + im.src + '")'; requestAnimationFrame(() => l.classList.add('on')); setTimeout(end, sec * 1000); };
       im.onerror = end; im.src = url(file);
+      r.addEventListener('pointerdown', end, { once: true });
+    });
+  }
+  // лого игры в конце запуска (v124): стоит по центру, потом уезжает на место логотипа главного меню, а чёрный экран под ним тает —
+  // на экране оно одно и то же, без второго показа. showMenu — показать меню под чёрным слоем. Ответ: true — переезд состоялся.
+  function logoToMenu(file, sec, showMenu) {
+    return new Promise(done => {
+      const r = root(), l = el('lg', r), im = new Image(); let over = false, tm = 0;
+      const end = () => {
+        if (over) return; over = true; clearTimeout(tm);
+        showMenu(); solid = false;
+        const t = document.querySelector('#mMain .logo'), a = t && t.getBoundingClientRect(), b = l.getBoundingClientRect();
+        if (!a || !a.width || !b.width || !im.naturalWidth) return done(false);
+        const fit = q => Math.min(q.width / im.naturalWidth, q.height / im.naturalHeight), k = fit(a) / fit(b);
+        const dx = a.left + a.width / 2 - (b.left + b.width / 2), dy = a.top + a.height / 2 - (b.top + b.height / 2);
+        l.style.transition = 'transform .9s cubic-bezier(.5, 0, .2, 1)'; r.style.transition = 'background-color .9s';
+        t.style.visibility = 'hidden';      // логотип самого меню появится, когда этот доедет: двух лого на экране не бывает
+        void l.offsetWidth; l.style.transform = 'translate(' + dx.toFixed(1) + 'px,' + dy.toFixed(1) + 'px) scale(' + k.toFixed(4) + ')'; r.style.backgroundColor = 'transparent';
+        setTimeout(() => { t.style.visibility = ''; done(true); }, 940);
+      };
+      im.onload = () => { l.style.backgroundImage = 'url("' + im.src + '")'; requestAnimationFrame(() => l.classList.add('on')); tm = setTimeout(end, sec * 1000); };
+      im.onerror = () => { if (!over) { over = true; showMenu(); done(false); } }; im.src = url(file);
       r.addEventListener('pointerdown', end, { once: true });
     });
   }
@@ -229,9 +252,9 @@ const CINE = (() => {
   // ---------- что показывать ----------
   const has = k => !!M[k] && (k !== 'intro.mp4' || CFG.intro);   // CFG.intro = false — вступление не играет ни при запуске, ни из меню
   const nSlides = k => (M[k] && M[k].n) || 0;
-  // запуск игры: лого игры показывает заставка меню (menu.js), здесь — лого студии; потом done() — главное меню
-  // v121, при каждом запуске: лого студии Palladium → лого игры TEN WORLDS → (первый запуск: выбор языка) → надпись
-  // «Palladium представляет» → вступительный ролик (пролог) → главное меню. Лого и надпись пропускаются касанием, пролог — кнопкой.
+  // запуск игры (v124, Создатель 27.11), при каждом запуске: (первый запуск: выбор языка) → лого студии Palladium → надпись
+  // «Palladium представляет» → вступительный ролик (пролог) → лого игры TEN WORLDS (один раз, уезжает в главное меню) → главное меню.
+  // Лого и надпись пропускаются касанием, пролог — кнопкой. Язык выбирают первым: надпись и пролог идут уже на нём.
   function card(lines, sec) {
     return new Promise(done => {
       const r = root(true), c = el('pres', r); let over = false;
@@ -244,13 +267,14 @@ const CINE = (() => {
   function boot(done) {
     if (OFF || on) return done();
     session(async setSkip => {
-      if (has('logo_paladium.mp4')) await video('logo_paladium.mp4', setSkip, { tap: true });
-      preload('intro.mp4');
-      if (has('logo_game.webp')) await logo('logo_game.webp', CFG.logoSec);
       if (typeof LANG !== 'undefined' && LANG.pick && !LANG.chosen) await LANG.pick(root(true));
+      preload('intro.mp4');
+      if (has('logo_paladium.mp4')) await video('logo_paladium.mp4', setSkip, { tap: true, now: true });
       await card(['PALLADIUM', 'представляет'], 2.8);
       if (has('intro.mp4')) await video('intro.mp4', setSkip, { now: true });
-      done(); await hide();
+      let moved = false, shown = false; const menu = () => { if (!shown) { shown = true; done(); } };
+      if (has('logo_game.webp')) moved = await logoToMenu('logo_game.webp', CFG.logoSec, menu);
+      menu(); await hide(moved);
     });
   }
   // вступление: «История» в меню (then нет) и «Новая игра» (then — начать бой; чёрный экран встаёт сразу)
@@ -268,7 +292,20 @@ const CINE = (() => {
     const k = wkey(n), vid = k + '.mp4';
     if (OFF || online() || seen[k] || on || (!has(vid) && !nSlides(k))) return then();
     mark(k);
-    session(async setSkip => { if (has(vid)) await video(vid, setSkip, { now: !!now }); else await slides(k, nSlides(k), setSkip); await hide(); }).then(then);
+    // v124 (баг Создателя 27.11): при входе в мир (now) чёрный экран ролика не уходит, пока игра под ним не подставит сохранение и арену
+    // выбранного мира. Раньше ролик гас первым, и 0,6–0,8 с была видна стартовая арена мира 1 (волна 1, золото 0, пустая сумка).
+    session(async setSkip => { if (has(vid)) await video(vid, setSkip, { now: !!now }); else await slides(k, nSlides(k), setSkip); if (now) { if (R) R.innerHTML = ''; } else await hide(); })
+      .then(async () => {
+        if (!now) return then();
+        freeze(true); solid = false;                    // бой под чёрным экраном не идёт; арена под ним уже рисуется каждый кадр (v120: под сплошным роликом — дважды в секунду)
+        try { then(); } catch (e) {}
+        await arenaReady(); await hide(); freeze(false);
+      });
+  }
+  // арена, которую сейчас подставляет игра, загружена и стоит на экране (затемнение загрузки снято) — но ждём не дольше 8 с
+  function arenaReady() {
+    return new Promise(res => { const t0 = performance.now();
+      (function w() { const busy = typeof ARENA_COVER !== 'undefined' && ARENA_COVER.busy; if (!busy || performance.now() - t0 > 8000) setTimeout(res, 150); else setTimeout(w, 40); })(); });
   }
   function finale(then) {
     if (OFF || online() || seen.finale || on || (!nSlides('finale') && !has('finale.mp4'))) return then();
@@ -322,25 +359,47 @@ const CINE = (() => {
     return L;
   }
   function replay(file) { if (on || !has(file)) return; session(async setSkip => { await video(file, setSkip); await hide(); }); }
+  // «История» (v124, Создатель 27.11): галерея-коллекция из 12 карточек — пролог, 10 миров, финал. На карточке гравюра из самого ролика
+  // (cine/th/*.webp — tools/story_thumbs.py), номер главы и название; закрытые — затемнённые, с замком; сверху счётчик «Открыто: N / 12».
+  // Рамка карточки, лента, замок и кнопка — готовые картинки игры (ui/h_slot, ui/map/ribbon, ui/map/lock, ui/h_button); кодом ничего не рисуется.
   (function () {
     const m = document.querySelector('#mMain'); if (!m || !has('intro.mp4')) return;
-    const c2 = document.createElement('style');
+    const VV = typeof V === 'string' ? V : '', c2 = document.createElement('style');
     c2.textContent = `
-    #cineList { position: fixed; inset: 0; z-index: 75; background: rgba(6,9,15,.93); display: none; flex-direction: column; align-items: center; justify-content: center; color: #fff; font-family: system-ui, sans-serif; }
-    #cineList h1 { font: bold 5.4vh Georgia, serif; color: #ffe9a8; margin: 0 0 2.6vh; }
-    #cineList .g { display: grid; grid-template-columns: repeat(3, 28vw); gap: 1.6vh 1.4vw; }
-    #cineList .it { padding: 1.9vh 1.2vw; border-radius: 1.4vh; background: #1c2740; border: .25vh solid #6f8fd0; font: bold 2.5vh system-ui, sans-serif; text-align: center; cursor: pointer; user-select: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    #cineList .it:active { transform: scale(.97); }
-    #cineList .it.no { opacity: .38; border-color: #556; cursor: default; }
-    #cineList .x { margin-top: 3vh; padding: 1.6vh 6vh; border-radius: 1.4vh; background: rgba(10,14,22,.7); border: .25vh solid rgba(255,255,255,.5); font: bold 2.7vh system-ui, sans-serif; cursor: pointer; user-select: none; }`;
+    #cineList { position: fixed; inset: 0; z-index: 75; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 1.1vh; color: #fff; font-family: Georgia, 'Times New Roman', serif;
+      background: #05080e url(ui/menu_bg.webp${VV}) center / cover no-repeat; --cw: min(13.4vw, 26vh); }
+    #cineList::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(5,8,16,.82), rgba(2,4,9,.95)); }
+    #cineList > * { position: relative; }
+    #cineList .hd { width: 60vh; height: 11.3vh; background: url(ui/map/ribbon.webp${VV}) center / 100% 100% no-repeat; display: flex; align-items: center; justify-content: center;
+      font: bold 4.3vh Georgia, 'Times New Roman', serif; color: #5a2408; letter-spacing: .25vh; padding-bottom: .9vh; box-sizing: border-box; }
+    #cineList .cnt { font: 2.3vh Georgia, serif; color: #e9d9a8; margin-top: -.9vh; text-shadow: 0 .2vh .5vh #000; }
+    #cineList .g { display: grid; grid-template-columns: repeat(6, var(--cw)); gap: 1.2vh 1.1vw; }
+    #cineList .it { width: var(--cw); background: none; cursor: pointer; user-select: none; -webkit-user-select: none; text-align: center; transition: transform .12s; }
+    #cineList .it:active { transform: scale(.96); }
+    #cineList .it .fr { position: relative; width: 100%; aspect-ratio: 180 / 177; background: url(ui/h_slot.webp${VV}) center / 100% 100% no-repeat; }
+    #cineList .it .fr i { position: absolute; left: 10.5%; top: 10.5%; right: 10.5%; bottom: 10.5%; background: #0b1020 center / cover no-repeat; border-radius: .9vh; }
+    #cineList .it b { display: block; margin-top: .2vh; font: bold 2.3vh Georgia, serif; color: #ffe9a8; text-shadow: 0 .2vh .5vh #000; }
+    #cineList .it span { display: block; font: 1.9vh Georgia, serif; color: #cfd6e6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 .2vh .4vh #000; }
+    #cineList .it.no { cursor: default; }
+    #cineList .it.no .fr i { filter: grayscale(1) brightness(.3) blur(.3vh); }
+    #cineList .it.no .fr::after { content: ''; position: absolute; left: 34%; top: 24%; width: 32%; aspect-ratio: 256 / 366; background: url(ui/map/lock.webp${VV}) center / contain no-repeat; filter: drop-shadow(0 .4vh .8vh #000); }
+    #cineList .it.no b { color: #9aa1b2; } #cineList .it.no span { color: #707788; }
+    #cineList .x { margin-top: .4vh; width: 30vh; height: 8vh; background: url(ui/h_button.webp${VV}) center / 100% 100% no-repeat; display: flex; align-items: center; justify-content: center;
+      font: bold 2.8vh system-ui, sans-serif; color: #ffe9a8; cursor: pointer; user-select: none; -webkit-user-select: none; }
+    #cineList .x:active { transform: scale(.96); }`;
     document.head.appendChild(c2);
     const box = document.createElement('div'); box.id = 'cineList'; document.body.appendChild(box);
     for (const ev of ['pointerdown', 'touchstart', 'mousedown', 'click']) box.addEventListener(ev, e => e.stopPropagation());
     function open() {
-      box.innerHTML = '<h1>История</h1><div class="g"></div><div class="x">Назад</div>';
+      const L = unlocked(), n = L.filter(x => x.open).length;
+      box.innerHTML = '<div class="hd">История</div><div class="cnt">Открыто: ' + n + ' / ' + L.length + '</div><div class="g"></div><div class="x">Назад</div>';
       const g = box.querySelector('.g');
-      for (const it of unlocked()) {
-        const d = document.createElement('div'); d.className = 'it' + (it.open ? '' : ' no'); d.textContent = it.open ? it.nm : it.nm.split('.')[0] + ' — не открыт'; d.dataset.k = it.k; g.appendChild(d);
+      for (const it of L) {
+        const cut = it.nm.indexOf('. '), head = cut > 0 ? it.nm.slice(0, cut) : it.nm, name = cut > 0 ? it.nm.slice(cut + 2) : '';
+        const d = document.createElement('div'); d.className = 'it' + (it.open ? '' : ' no'); d.dataset.k = it.k;
+        d.innerHTML = '<div class="fr"><i style="background-image:url(cine/th/' + it.k + '.webp' + VV + ')"></i></div><b></b><span></span>';
+        d.querySelector('b').textContent = head; d.querySelector('span').textContent = it.open ? name : 'не открыт';
+        g.appendChild(d);
         if (it.open) d.addEventListener('pointerdown', e => { e.stopPropagation(); replay(it.file); });
       }
       box.querySelector('.x').addEventListener('pointerdown', e => { e.stopPropagation(); box.style.display = 'none'; });

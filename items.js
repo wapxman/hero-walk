@@ -319,9 +319,13 @@ SHOP.pick = (function (orig) {
     e.addEventListener('pointerdown', x => { x.stopPropagation(); fn(); });
   };
   const ui = { tab: 'items', sel: 'blade', selBag: -1 };
+  // v124 (Создатель 27.11): у торговцев Междумирья разный товар. SHOP.kind: 'flasks' — скляночник (только склянки), 'items' — торговец вещами
+  // (предметы, части, против боссов; у него же продажа), пусто — лавка между волнами в бою: в ней всё, как раньше. Кто какой — limbo.js.
+  const tabOk = k => !SHOP.kind || (SHOP.kind === 'flasks' ? k === 'flasks' : k !== 'flasks');
+  const selOf = k => k === 'items' ? 'blade' : k === 'parts' ? 'sword' : k === 'relics' ? 'pierce_crystal' : 'f:heal';
   const tabs = mk('div', '', panel); tabs.id = 'shTabs';
   const TABS = [['items', 'Предметы'], ['parts', 'Части'], ['relics', 'Против боссов'], ['flasks', 'Склянки']];
-  const tabEls = TABS.map(([k, t]) => { const d = mk('div', 'bg', tabs, t); tap(d, () => { ui.tab = k; ui.sel = k === 'items' ? 'blade' : k === 'parts' ? 'sword' : k === 'relics' ? 'pierce_crystal' : 'f:heal'; ui.selBag = -1; draw(); }); return d; });
+  const tabEls = TABS.map(([k, t]) => { const d = mk('div', 'bg', tabs, t); tap(d, () => { ui.tab = k; ui.sel = selOf(k); ui.selBag = -1; draw(); }); return d; });
   const list = mk('div', '', panel); list.id = 'shList';
   const info = mk('div', '', panel); info.id = 'shInfo';
   const bagRow = mk('div', '', panel); bagRow.id = 'shBag';
@@ -346,7 +350,9 @@ SHOP.pick = (function (orig) {
     return box;
   }
   function draw() {
-    tabEls.forEach((d, i) => d.classList.toggle('on', TABS[i][0] === ui.tab));
+    if (!tabOk(ui.tab)) { ui.tab = TABS.find(t => tabOk(t[0]))[0]; ui.sel = selOf(ui.tab); ui.selBag = -1; }      // у этого торговца такой вкладки нет
+    tabEls.forEach((d, i) => { d.classList.toggle('on', TABS[i][0] === ui.tab); d.style.display = tabOk(TABS[i][0]) ? '' : 'none'; });
+    bagRow.style.display = SHOP.kind === 'flasks' ? 'none' : '';      // у скляночника вещи не продаются и не скупаются
     list.innerHTML = '';
     if (ui.tab === 'flasks') {
       mk('div', 'fnote', list, 'Склянки, кроме лечения, пьются сами в нужный момент. Пока одна действует, вторая такая же не тратится. Каждой — не больше ' + FLASK_MAX + '.');

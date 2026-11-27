@@ -394,7 +394,7 @@
         MOV.push({ t: 0, dur: 5, update(m, dt) { e.slowT = 0; e.root = 0; e.silT = 0; } });
         const R0 = rosterOf(Math.max(1, wave)), kinds = [...new Set(R0.mel.concat(R0.rng))].filter(t => KIND[t] && !KIND[t].boss);
         for (let i = kinds.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [kinds[i], kinds[j]] = [kinds[j], kinds[i]]; }
-        if (enemies.length < 15) kinds.slice(0, 2).forEach((t, i) => {
+        if (enemies.length < 15 && (typeof HARD === 'undefined' || HARD.grp(e))) kinds.slice(0, 2).forEach((t, i) => {      // v124: в общем счёте групп (hard.js: GRP)
           spawnEnemy(t); const m = enemies[enemies.length - 1], a = Math.atan2(P.y - e.y, P.x - e.x) + (i ? 1.1 : -1.1);
           m.x = e.x + Math.cos(a) * 150; m.y = e.y + Math.sin(a) * 150 * YK; collide(m); m.raised = 1;
           mark({ img: F('b_forgegolem', 'fg_temper'), on: m, at: (m.ch.ok ? m.ch.top * m.ch.U * m.sc : 80) * 0.5, dur: 1.6, size: 190, add: 1 });

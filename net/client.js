@@ -50,8 +50,11 @@ var NETC = { on: false };   // NETC.limboBack — вернуться из Меж
     code.title = 'Пусто — любой свободный соперник; одинаковый номер у двух игроков — играть друг с другом';
     row.appendChild(code);
     sel.insertBefore(row, sel.querySelector('.go'));
+    row.style.display = 'none';      // v124 (Создатель 27.11): выбора «Одиночная / Дуэль / Вместе» на экране больше нет — «Онлайн» ведёт в зал ожидания (net/team.js: LOBBY); кнопки остались для ссылок проверки (?mode=…)
     // «В бой» в онлайн-режиме сначала подключается к серверу
     sel.querySelector('.go').addEventListener('pointerdown', e => {
+      // v124: экран выбора героя открыт из «Онлайн» — кнопка ведёт в зал ожидания игры вдвоём, одиночной игры и дуэли здесь нет
+      if (window.SEL_KIND === 'online' && !(window.TEAM && TEAM.on) && window.LOBBY) { e.stopImmediatePropagation(); LOBBY.open(); return; }
       if (S.mode === 'single') return;
       if (S.mode === 'coop' && window.TEAM) {   // v104: «Вместе» — обычная игра у каждого, сервер только пересылает (net/team.js)
         if (TEAM.on) return;                     // уже в комнате: кнопка работает как в одиночной (ведущий выбирает главу)

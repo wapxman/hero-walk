@@ -129,10 +129,15 @@ const HARD = (() => {
   // (ниже 40 % здоровья — трое; в мягком мире 1 — один). Не больше шести союзников на арене разом: пока их шесть — призыва нет.
   // Прежний призыв трёх одинаковых (combat.js: bossSkills) у боссов этим заменён. Горн-Голем (мир 5) зовёт своей «Закалкой» — ему
   // общий призыв не добавлен.
+  // v124 (Создатель 27.11): подкрепления не бесконечные. За один бой к мини-боссу приходит не больше 5 добавочных групп, к боссу — не больше 8;
+  // в счёт идут и четвёрки из входов арены (п. 5), и призыв самого босса (п. 4), и «Закалка» Горн-Голема (sk_defs.js). Дальше остаётся добить.
+  const GRP = { mini: 5, boss: 8 };
+  const grpLeft = e => (e.boss ? GRP.boss : GRP.mini) - (e.grpN || 0);
+  function grp(e) { if (grpLeft(e) <= 0) return false; e.grpN = (e.grpN || 0) + 1; return true; }
   const ALLY = { first: 10, gap: 17, gapLow: 13, n: 2, nLow: 3, max: 6, paid: 2, skip: { b_forgegolem: 1, tb_forgegolem: 1 } };
   function bossAllies(e, dt) {
     e.summonCd = 1e9;                                         // старый призыв трёх одинаковых — выключен
-    if (!live(e) || ALLY.skip[e.type] || e.clone) return;
+    if (!live(e) || ALLY.skip[e.type] || e.clone || grpLeft(e) <= 0) return;
     e.hSum = (e.hSum == null ? ALLY.first : e.hSum) - dt * (typeof LEVEL !== 'undefined' ? 1 / LEVEL.K().cd : 1);
     if (e.hSum > 0 || e.kb || e.root > 0 || P.dead > 0) return;
     // босс занят своим умением — ждём, но не дольше 6 с: потом союзники приходят и без его взмаха (иначе занятой босс не звал бы никого)
@@ -144,7 +149,7 @@ const HARD = (() => {
     const R0 = rosterOf(Math.max(1, wave)), kinds = [...new Set(R0.mel.concat(R0.rng))].filter(t => KIND[t] && !KIND[t].boss);
     for (let i = kinds.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [kinds[i], kinds[j]] = [kinds[j], kinds[i]]; }
     const n = Math.min(soft ? 1 : low ? ALLY.nLow : ALLY.n, ALLY.max - allies, kinds.length);
-    e.hSum = (low ? ALLY.gapLow : ALLY.gap) * T.gap; D.casts.allies = (D.casts.allies || 0) + 1; e.hSumN = (e.hSumN || 0) + 1;
+    e.hSum = (low ? ALLY.gapLow : ALLY.gap) * T.gap; D.casts.allies = (D.casts.allies || 0) + 1; e.hSumN = (e.hSumN || 0) + 1; grp(e);
     tag(e, 'Ко мне!', '#ffb36a');
     const call = () => {
       if (!live(e)) return;
@@ -168,14 +173,14 @@ const HARD = (() => {
   const RF = { first: 8, gap: 12, n: 4, left: 2, max: 8, paid: 1, step: [0.7, 1.3] };
   const rfQ = [];      // кто ждёт выхода: { type, by, t, paid }
   function reinforce(e, dt) {
-    if (!live(e) || e.clone) return;
+    if (!live(e) || e.clone || grpLeft(e) <= 0) return;
     e.rfT = (e.rfT == null ? RF.first : e.rfT) - dt;
     if (e.rfT > 0 || rfQ.some(q => q.by === e)) return;
     const small = enemies.filter(x => live(x) && !x.boss && !x.mini).length;
     if (small > RF.left) return;
     const R0 = rosterOf(Math.max(1, wave)), kinds = R0.mel.concat(R0.rng).filter(t => KIND[t] && !KIND[t].boss);
     if (!kinds.length) return;
-    e.rfN = (e.rfN || 0) + 1; e.rfT = RF.gap; D.casts.reinforce = (D.casts.reinforce || 0) + 1;
+    e.rfN = (e.rfN || 0) + 1; grp(e); e.rfT = RF.gap; D.casts.reinforce = (D.casts.reinforce || 0) + 1;
     let t = 0.2; for (let i = 0; i < RF.n; i++) { rfQ.push({ type: kinds[Math.floor(Math.random() * kinds.length)], by: e, t, paid: e.rfN <= RF.paid }); t += rnd(RF.step[0], RF.step[1]); }
     if (typeof needChar === 'function') for (const q of rfQ) if (KIND[q.type]) needChar(CHARS[KIND[q.type].ch]);
   }
@@ -195,5 +200,5 @@ const HARD = (() => {
   }
   { const _cu2 = combatUpdate; combatUpdate = function (dt) { _cu2(dt); rfTick(dt); };
     if (typeof SHOP !== 'undefined') { const _ok = SHOP.onKill; SHOP.onKill = function (e) { if (e && e.noLoot) return; return _ok.apply(this, arguments); }; } }
-  return { D, T, KIT, ALLY, RF, rfQ, spdK };
+  return { D, T, KIT, ALLY, RF, GRP, grp, grpLeft, rfQ, spdK };
 })();

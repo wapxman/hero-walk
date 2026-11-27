@@ -21,8 +21,8 @@ const LIMBO = (() => {
     fire: [0.5, 0.476],
     st: {   // места: где стоят, радиус срабатывания (в долях ширины), что открывают
       forge: { p: [0.265, 0.63], R: 0.06, nm: 'Кузница', hint: 'прокачка способностей' },
-      shop: { p: [0.735, 0.63], R: 0.06, nm: 'Хранитель Перепутья', hint: 'предметы; склянки — на своей вкладке' },
-      mirror: { p: [0.265, 0.34], R: 0.06, nm: 'Святилище зеркала', hint: 'продажа предметов' },
+      shop: { p: [0.735, 0.63], R: 0.06, nm: 'Хранитель Перепутья', hint: 'склянки' },                          // v124: только склянки (шатёр со склянками на картинке)
+      mirror: { p: [0.265, 0.34], R: 0.06, nm: 'Святилище зеркала', hint: 'предметы: покупка и продажа' },      // v124: только вещи
       portal: { p: [0.5, 0.262], R: 0.055, nm: 'Портал', hint: 'назад в мир' },
       alma: { p: [0.735, 0.34], R: 0.06, nm: 'Альма-матер', hint: 'справочник: враги и предметы' },      // библиотека (alma.js)
       trophy: { p: [0.5, 0.672], R: 0.055, nm: 'Зал трофеев', hint: 'трофеи боссов и рекорды' },          // витрина побед (alma.js)
@@ -115,12 +115,23 @@ const LIMBO = (() => {
   }
 
   // ---------- места: подошёл — открылось ----------
-  function closeAll() { if (SHOP.open) SHOP.closeShop(); if (FG) FG.style.display = 'none'; if (typeof ALMA !== 'undefined') ALMA.close(); S.opened = null; }
+  function closeAll() { if (SHOP.open) SHOP.closeShop(); SHOP.kind = null; if (FG) FG.style.display = 'none'; if (typeof ALMA !== 'undefined') ALMA.close(); S.opened = null; }
+  // v124 (Создатель 27.11): в Междумирье товар разделён — у Хранителя (шатёр) только склянки, у Святилища зеркала только вещи (покупка и продажа).
+  // Кнопка лавки и клавиша B здесь открывают лавку того торговца, у которого стоит герой; в стороне от торговцев лавки нет.
+  { const _os = SHOP.openShop;
+    SHOP.openShop = function () {
+      if (S.on) {
+        const k = S.near === 'shop' ? 'flasks' : S.near === 'mirror' ? 'items' : null;
+        if (!k) { say(P.x, P.y - CH * HS() * 1.3, 'Склянки — у Хранителя, вещи — у Святилища зеркала', '#ffd28a'); return; }
+        SHOP.kind = k; S.opened = S.near;
+      } else SHOP.kind = null;
+      return _os.apply(this, arguments);
+    }; }
   function openSt(id) {
     S.opened = id;
     if (id === 'forge') forgeUI(true);
-    else if (id === 'shop') { SHOP.openShop(); say(P.x, P.y - CH * HS() * 1.3, 'Хранитель: «Чем помочь, странник?»', '#bfe6ff'); }
-    else if (id === 'mirror') { SHOP.openShop(); say(P.x, P.y - CH * HS() * 1.3, 'Выбери предмет в сумке — зеркало заберёт его за золото', '#e6d6ff'); }
+    else if (id === 'shop') { SHOP.openShop(); say(P.x, P.y - CH * HS() * 1.3, 'Хранитель: «Склянки на любой случай, странник»', '#bfe6ff'); }
+    else if (id === 'mirror') { SHOP.openShop(); say(P.x, P.y - CH * HS() * 1.3, 'Купи нужное, а лишнее зеркало заберёт за золото', '#e6d6ff'); }
     else if (id === 'alma' && typeof ALMA !== 'undefined') ALMA.openBook();
     else if (id === 'trophy' && typeof ALMA !== 'undefined') ALMA.openHall();
     else if (id === 'portal') leave();

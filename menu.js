@@ -18,7 +18,11 @@
   const put = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
 
   // ---------- настройки (сохраняются на устройстве) ----------
-  const SET = { sfx: get('hw_sfx', '1') === '1', cam: +get('hw_cam', CFG.cam || 1.65), q: get('hw_q', 'hi') };
+  // v124 (Создатель 27.11): камера — только «Обычно» и «Чуть дальше» (дальняя давала преимущество). Прежние «Близко» (1.35) и
+  // «Далеко» (1.95) из сохранённых настроек приводятся к ближайшему из двух.
+  const CAMS = [[1.65, 'Обычно'], [1.8, 'Чуть дальше']];
+  const camFix = v => (+v > 1.72 ? 1.8 : 1.65);
+  const SET = { sfx: get('hw_sfx', '1') === '1', cam: camFix(get('hw_cam', 1.65)), q: get('hw_q', 'hi') };
   CFG.cam = SET.cam;
   if (SET.q === 'lo') { DPR_CAP = 1.25; resize(); }
   const _play = play;
@@ -34,12 +38,14 @@
     transition: opacity 1s, transform 2.4s ease-out; }
   #mSplash.on i { opacity: 1; transform: scale(1); }
   #mMain { background: #05080e ${U('menu_bg')} center / cover no-repeat; display: none; }
-  #mMain .logo { position: absolute; left: 5vw; top: 2vh; width: min(22vw, 36vh); aspect-ratio: 1 / 1; background: ${LOGO_BG} center / contain no-repeat; }
-  #mMain .btns { position: absolute; left: 6vw; top: 39.5vh; display: flex; flex-direction: column; gap: 1.2vh; }
+  /* v124 (Создатель 28.11): лого TEN WORLDS не квадратное (1243×848) — место под него шире, и стоит оно по центру столбца кнопок
+     (столбец: left 6vw, ширина 40vh → середина 6vw + 20vh). «Статистика» перенесена в столбец (tally.js), поэтому кнопки чуть ниже ростом. */
+  #mMain .logo { position: absolute; left: calc(6vw + 20vh - 24vh); top: 1.5vh; width: 48vh; aspect-ratio: 1243 / 848; background: ${LOGO_BG} center / contain no-repeat; }
+  #mMain .btns { position: absolute; left: 6vw; top: 36vh; display: flex; flex-direction: column; gap: 1vh; }
   #mMain .b { width: 40vh; height: 9vh; background: ${U('h_button')} center / 100% 100% no-repeat; display: flex; align-items: center; justify-content: center;
     font: bold 3.3vh system-ui; color: #ffe9a8; letter-spacing: .06em; transition: transform .12s; }
   #mMain .b:active { transform: scale(.96); }
-  #mMain .btns .b { height: 8.5vh; }
+  #mMain .btns .b { height: 7.6vh; }
   #mMain .btns .b.hl { color: #fff7cf; filter: brightness(1.22) drop-shadow(0 0 1.5vh rgba(255,226,122,.8)); transform: scale(1.07); transform-origin: left center; margin-bottom: .5vh; }
   #mMain .btns .b.hl:active { transform: scale(1.02); }
   #mMain .ver { position: absolute; right: 2vh; bottom: 1.6vh; font-size: 1.7vh; opacity: .7; }
@@ -92,14 +98,13 @@
   // new — «Новая игра»: как play, но после «В бой» идёт вступление и сразу мир 1 (save.js), без карты миров
   function openSelect(kind) {
     window.NEWGAME = kind === 'new'; if (kind === 'new') kind = 'play';
+    window.SEL_KIND = kind;      // v124: зачем открыт выбор героя — play, online (дальше зал ожидания игры вдвоём, net/team.js) или view
     hideMain(); sel.style.display = 'flex'; if (typeof LAZY !== 'undefined') LAZY.start();
     plaque.textContent = kind === 'view' ? 'ГЕРОИ' : 'ВЫБЕРИ ГЕРОЯ';
     const go = sel.querySelector('.go'); go.style.display = kind === 'view' ? 'none' : 'flex';
-    if (modes) {
-      modes.style.display = kind === 'online' ? 'flex' : 'none';
-      if (kind === 'play') modeBtns[0].dispatchEvent(new PointerEvent('pointerdown'));
-      if (kind === 'online' && NETC.S.mode === 'single') modeBtns[1].dispatchEvent(new PointerEvent('pointerdown'));
-    }
+    { const t = kind === 'online' ? 'ДАЛЕЕ' : 'В БОЙ'; if ((go.dataset.ru || go.textContent) !== t) { delete go.dataset.ru; go.textContent = t; } }
+    // v124 (Создатель 27.11): в «Онлайн» больше нет ни одиночной игры, ни дуэли — только игра вдвоём; ряд кнопок режима скрыт всегда
+    if (modes) { modes.style.display = 'none'; if (NETC.S.mode !== 'single') modeBtns[0].dispatchEvent(new PointerEvent('pointerdown')); }
   }
 
   // ---------- главное меню ----------
@@ -111,7 +116,7 @@
   for (const [t, fn] of MENU) tap(mk('div', 'b', btns, t), fn);
   mk('div', 'ver', main, 'v' + V.replace(/\D/g, ''));
   // музыка главного экрана — m7; с первым боем включается следующий трек
-  const MENU_TRACK = 6; let menuMus = false;
+  const MENU_TRACK = Math.max(0, MUSIC.findIndex(m => m[0] === 'm7')); let menuMus = false;      // v124: по имени, а не по номеру — список треков меняется
   function menuMusic() {
     if (typeof mus === 'undefined' || started) return; menuMus = true;
     if (mus.el) { if (mus.i !== MENU_TRACK) { mus.i = MENU_TRACK; musicLoad(); } } else store('hw_mus_i', MENU_TRACK);
@@ -138,9 +143,9 @@
   }
   option('Музыка', [[true, 'Вкл'], [false, 'Выкл']], () => mus.on, v => { if (mus.on !== v) musicToggle(); });
   option('Звуки', [[true, 'Вкл'], [false, 'Выкл']], () => SET.sfx, v => { SET.sfx = v; put('hw_sfx', v ? '1' : '0'); });
-  option('Камера', [[1.35, 'Близко'], [1.65, 'Обычно'], [1.95, 'Далеко']], () => SET.cam, v => { SET.cam = CFG.cam = v; put('hw_cam', v); });
+  option('Камера', CAMS, () => SET.cam, v => { SET.cam = CFG.cam = v; put('hw_cam', v); });
   option('Графика', [['hi', 'Чётко'], ['lo', 'Экономно']], () => SET.q, v => { SET.q = v; put('hw_q', v); DPR_CAP = v === 'lo' ? 1.25 : 2; resize(); });
-  if (typeof METRICS !== 'undefined') option('Статистика', [[true, 'Отправлять'], [false, 'Нет']], () => METRICS.on, v => METRICS.set(v));      // v122: обезличенная статистика игры (stats.js)
+  if (typeof METRICS !== 'undefined') option('Аналитика', [[true, 'Отправлять'], [false, 'Нет']], () => METRICS.on, v => METRICS.set(v));      // v122: обезличенная статистика игры (stats.js); v124: строка названа «Аналитика» — «Статистика» теперь экран с цифрами игрока (tally.js)
   if (typeof LANG !== 'undefined') option('Язык', [['ru', 'Русский'], ['en', 'English']], () => LANG.cur, v => LANG.set(v));      // v121: английская версия (lang.js)
   tap(mk('div', 'b', pn, 'Готово'), () => { st.style.display = 'none'; if (!started) showMain(); });
   function openSettings() { st.style.display = 'flex'; }
@@ -176,11 +181,12 @@
   }
   const logo = new Image();
   const cineBoot = () => !auto && !back2menu && typeof CINE !== 'undefined' && !CINE.off;      // v121: весь запуск (лого, язык, пролог) ведёт cine.js
-  logo.onload = () => { if (!back2menu && !cineBoot()) requestAnimationFrame(() => sp.classList.add('on')); };
+  // v124: лого игры на этой заставке включается только после загрузки страницы и только когда запуск ведёт не cine.js (автопрогон).
+  // Раньше оно включалось, как только загрузилась картинка: cine.js в этот момент ещё не подключён, и лого игры мелькало перед лого студии.
   logo.src = LOGO + V;
   sp.addEventListener('pointerdown', endSplash);
   // после «В главное меню» — сразу меню, без логотипа. Обычный запуск: ждём, пока страница собрана (cine.js подключается позже этого
   // файла), и сразу отдаём запуск ему; под автопрогоном (заставки выключены) — прежнее лого игры на 2,6 с
   if (auto || back2menu) setTimeout(endSplash, 50);
-  else addEventListener('load', () => setTimeout(endSplash, cineBoot() ? 40 : 2600));
+  else addEventListener('load', () => { if (cineBoot()) setTimeout(endSplash, 40); else { requestAnimationFrame(() => sp.classList.add('on')); setTimeout(endSplash, 2600); } });
 })();

@@ -29,8 +29,7 @@ try:
         GO = "for (const t of ['pointerdown', 'pointerup', 'click']) document.getElementById('pmGo').dispatchEvent(new PointerEvent(t, { bubbles: true }))"
         p.evaluate(GO); p.wait_for_function("SHOP.phase === 'fight' && enemies.length > 0", timeout=30000); time.sleep(1.0)
         chk('в бою арена рисуется', not p.evaluate("arenaHidden()"))
-        s = p.evaluate("({ t: (document.getElementById('lvTmp') || {}).textContent, d: getComputedStyle(document.getElementById('lvTmp')).display, n: LEVEL.n })")
-        chk('временная надпись в бою: «Ур. врагов 1»', s['t'] == 'Ур. врагов 1' and s['d'] == 'block', s)
+        chk('надписи «Ур. врагов N» в бою нет (убрана в v124)', p.evaluate("!document.getElementById('lvTmp') && !/Ур\. врагов/.test(document.body.innerText)"))
         clear = "enemies.length = 0; ROUND.queue.length = 0; ROUND.endW = 199; ROUND.mini = null; shots.length = 0; SHOP.phase = 'fight'; P.dead = 0; window.HARD_OFF = 1; "
         p.evaluate("window.__god = setInterval(() => { if (window.__keep) { P.hp = Math.max(P.hp, P.maxHp * window.__keep); } }, 50); window.__keep = 0; 1")
 

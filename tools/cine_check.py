@@ -61,7 +61,7 @@ def boot(p, first, shots=False):
         elif b['pres'] and not any(x.startswith('pres') for x in seq):
             see('pres:' + b['pres']); time.sleep(1.0)
             if shots: p.screenshot(path=os.path.join(OUT, '1c_presents.png'))
-        elif b['lg'] and 'studio' in seq: see('game')
+        elif b['lg']: see('game')      # v124: лого игры — где бы ни появилось (должно быть одно, после пролога)
         time.sleep(0.1)
     return seq, snd
 WIN = "(() => { const w = document.getElementById('stWin'); return !!w && getComputedStyle(w).display === 'flex'; })()"
@@ -86,7 +86,10 @@ LIST = "(() => { const b = document.getElementById('cineList'); return { on: !!b
 def story(p, k): p.evaluate("(k) => document.querySelector('#cineList .it[data-k=\"' + k + '\"]').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))", k)
 def story_close(p): p.evaluate("document.querySelector('#cineList .x').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))")
 # с первого мгновения: что видел игрок (раз в кадр) — ни одного видео с кнопками или без пустого постера, и ни одного видео, показанного до первого кадра
-WATCH = """() => { window.__w = { bad: [], vids: 0, early: 0 }; const tick = () => {
+WATCH = """() => { window.__w = { bad: [], vids: 0, early: 0, splashLogo: 0, twoLogos: 0 }; const tick = () => {
+    { const sp = document.querySelector('#mSplash.on'); if (sp && +getComputedStyle(sp).opacity > 0.05) __w.splashLogo++;
+      const lg = document.querySelector('#cine .lg.on'), ml = document.querySelector('#mMain .logo'), mm = document.getElementById('mMain');
+      if (lg && ml && mm && getComputedStyle(mm).display !== 'none' && getComputedStyle(ml).visibility !== 'hidden' && getComputedStyle(document.getElementById('cine')).display !== 'none') __w.twoLogos++; }
     for (const v of document.querySelectorAll('video')) { __w.vids++; if (v.controls || !/^data:image/.test(v.poster || '')) __w.bad.push('controls/poster');
       if (+getComputedStyle(v).opacity > 0.01 && !(v.currentTime > 0)) __w.early++; }
     requestAnimationFrame(tick); }; tick(); }"""
@@ -99,11 +102,13 @@ with sync_playwright() as pw:
     print('--- первый запуск')
     p.goto(U, timeout=120000)
     seq, a = boot(p, True, True); s = p.evaluate(ST)
-    chk('первый запуск: лого студии → лого игры → выбор языка → «PALLADIUM представляет» → пролог → меню', seq == ['studio', 'game', 'pick', 'pres:PALLADIUMпредставляет', 'intro', 'menu'], seq)
+    chk('первый запуск (v124): выбор языка → лого студии → «PALLADIUM представляет» → пролог → лого игры → меню', seq == ['pick', 'studio', 'pres:PALLADIUMпредставляет', 'intro', 'game', 'menu'], seq)
     chk('пролог при запуске: звук идёт', snd_ok(a) and a['dur'] > 100, a)
     chk('язык после выбора запомнен (русский)', p.evaluate("LANG.cur === 'ru' && LANG.chosen && localStorage.getItem('hw_lang') === 'ru'"))
     w = p.evaluate('__w')
     chk('видео: без кнопок, с пустым постером, до первого кадра не показывалось', w['vids'] > 0 and not w['bad'] and w['early'] == 0, w)
+    chk('лого игры одно: на заставке меню не мелькало, двух лого разом не было (v124)', w['splashLogo'] == 0 and w['twoLogos'] == 0, w)
+    chk('после запуска логотип меню на месте и виден', p.evaluate("(() => { const l = document.querySelector('#mMain .logo'); return !!l && getComputedStyle(l).visibility === 'visible' && l.getBoundingClientRect().width > 50 && getComputedStyle(document.getElementById('cine')).display === 'none'; })()"))
     chk('без сохранения: первая кнопка — «Новая игра», подсвечена; «Продолжить» нет', s['btns'][0] == 'Новая игра*' and not any('Продолжить' in b for b in s['btns']) and len([b for b in s['btns'] if 'Новая' in b]) == 1, s['btns'])
     chk('в меню есть «История» и «PRO»', p.evaluate("!!document.querySelector('#mMain .b.story') && !!document.querySelector('#mMain .b.pro')"))
     time.sleep(0.8); p.screenshot(path=os.path.join(OUT, '2_menu_new.png'))
@@ -163,7 +168,7 @@ with sync_playwright() as pw:
     print('--- повторный запуск игры')
     p.goto(U, timeout=120000)
     seq, a = boot(p, False); s = p.evaluate(ST)
-    chk('новый запуск: снова лого студии, лого игры, «PALLADIUM представляет» и пролог; язык второй раз не спрашивают', seq == ['studio', 'game', 'pres:PALLADIUMпредставляет', 'intro', 'menu'], seq)
+    chk('новый запуск (v124): лого студии → «PALLADIUM представляет» → пролог → лого игры → меню; язык второй раз не спрашивают', seq == ['studio', 'pres:PALLADIUMпредставляет', 'intro', 'game', 'menu'], seq)
     chk('после пролога — меню с «Продолжить»', not s['on'] and s['menu'] == 'block' and s['btns'][0] == 'Продолжить*', s)
     btn(p, 'История'); time.sleep(0.6); L = p.evaluate(LIST)
     chk('«История»: открыты пролог и мир 1, остальные закрыты', L['on'] and L['open'] == ['intro', 'world_01'], L)
