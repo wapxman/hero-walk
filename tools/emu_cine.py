@@ -3,8 +3,8 @@
   запустить приложение и сразу:  adb forward tcp:9333 localabstract:webview_devtools_remote_<pid приложения>
   python tools/emu_cine.py [ru|en]        язык, который выбрать на экране выбора (по умолчанию en — заодно проверяется перевод меню)
 Касания — настоящие (adb shell input tap).
-v121: запуск — лого студии → лого игры → выбор языка → «PALLADIUM представляет» → пролог → меню. Касание по экрану ролик НЕ закрывает,
-закрывает только кнопка «Продолжить» сверху. «Новая игра» → карта миров (без пролога) → ролик мира 1 → бой.
+v124: запуск — выбор языка (первый раз) → лого студии → «PALLADIUM представляет» → пролог → лого игры (один раз, уезжает на своё место
+в меню) → меню. Касание по экрану ролик НЕ закрывает, закрывает только кнопка «Продолжить» сверху. «Новая игра» → карта миров (без пролога) → ролик мира 1 → бой.
 Ролики миров 2–10 и финал запускаются прямо (CINE.world / CINE.finale): идут, звук есть, экран не закрывает, кнопка закрывает.
 Снимки экрана — tests/cine/emu_*.png. Код выхода 1 — если что-то не прошло."""
 import sys, time, os, subprocess, json, urllib.request
@@ -71,13 +71,14 @@ while time.time() - t0 < 120:
     elif s['pick'] and 'pick' not in seq:
         time.sleep(1.2); seq.append('pick'); shot('0b_language'); tap_el('#lgPick [data-l=%s]' % LNG)
     elif s['pres'] and not any(x.startswith('pres') for x in seq): seq.append('pres:' + s['pres']); time.sleep(1.1); shot('0c_presents')
-    elif s['lg'] and 'game' not in seq and 'pick' not in seq: seq.append('game'); time.sleep(0.8); shot('0a_game')
+    elif s['lg'] and 'game' not in seq: seq.append('game'); time.sleep(0.8); shot('0e_game')
     time.sleep(0.2)
 pres = 'pres:PALLADIUM' + ('presents' if LNG == 'en' else 'представляет')
-want = ['game', 'pick', pres, 'intro', 'menu']
-chk('порядок запуска: (лого студии) → лого игры → выбор языка → «PALLADIUM %s» → пролог → меню' % pres[14:], [x for x in seq if x != 'studio'] == want, seq)
-if 'studio' not in seq: print('       лого студии прошло до подключения проверки (оно первое и короткое) — на снимке его нет')
+want = ['pick', 'studio', pres, 'intro', 'game', 'menu']
+chk('порядок запуска: выбор языка → лого студии → «PALLADIUM %s» → пролог → лого игры (один раз) → меню' % pres[14:], seq == want, seq)
 time.sleep(2); shot('1_menu')
+lg = ev("(() => { const l = document.querySelector('#mMain .logo'), r = l.getBoundingClientRect(), c = document.getElementById('cine'); return { w: Math.round(r.width), h: Math.round(r.height), x: Math.round(r.left), vis: +getComputedStyle(l).opacity, cine: c ? c.style.display : '', W: innerWidth, H: innerHeight }; })()")
+chk('в меню лого игры стоит на своём месте, заставка убрана (второго лого поверх нет)', lg['w'] > 100 and lg['h'] > 60 and lg['vis'] > 0.9 and lg['cine'] != 'block' and lg['x'] >= 0 and lg['x'] + lg['w'] <= lg['W'], lg)
 b = ev("[...document.querySelectorAll('#mMain .btns .b')].map(b => b.textContent)")
 chk('меню на выбранном языке (%s): %s' % (LNG, ', '.join(b)), ('New game' in b) if LNG == 'en' else ('Новая игра' in b), b)
 chk('язык запомнен', ev("localStorage.getItem('hw_lang')") == LNG)
