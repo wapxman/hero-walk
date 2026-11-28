@@ -37,7 +37,15 @@
   #mSplash i { width: min(70vw, 86vh); aspect-ratio: 1 / 1; background: ${LOGO_BG} center / contain no-repeat; opacity: 0; transform: scale(.92);
     transition: opacity 1s, transform 2.4s ease-out; }
   #mSplash.on i { opacity: 1; transform: scale(1); }
-  #mMain { background: #05080e ${U('menu_bg')} center / cover no-repeat; display: none; }
+  /* v125 (Создатель 28.11: «скипетр и ноги обрезаны»): заставка 3:2 раньше растягивалась по ширине экрана (cover) — на широком телефоне
+     верх скипетра и ноги героев уходили за края. Теперь картинка всегда стоит в полную высоту у правого края (::before), а место слева
+     от неё закрывает её же размытая тёмная копия (ui/menu_bg_soft.webp); левый край картинки плавно растворяется в ней (маска). */
+  #mMain { background: #05080e ${U('menu_bg_soft')} center / cover no-repeat; display: none; }
+  #mMain::before { content: ''; position: absolute; inset: 0; z-index: -1; background: ${U('menu_bg')} right center / auto 100% no-repeat;
+    -webkit-mask-image: linear-gradient(to right, transparent calc(100vw - 150vh), #000 calc(100vw - 116vh));
+    mask-image: linear-gradient(to right, transparent calc(100vw - 150vh), #000 calc(100vw - 116vh)); }
+  /* экран у́же картинки (планшет 4:3): в высоту она и так целая, по ширине режется поровну с двух сторон, как раньше — иначе скипетр уходит под лого */
+  @media (max-aspect-ratio: 3/2) { #mMain::before { background-position: center; -webkit-mask-image: none; mask-image: none; } }
   /* v124 (Создатель 28.11): лого TEN WORLDS не квадратное (1243×848) — место под него шире, и стоит оно по центру столбца кнопок
      (столбец: left 6vw, ширина 40vh → середина 6vw + 20vh). «Статистика» перенесена в столбец (tally.js), поэтому кнопки чуть ниже ростом. */
   #mMain .logo { position: absolute; left: calc(6vw + 20vh - 24vh); top: 1.5vh; width: 48vh; aspect-ratio: 1243 / 848; background: ${LOGO_BG} center / contain no-repeat; }

@@ -16,6 +16,9 @@ const TEASER = (() => {
   const css = document.createElement('style');
   css.textContent = `
   #tzBox { position: absolute; right: 3vh; bottom: 6.5vh; width: 46vh; display: flex; flex-direction: column; gap: 1vh; z-index: 3; }
+  /* v125: на широком экране (телефон 19,5:9 и шире) заставка стоит в полную высоту справа, и слева от героев есть свободное тёмное место —
+     карточки встают туда, рядом со столбцом кнопок, и не закрывают ноги лучницы. На экранах поуже места там нет — карточки справа снизу. */
+  @media (min-aspect-ratio: 213/100) { #tzBox { right: auto; left: calc(6vw + 44vh); } }
   #tzBox .c { display: flex; align-items: center; gap: 1.6vh; padding: 1.2vh 1.6vh 1.2vh 1.2vh;
     background: linear-gradient(90deg, rgba(14,10,6,.92), rgba(30,22,12,.88)); border: .25vh solid rgba(226,186,104,.75); border-radius: 1.4vh;
     box-shadow: 0 .6vh 2vh rgba(0,0,0,.6); cursor: pointer; user-select: none; -webkit-user-select: none; font-family: Georgia, serif; }

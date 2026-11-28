@@ -6,6 +6,7 @@
 4 — стайка птиц летит над ареной и от камеры не зависит.
 5 — стражника (мир 1), селянина (мир 2) и саламандры (мир 8) на аренах нет.
 6 — на выборе героя третья карточка: силуэт нового героя и «Скоро»; выбрать её нельзя; три карточки и список умений влезают на любой экран.
+7 — заставка главного меню стоит в полную высоту на любом экране: скипетр и ноги героев не режутся (проверяется в разделе 3).
 Сервер страниц (порт 8787) и «молчащий» сервер (порт 8789) поднимает сам. Запуск: python tools/v125_check.py   снимки — tests/v125/. Код выхода 1 — красный."""
 import sys, os, time, json, subprocess, socket, threading
 sys.stdout.reconfigure(encoding='utf-8', line_buffering=True)
@@ -141,6 +142,15 @@ try:
             chk(name + ': карточки целиком на экране и не закрывают кнопки, «PRO», «Историю», лого и номер версии', inside(r['c0'], r['W'], r['H']) and inside(r['c1'], r['W'], r['H']) and not any(cross(r['box'], r[k]) for k in ('btns', 'pro', 'story', 'ver', 'logo')), r)
             ok = p.evaluate("(async () => { const o = []; for (const e of document.querySelectorAll('#tzBox .im')) { const u = e.style.backgroundImage.slice(5, -2); o.push((await fetch(u)).status); } return o; })()")
             chk(name + ': картинки карточек загружаются', ok == [200, 200], ok)
+            # заставка меню: всегда в полную высоту (скипетр и ноги не режутся); точки картинки 1536×1024 — в точки экрана
+            bg = p.evaluate("""(async () => { const c = getComputedStyle(document.getElementById('mMain'), '::before'), W = innerWidth, H = innerHeight, aw = H * 1.5, ax = W - aw;
+              const pt = (x, y) => { const e = document.elementFromPoint(ax + x / 1536 * aw, y / 1024 * H); return e ? (e.id || e.className || e.tagName) : null; };
+              return { size: c.backgroundSize, pos: c.backgroundPosition, soft: getComputedStyle(document.getElementById('mMain')).backgroundImage.includes('menu_bg_soft'), file: (await fetch('ui/menu_bg_soft.webp' + V)).status,
+                tip: pt(668, 30), feet: pt(720, 900), boot1: pt(1050, 930), boot2: pt(1450, 880), face1: pt(880, 210), face2: pt(1230, 330) }; })()""")
+            asp = size[0] / size[1]
+            chk(name + ': заставка стоит в полную высоту экрана (скипетр и ноги не режутся), по бокам — её размытая копия', bg['size'] == 'auto 100%' and bg['soft'] and bg['file'] == 200 and bg['pos'] == ('100% 50%' if asp > 1.5 else '50% 50%'), bg)
+            if asp > 2.13:
+                chk(name + ': широкий экран — верх скипетра, ноги и лица обоих героев ничем не закрыты (карточки «Скоро» стоят слева от героев)', all(bg[k] == 'mMain' for k in ('tip', 'feet', 'boot1', 'boot2', 'face1', 'face2')) and r['box'][2] <= r['W'] - r['H'] * 1.5 * 0.72 + 2, [bg, r['box']])
             if size[0] == 915:
                 time.sleep(14); s2 = p.evaluate("(() => { const b = document.getElementById('tzBox').getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top), document.querySelectorAll('#tzBox .c').length]; })()")
                 chk(name + ': через 14 с карточки на том же месте (раньше уезжали через 12 с)', s2 == [round(r['box'][0]), round(r['box'][1]), 2], [s2, r['box']])
