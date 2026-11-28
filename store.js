@@ -1,6 +1,8 @@
-// Реклама и PRO (v107). Миры 1–2 — без рекламы. С мира 3 без PRO — реклама на весь экран перед раундом и при
-// возвращении из Междумирья, не чаще раза в CFG.gapSec. Реклама за награду (по желанию, и с PRO): воскреснуть на
-// боссе без Междумирья, удвоить золото за босса. PRO — одна покупка навсегда, рекламу на весь экран отключает.
+// Реклама и PRO (v107). Без PRO — реклама на весь экран перед раундом и при возвращении из Междумирья, не чаще раза
+// в CFG.gapSec. PRO — одна покупка навсегда, рекламу отключает.
+// v125 (Создатель 28.11): «рекламу показываем всем, кто не купил PRO» — миров без рекламы больше нет: реклама идёт с первого
+// же мира, кроме самой первой арены новой игры (CFG.freeWaves — три волны, чтобы новичок сначала сыграл). Наград за рекламу
+// («удвоить золото за босса», «воскреснуть на боссе») больше нет — рекламу за награду игра не зовёт вообще.
 //
 // Саму рекламу и покупку показывает приложение (APK): мост window.DuelStore (MainActivity.java). Здесь — только когда
 // и что показать. ID рекламы и товара лежат в APK, в одном файле store.properties. На сайте моста нет: рекламы нет,
@@ -14,7 +16,7 @@
 // Проверка в браузере без APK: ?fakestore — поддельный мост (реклама — серая заглушка на 1,5 с), ?fakestore=pro — с PRO.
 'use strict';
 const STORE = (() => {
-  const CFG = { freeWorlds: 2, gapSec: 120, safetySec: 120, showSec: 4 };   // showSec — сколько ждём, что реклама открылась (v115)
+  const CFG = { freeWaves: 3, gapSec: 120, safetySec: 120, showSec: 4 };   // showSec — сколько ждём, что реклама открылась (v115); freeWaves — первая арена новой игры без рекламы (v125)
   const FAKE = /[?&]fakestore/.test(location.search);
   const B = window.DuelStore || (FAKE && !/fakestore=web/.test(location.search) ? fakeBridge() : null);   // ?fakestore=web — как на сайте, но окна видны и под автопрогоном
   const BOT = !!navigator.webdriver && !FAKE;          // автопрогон: окна не показываем, иначе он встанет
@@ -22,10 +24,10 @@ const STORE = (() => {
   let st = {}; try { st = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {}
   const keep = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
   let pro = false; try { pro = !!(B && B.isPro()); } catch (e) {}
-  let lastAd = -1e9, busy = false, wait = null, revived = false, bossGold = 0;
+  let lastAd = -1e9, busy = false, wait = null;
   const now = () => performance.now() / 1000;
   const online = () => !!((window.NETC && NETC.on) || (typeof TEAM !== 'undefined' && TEAM.on));
-  const adsZone = () => wave >= CFG.freeWorlds * BAL.WAVES;     // следующая волна — уже в мире 3 и дальше (и на втором круге)
+  const adsZone = () => wave >= CFG.freeWaves;     // первая арена новой игры пройдена — дальше реклама во всех мирах
   const call = (fn, ...a) => { try { return B && B[fn] ? B[fn](...a) : false; } catch (e) { return false; } };
 
   // ---------- звук игры на время рекламы ----------
@@ -110,10 +112,11 @@ const STORE = (() => {
     wait = { kind: 'pro', done: ok => after && after(ok) };
     call('buyPro');
   }
-  // экран при первом входе в мир 3
+  // экран один раз перед первой рекламой (после первой арены новой игры). На сайте рекламы нет — и экрана нет (v125: раньше там
+  // было окно «Мир 3» с рассказом про приложение).
   function gate(go) {
     st.gate = 1; keep();
-    if (!B) { win('Мир 3', 'В приложении дальше игра идёт с рекламой, а PRO убирает её навсегда. PRO — в приложении Google Play. Здесь, на сайте, рекламы нет.', [['Играть', go, 'gold']]); return; }
+    if (!B) return go();
     win('Дальше — с рекламой', 'Купите PRO — и рекламы не будет никогда.',
       [['Купить PRO' + priceTxt(), () => buy(() => go()), 'gold'], ['Играть с рекламой', go]], 'PRO — одна покупка навсегда. Купить можно и позже — в главном меню.');
   }
@@ -122,7 +125,7 @@ const STORE = (() => {
   const _sw = SHOP.startWave;
   SHOP.startWave = function () {
     if (busy) return;
-    const a = arguments, go = () => { busy = false; revived = false; return _sw.apply(SHOP, a); };
+    const a = arguments, go = () => { busy = false; return _sw.apply(SHOP, a); };
     if (BOT || online() || SHOP.phase !== 'rest' || P.dead > 0 || SHOP.transit || !adsZone() || pro) return go();
     if (!st.gate) { busy = true; gate(() => go()); return; }      // v114: сразу в бой (раньше звали SHOP.startWave заново — и снова открывалась карта миров)
     if (!B || now() - lastAd < CFG.gapSec || !call('interReady')) return go();
@@ -130,38 +133,8 @@ const STORE = (() => {
     ad('inter', '', () => go());
   };
 
-  // ---------- воскреснуть на боссе за рекламу ----------
-  if (typeof LIMBO !== 'undefined') {
-    const _en = LIMBO.enter;
-    LIMBO.enter = function () {
-      const boss = !online() && enemies.some(e => e.boss && e.hp > 0);
-      if (BOT || !boss || revived || !B || !call('rewardedReady')) return _en();
-      win('Вы пали в бою с боссом', 'Посмотрите рекламу — и встанете на месте с полным здоровьем. Босс не восстановится.',
-        [['Воскреснуть за рекламу', () => { freeze(true); ad('reward', 'revive', ok => { freeze(false); if (ok) revive(); else _en(); }); }, 'gold'], ['В Междумирье', () => _en()]],
-        'Один раз за бой с боссом.');
-    };
-  }
-  function revive() {
-    revived = true;
-    P.dead = 0; P.hp = P.maxHp; P.mp = P.maxMp; P.hurt = 0; P.dashI = Math.max(P.dashI || 0, 2.5);   // 2,5 с без урона, чтобы не лечь сразу
-    const c = document.getElementById('c'); if (c) c.style.filter = '';
-    say(P.x, P.y - CH * 1.6 * HS(), 'Воскрешение!', '#7dff8a');
-    snd('wave_horn', 0.6, 1.3);
-  }
-
-  // ---------- удвоить золото за босса ----------
-  { const _ok = SHOP.onKill; SHOP.onKill = function (e) { if (e && e.boss) bossGold = Math.round(BAL.bossGold(wave) * (typeof LEVEL !== 'undefined' ? LEVEL.rk() : 1)); return _ok.apply(this, arguments); }; }
-  if (typeof PATHMAP !== 'undefined') {
-    const _show = PATHMAP.show;
-    PATHMAP.show = function (o) {
-      const g = bossGold, self = this, next = () => _show.call(self, o);
-      if (!g || !o || o.mode === 'select') return next();
-      bossGold = 0;
-      if (BOT || online() || !B || !call('rewardedReady')) return next();
-      win('Босс повержен!', 'Золото за босса: ' + g + '. Посмотрите рекламу — и получите ещё столько же.',
-        [['Удвоить золото за рекламу', () => { freeze(true); ad('reward', 'gold', ok => { freeze(false); if (ok) { if (typeof METRICS !== 'undefined') METRICS.goldTag('Ad'); SHOP.addGold(g); toast('+' + g + ' золота'); snd('coins', 0.8); } next(); }); }, 'gold'], ['Дальше', next]]);
-    };
-  }
+  // v125 (Создатель 28.11): наград за рекламу больше нет. Убраны «Воскреснуть за рекламу» на боссе (обёртка LIMBO.enter) и
+  // «Удвоить золото за рекламу» после босса (обёртки SHOP.onKill и PATHMAP.show) — вместе с их окнами.
 
   // ---------- кнопка PRO в главном меню ----------
   let mb = null;
@@ -173,7 +146,7 @@ const STORE = (() => {
       e.stopPropagation();
       if (pro) return toast('PRO уже куплен. Спасибо!');
       if (!B) return buy();
-      win('PRO', 'Одна покупка навсегда: никакой рекламы на весь экран. Реклама за награду остаётся — только по вашему желанию.',
+      win('PRO', 'Одна покупка навсегда: никакой рекламы.',
         [['Купить PRO' + priceTxt(), () => buy(), 'gold'], ['Не сейчас', () => {}]]);
     });
   }

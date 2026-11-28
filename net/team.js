@@ -464,7 +464,7 @@ var TEAM = { on: false, host: false, peer: null };
   //   «Искать напарника» — самому встать в этот список; «Комната для друга» — закрытая комната: её код говорят другу,
   //   друг входит через «Войти по коду» (цифры набираются на экране, клавиатура телефона не нужна).
   // Игра начинается, когда в комнате двое. Рамка, лента, кнопки и портреты — готовые картинки игры.
-  const LB = { on: false, st: 'idle', list: [], got: false, joined: null, room: '', err: '', code: '', el: null, iv: 0 };
+  const LB = { on: false, st: 'idle', list: [], got: false, joined: null, room: '', err: '', code: '', el: null, iv: 0, to: 0, wait: 8 };
   function nick() {
     let n = null; try { n = localStorage.getItem('hw_nick'); } catch (e) {}
     if (!n) { n = 'Игрок ' + (1000 + Math.floor(Math.random() * 9000)); try { localStorage.setItem('hw_nick', n); } catch (e) {} }
@@ -479,10 +479,16 @@ var TEAM = { on: false, host: false, peer: null };
     LB.on = true; LB.st = 'conn'; LB.err = ''; LB.joined = null; LB.got = false; LB.list = []; LB.code = '';
     LB.el.style.display = 'block'; lbDraw();
     const ready = () => { LB.st = 'idle'; lbDraw(); lbAsk(); };
+    clearTimeout(LB.to);
     if (ws && ws.readyState === 1 && !T.on) ready(); else if (!wsMake(ready)) { LB.st = 'off'; lbDraw(); }
+    else {
+      // v125: сервер не отвечает (сеть его не пускает) — браузер ждёт около 20 с, прежде чем сдаться. Ждём не дольше 8 с и пишем «Сервер недоступен».
+      const w = ws;
+      LB.to = setTimeout(() => { if (ws === w && w.readyState !== 1 && LB.on && LB.st === 'conn') { ws = null; try { w.close(); } catch (e) {} LB.st = 'off'; lbDraw(); } }, LB.wait * 1000);
+    }
     clearInterval(LB.iv); LB.iv = setInterval(lbAsk, 2500);
   }
-  function lbClose() { LB.on = false; clearInterval(LB.iv); if (LB.el) LB.el.style.display = 'none'; }
+  function lbClose() { LB.on = false; clearInterval(LB.iv); clearTimeout(LB.to); if (LB.el) LB.el.style.display = 'none'; }
   function lbBack() { lbClose(); if (ws && !T.on) { const w = ws; ws = null; try { w.close(); } catch (e) {} } }      // назад к выбору героя: комнату (если была) сервер снимет сам
   function lbCancel() { raw({ t: 'teamLeave' }); LB.joined = null; LB.st = 'idle'; LB.err = ''; lbDraw(); lbAsk(); }
   function lbBuild() {

@@ -140,6 +140,7 @@ const SAVE = (() => {
       if (!SAVE.read() && typeof setHero === 'function') setHero(saved);    // сохранение есть у другого героя — продолжаем им
       document.getElementById('mMain').style.display = 'none';
       if (window.NETC && NETC.S) NETC.S.mode = 'single';   // «Продолжить» — всегда одиночный забег, даже если до этого выбирали онлайн
+      window.SEL_KIND = 'play';      // v125: иначе после «Онлайн» → «Меню» кнопка «В бой» ниже открывала зал игры вдвоём, а не карту миров (баг Создателя 28.11)
       if (go) go.dispatchEvent(new PointerEvent('pointerdown'));   // как «В бой» у выбора героя: герой — сохранённый
     }, true);
   }
@@ -183,6 +184,7 @@ window.androidBack = function () {
   if (vis('cineList')) { document.getElementById('cineList').style.display = 'none'; return true; }      // галерея «История»
   if (vis('mNew')) { document.getElementById('mNew').style.display = 'none'; return true; }
   if (vis('mSet')) { document.querySelector('#mSet .b').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); return true; }
+  if (window.LOBBY && LOBBY.on) { LOBBY.close(); return true; }                                              // v125: зал игры вдвоём — как «← Назад» на экране (раньше зал оставался, а под ним менялось меню)
   if (vis('mMain')) return false;
   if (vis('hSel')) { if (window.MENU) { MENU.showMain(); return true; } return false; }
   if (typeof PATHMAP !== 'undefined' && PATHMAP.on) return true;

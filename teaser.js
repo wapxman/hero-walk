@@ -1,9 +1,9 @@
-// Анонсы «Скоро» в главном меню (v124, задача Клауди/Создателя 28.11): небольшая карточка выезжает справа снизу, не задевая кнопок,
-// держится 12 с и уезжает. Два анонса чередуются: новый герой (ui/teaser/hero) и новая история — Руины Зеркального города (ui/teaser/location).
+// Анонсы «Скоро» в главном меню (v124, задача Клауди/Создателя 28.11). v125 (Создатель 28.11): «пусть всегда стоит, не всплывает» —
+// обе карточки стоят справа снизу постоянно, одна над другой, не выезжают и не уезжают, крестика нет.
+// Два анонса: новый герой (ui/teaser/hero) и новая история — Руины Зеркального города (ui/teaser/location).
 // Тап по карточке — картинка на весь экран с подписью и кнопкой «Закрыть» (и «Назад» на Android). Картинки — работа Клауди, кодом только
-// рамка, текст и движение. Грузятся лениво: маленькая — перед первым выездом, большая — по тапу; на старте игры ничего не грузится.
-// Когда выезжает: только пока главное меню видно и сверху на нём ничего нет (настройки, «История», выбор языка, ролики), первый раз —
-// через 40 с в меню, дальше — не чаще раза в 150 с времени в меню. Подписи — текстом (переводит LANG), строки в lang/src/08_teaser.json.
+// рамка и текст. Грузятся лениво: маленькие — когда главное меню первый раз показано, большая — по тапу; на старте игры ничего не грузится.
+// Подписи — текстом (переводит LANG), строки в lang/src/08_teaser.json.
 'use strict';
 const TEASER = (() => {
   const V0 = typeof V === 'string' ? V : '';
@@ -11,23 +11,19 @@ const TEASER = (() => {
     { img: 'hero', title: 'Новый герой', full: 'Скоро: новый герой', sub: 'Он идёт сквозь песчаную бурю. Кто он — узнаете с обновлением.' },
     { img: 'location', title: 'Новая история — Руины Зеркального города', full: 'Скоро: новая история — Руины Зеркального города', sub: 'Город, где у каждого отражения своя воля. Новая глава — с обновлением.' },
   ];
-  const FIRST = 40, EVERY = 150, STAY = 12;
   const src = (n, s) => 'ui/teaser/' + n + (s ? '_s' : '') + '.webp' + V0;
-  let idx = 0; try { idx = (+localStorage.getItem('hw_teaser') || 0) % LIST.length; } catch (e) {}
-  let seen = 0, next = FIRST, card = null, full = null, out = false, hideT = 0;
+  let box = null, full = null, loaded = false;
   const css = document.createElement('style');
   css.textContent = `
-  #tzCard { position: absolute; right: 3vh; bottom: 6.5vh; width: 46vh; display: flex; align-items: center; gap: 1.6vh; padding: 1.2vh 1.6vh 1.2vh 1.2vh;
+  #tzBox { position: absolute; right: 3vh; bottom: 6.5vh; width: 46vh; display: flex; flex-direction: column; gap: 1vh; z-index: 3; }
+  #tzBox .c { display: flex; align-items: center; gap: 1.6vh; padding: 1.2vh 1.6vh 1.2vh 1.2vh;
     background: linear-gradient(90deg, rgba(14,10,6,.92), rgba(30,22,12,.88)); border: .25vh solid rgba(226,186,104,.75); border-radius: 1.4vh;
-    box-shadow: 0 .6vh 2vh rgba(0,0,0,.6); transform: translateX(calc(100% + 5vh)); transition: transform .7s cubic-bezier(.2,.9,.25,1.1);
-    cursor: pointer; user-select: none; font-family: Georgia, serif; z-index: 3; }
-  #tzCard.on { transform: none; }
-  #tzCard:active { filter: brightness(1.15); }
-  #tzCard .im { flex: none; width: 16vh; height: 10.7vh; border-radius: .8vh; background: #000 center / cover no-repeat; border: .2vh solid rgba(226,186,104,.5); }
-  #tzCard .tx { display: flex; flex-direction: column; gap: .5vh; min-width: 0; }
-  #tzCard .k { font: bold 1.9vh Georgia, serif; letter-spacing: .35vh; color: #ffcf5a; text-transform: uppercase; }
-  #tzCard .t { font-size: 2.3vh; line-height: 1.2; color: #f6ead0; text-shadow: 0 .2vh .4vh #000; }
-  #tzCard .x { position: absolute; top: .3vh; right: .9vh; font-size: 2.2vh; color: rgba(246,234,208,.6); padding: .3vh .6vh; }
+    box-shadow: 0 .6vh 2vh rgba(0,0,0,.6); cursor: pointer; user-select: none; -webkit-user-select: none; font-family: Georgia, serif; }
+  #tzBox .c:active { filter: brightness(1.15); }
+  #tzBox .im { flex: none; width: 16vh; height: 10.7vh; border-radius: .8vh; background: #000 center / cover no-repeat; border: .2vh solid rgba(226,186,104,.5); }
+  #tzBox .tx { display: flex; flex-direction: column; gap: .5vh; min-width: 0; }
+  #tzBox .k { font: bold 1.9vh Georgia, serif; letter-spacing: .35vh; color: #ffcf5a; text-transform: uppercase; }
+  #tzBox .t { font-size: 2.3vh; line-height: 1.2; color: #f6ead0; text-shadow: 0 .2vh .4vh #000; }
   #tzFull { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,.92); display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 2vh; opacity: 0; transition: opacity .4s; font-family: Georgia, serif; color: #f6ead0; }
   #tzFull.on { opacity: 1; }
@@ -40,56 +36,45 @@ const TEASER = (() => {
   #tzFull .b:active { transform: scale(.96); }`;
   document.head.appendChild(css);
   const stop = e => { e.stopPropagation(); e.preventDefault(); };
-  function menuFree() {
-    const m = document.getElementById('mMain');
-    if (!m || getComputedStyle(m).display === 'none' || full) return false;
-    if (typeof CINE !== 'undefined' && CINE.on) return false;
-    if (typeof LANG !== 'undefined' && !LANG.chosen) return false;
-    const e = document.elementFromPoint(innerWidth * 0.85, innerHeight * 0.8);      // сверху на меню ничего нет (окно, ролик, выбор языка)
-    return !!e && m.contains(e);
-  }
+  // карточки стоят в главном меню всегда; картинки подставляются, когда меню первый раз на экране
   function make() {
     const m = document.getElementById('mMain'); if (!m) return null;
-    if (card && card.parentNode === m) return card;
-    card = document.createElement('div'); card.id = 'tzCard';
-    card.innerHTML = '<div class="im"></div><div class="tx"><div class="k">Скоро</div><div class="t"></div></div><div class="x">×</div>';
-    card.addEventListener('pointerdown', e => { stop(e); if (e.target.classList.contains('x')) hide(); else open(); });
-    m.appendChild(card); return card;
+    if (box && box.parentNode === m) return box;
+    box = document.createElement('div'); box.id = 'tzBox';
+    LIST.forEach((it, i) => {
+      const c = document.createElement('div'); c.className = 'c'; c.dataset.i = i;
+      c.innerHTML = '<div class="im"></div><div class="tx"><div class="k">Скоро</div><div class="t"></div></div>';
+      c.querySelector('.t').textContent = it.title;
+      c.addEventListener('pointerdown', e => { stop(e); open(i); });
+      box.appendChild(c);
+    });
+    m.appendChild(box); return box;
   }
-  function show() {
-    const c = make(); if (!c) return;
-    const it = LIST[idx], im = new Image();
-    im.onload = () => {
-      if (!menuFree()) return;
-      c.querySelector('.im').style.backgroundImage = 'url(' + im.src + ')';
-      c.querySelector('.t').textContent = it.title; c.dataset.i = idx;
-      requestAnimationFrame(() => c.classList.add('on')); out = true;
-      clearTimeout(hideT); hideT = setTimeout(hide, STAY * 1000);
-    };
-    im.src = src(it.img, true);
+  function load() {
+    if (loaded || !box) return; loaded = true;
+    box.querySelectorAll('.c').forEach((c, i) => { c.querySelector('.im').style.backgroundImage = 'url(' + src(LIST[i].img, true) + ')'; });
   }
-  function hide() {
-    clearTimeout(hideT); if (card) card.classList.remove('on');
-    if (out) { out = false; idx = (idx + 1) % LIST.length; try { localStorage.setItem('hw_teaser', idx); } catch (e) {} }
-  }
-  function open() {
-    const it = LIST[card ? +card.dataset.i || 0 : idx]; hide();
+  function open(i) {
+    if (full) return;
+    const it = LIST[+i || 0];
     full = document.createElement('div'); full.id = 'tzFull';
     full.innerHTML = '<img alt=""><div class="t"></div><div class="s"></div><div class="b">Закрыть</div>';
     full.querySelector('.t').textContent = it.full; full.querySelector('.s').textContent = it.sub;
     const im = full.querySelector('img'); im.onload = () => im.classList.add('ok'); im.src = src(it.img, false);
     full.addEventListener('pointerdown', e => { stop(e); close(); });
+    for (const ev of ['touchstart', 'mousedown', 'click']) full.addEventListener(ev, e => e.stopPropagation());
     document.body.appendChild(full); requestAnimationFrame(() => full && full.classList.add('on'));
   }
   function close() {
     if (!full) return; const f = full; full = null; f.classList.remove('on'); setTimeout(() => f.remove(), 400);
   }
-  // время в меню считаем по 2 с; пока открыто что-то поверх — часы стоят, выехавшая карточка уезжает
-  setInterval(() => {
-    if (!menuFree()) { if (out) hide(); return; }
-    seen += 2; if (!out && seen >= next) { next = seen + EVERY; show(); }
-  }, 2000);
+  make();
+  { const iv = setInterval(() => {
+      const m = document.getElementById('mMain'); if (!m) return;
+      if (!box) make();
+      if (getComputedStyle(m).display !== 'none') { load(); clearInterval(iv); }
+    }, 500); }
   const back0 = window.androidBack;
   window.androidBack = function () { if (full) { close(); return true; } return back0 ? back0.apply(this, arguments) : false; };
-  return { show, hide, open, close, get out() { return out; }, get full() { return !!full; }, LIST, _seen: n => { seen = n; } };
+  return { open, close, get full() { return !!full; }, get shown() { return !!box && loaded; }, LIST };
 })();

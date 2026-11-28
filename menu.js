@@ -64,17 +64,26 @@
   /* выбор героя: большие карточки из ChatGPT */
   #hSel { background: #05080e ${U('menu_bg')} center / cover no-repeat !important; }
   #hSel::before { content: ''; position: absolute; inset: 0; background: rgba(3,6,12,.6); z-index: -1; }
-  #hSel .card { width: min(30vh, 40vw) !important; padding: 0 !important; background: none !important; border: none !important; gap: .4vh !important; position: relative; }
+  /* v125: в ряду три карточки (третья — «Скоро», новый герой), список умений выбранного героя — всегда слева от ряда.
+     Ширина карточки --cw: 30vh, но не больше 17,6 % ширины экрана — чтобы список и три карточки влезали и на планшете 4:3. */
+  #hSel { --cw: min(30vh, 17.6vw); }
+  #hSel .card { width: var(--cw) !important; padding: 0 !important; background: none !important; border: none !important; gap: .4vh !important; position: relative; }
   #hSel .card i { width: 100% !important; height: auto !important; aspect-ratio: 2 / 3; background-size: 100% 100% !important; border-radius: 1.4vh;
     filter: brightness(.72) saturate(.85); transition: filter .2s; }
   #hSel .card.on i { filter: none; box-shadow: 0 0 4vh rgba(255,226,122,.5); }
-  #hSel .card b { position: absolute; left: 0; right: 0; top: calc(min(30vh, 40vw) * 1.5 * .862); text-align: center; font-size: 3vh !important; color: #ffe9a8; }
+  #hSel .card b { position: absolute; left: 0; right: 0; top: calc(var(--cw) * 1.5 * .862); text-align: center; font-size: min(3vh, calc(var(--cw) * .1)) !important; color: #ffe9a8; }
   #hSel .card em { margin-top: .2vh; }
   #hSel .card ul { display: none; }
-  #hSel .card.on ul { display: block; position: absolute; right: 106%; top: 8%; width: 30vh; background: rgba(8,16,32,.85); border-radius: 1.4vh;
+  #hSel .card.on ul { display: block; position: absolute; right: 106%; top: 8%; width: var(--cw); box-sizing: border-box; background: rgba(8,16,32,.85); border-radius: 1.4vh;
     padding: 1.4vh 1.6vh 1.4vh 3.4vh; border: .3vh solid rgba(160,190,230,.35); }
-  #hSel .row { gap: 6vh !important; }
-  #hSel .row .card:last-child.on ul { right: auto; left: 106%; }
+  #hSel .card ul .nm { list-style: none; margin: 0 0 .5vh -1.8vh; font: bold 2.3vh system-ui; color: #ffe9a8; }
+  #hSel .row { gap: calc(var(--cw) * .2) !important; }
+  #hSel .row .card:nth-child(2).on ul { right: 221.3%; }      /* вторая карточка: список там же, слева от первой (с учётом увеличения выбранной карточки на 4 %) */
+  /* «Скоро»: силуэт нового героя с анонса Клауди (ui/teaser/hero_card.webp — вырез из ui/teaser/hero.webp); кодом — только рамка, тень под надписью и текст */
+  #hSel .card.soon i { position: relative; box-sizing: border-box; border: .3vh solid rgba(226,186,104,.75); filter: brightness(.9); overflow: hidden; }
+  #hSel .card.soon i::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 30%; background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,.88)); }
+  #hSel .card.soon b { color: #ffcf5a; letter-spacing: .3vh; text-transform: uppercase; font-family: Georgia, serif; }
+  #hSel .card.soon:active i { filter: brightness(1.1); }
   #hSel .back { position: absolute; left: 2.4vh; top: 2.4vh; width: 22vh; height: 7vh; background: ${U('h_plaque')} center / 100% 100% no-repeat; display: flex;
     align-items: center; justify-content: center; font: bold 2.4vh system-ui; cursor: pointer; }
   `;
@@ -90,7 +99,19 @@
   // ---------- карточки героев ----------
   const sel = document.getElementById('hSel');
   const CARD = { mage: 'card_mage', archer: 'card_archer' };
-  sel.querySelectorAll('.card').forEach((c, i) => { const id = Object.keys(HEROES)[i]; c.querySelector('i').style.backgroundImage = U(CARD[id] || 'card_mage'); });
+  sel.querySelectorAll('.card').forEach((c, i) => {
+    const id = Object.keys(HEROES)[i]; c.querySelector('i').style.backgroundImage = U(CARD[id] || 'card_mage');
+    // v125: список умений стоит слева от ряда у обоих героев — сверху в нём имя героя, чтобы было видно, чьи это умения
+    const ul = c.querySelector('ul'), nm = document.createElement('li'); nm.className = 'nm'; nm.textContent = HEROES[id].name; ul.insertBefore(nm, ul.firstChild);
+  });
+  // v125 (Создатель 28.11): третья карточка — силуэт нового героя и надпись «Скоро». Выбрать её нельзя; нажатие открывает анонс на весь экран (teaser.js)
+  {
+    const c = mk('div', 'card soon', sel.querySelector('.row'), '<i></i><b>Скоро</b><em>Новый герой</em>');
+    let got = false;
+    const img = () => { if (!got) { got = true; c.querySelector('i').style.backgroundImage = 'url(ui/teaser/hero_card.webp' + V + ')'; } };
+    window.SOON_CARD = { img };      // картинка подставляется, когда выбор героя первый раз открыт (на старте игры не грузится)
+    c.addEventListener('pointerdown', e => { e.stopPropagation(); if (typeof TEASER !== 'undefined') TEASER.open(0); });
+  }
   const back = mk('div', 'back', sel, '← Меню'); back.addEventListener('pointerdown', () => { sel.style.display = 'none'; showMain(); });
   const modes = sel.querySelector('.modes'), modeBtns = modes ? [...modes.querySelectorAll('.md')] : [];
   const plaque = sel.querySelector('.pl');
@@ -100,6 +121,7 @@
     window.NEWGAME = kind === 'new'; if (kind === 'new') kind = 'play';
     window.SEL_KIND = kind;      // v124: зачем открыт выбор героя — play, online (дальше зал ожидания игры вдвоём, net/team.js) или view
     hideMain(); sel.style.display = 'flex'; if (typeof LAZY !== 'undefined') LAZY.start();
+    if (window.SOON_CARD) SOON_CARD.img();
     plaque.textContent = kind === 'view' ? 'ГЕРОИ' : 'ВЫБЕРИ ГЕРОЯ';
     const go = sel.querySelector('.go'); go.style.display = kind === 'view' ? 'none' : 'flex';
     { const t = kind === 'online' ? 'ДАЛЕЕ' : 'В БОЙ'; if ((go.dataset.ru || go.textContent) !== t) { delete go.dataset.ru; go.textContent = t; } }
@@ -121,7 +143,7 @@
     if (typeof mus === 'undefined' || started) return; menuMus = true;
     if (mus.el) { if (mus.i !== MENU_TRACK) { mus.i = MENU_TRACK; musicLoad(); } } else store('hw_mus_i', MENU_TRACK);
   }
-  function showMain() { window.NEWGAME = false; main.style.display = 'block'; sel.style.display = 'none'; menuMusic(); if (typeof LAZY !== 'undefined') setTimeout(LAZY.start, 120); }      // v120: меню на экране — в фоне грузим то, что нужно для игры
+  function showMain() { window.NEWGAME = false; window.SEL_KIND = ''; main.style.display = 'block'; sel.style.display = 'none'; menuMusic(); if (typeof LAZY !== 'undefined') setTimeout(LAZY.start, 120); }      // v120: меню на экране — в фоне грузим то, что нужно для игры
   window.MENU = { openSelect, showMain };
   function hideMain() { main.style.display = 'none'; }
   // магазин из меню: после закрытия — обратно в меню, пока бой не начат
@@ -176,7 +198,7 @@
   function endSplash() {
     timeUp = true; if (done || (!bgOk && !auto)) return; done = true;
     // после лого игры — лого студии и (в первый запуск) вступление: cine.js; чёрная заставка уходит, когда они кончились
-    const fin = () => { sp.style.opacity = '0'; setTimeout(() => sp.remove(), 750); if (auto) sel.style.display = 'flex'; else if (newgame) openSelect('new'); else showMain(); };
+    const fin = () => { sp.style.opacity = '0'; setTimeout(() => sp.remove(), 750); if (auto) { sel.style.display = 'flex'; if (window.SOON_CARD) SOON_CARD.img(); } else if (newgame) openSelect('new'); else showMain(); };
     if (cineBoot()) { sp.classList.remove('on'); CINE.boot(fin); } else fin();
   }
   const logo = new Image();
