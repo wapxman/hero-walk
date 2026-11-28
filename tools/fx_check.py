@@ -43,21 +43,29 @@ try:
                     p.evaluate("enemies.forEach(e => { e.x = P.x + 760; }); 1"); time.sleep(0.6)      # «Верный глаз» действует, когда рядом с лучницей нет врагов
                     s = p.evaluate("({ on: markK() > 1, k: markK(), range: markRange(), mark: !!P.mark, lv: P.skLv.r })")
                     chk('%s: «%s» — пассивное умение, действует (урон ×%.2f, дальность ×%.2f)' % (nm, title, s['k'], s['range']), s['on'], s); continue
-                ok_cast = p.evaluate("(k) => { if (k === 'atk') { shoot(); return true; } return cast(k) !== false; }", k)
-                mx = 0; seen = set(); hp_min = s0['hp']; mp_min = s0['mp']; st_seen = ''; moved = 0; best = None
-                for j in range(14):
-                    time.sleep(0.12); f = frame(p); d = diff(base, f)
-                    if d > mx: mx = d; best = f
-                    s = p.evaluate(ST); hp_min = min(hp_min, s['hp']); mp_min = min(mp_min, s['mp']); st_seen = st_seen or s['st'].replace('|', ''); moved = max(moved, abs(s['x'] - s0['x']))
-                    if s['n'] > s0['n']: seen.add('объекты')
-                    if s['act']: seen.add(s['act'])
-                    if s['ult'] > 0: seen.add('буря')
-                s1 = p.evaluate(ST)
-                if best: best.save(os.path.join(OUT, '%s_%s.png' % (hero, k)))
-                used = (k == 'atk') or s1['cd'].get(k, 0) > 0
-                mana = k in ('atk', 'dash') or mp_min < s0['mp'] - 1
-                effect = hp_min < s0['hp'] - 0.5 or bool(st_seen) or (k == 'dash' and moved > 150) or s1['ult'] > 0 or 'объекты' in seen or len(seen) > 0
-                visible = mx > idle + 0.012
+                # v125: замер повторяется до трёх раз. Обычный выстрел меняет всего 1–2 % кадра, а «покой» сцены (стойка мишеней, фонтан, надпись
+                # волны, стайка птиц) сам даёт 2,5–3,5 % — под нагрузкой в конце сборки один замер мог не дотянуть до порога, хотя выстрел виден.
+                for attempt in range(3):
+                    if attempt:
+                        p.evaluate(RESET); time.sleep(0.8); a0 = frame(p); time.sleep(0.5); a1 = frame(p); idle = diff(a0, a1)
+                        p.evaluate(RESET); time.sleep(0.7); s0 = p.evaluate(ST); base = frame(p)
+                    ok_cast = p.evaluate("(k) => { if (k === 'atk') { shoot(); return true; } return cast(k) !== false; }", k)
+                    mx = 0; seen = set(); hp_min = s0['hp']; mp_min = s0['mp']; st_seen = ''; moved = 0; best = None
+                    for j in range(14):
+                        time.sleep(0.12); f = frame(p); d = diff(base, f)
+                        if d > mx: mx = d; best = f
+                        s = p.evaluate(ST); hp_min = min(hp_min, s['hp']); mp_min = min(mp_min, s['mp']); st_seen = st_seen or s['st'].replace('|', ''); moved = max(moved, abs(s['x'] - s0['x']))
+                        if s['n'] > s0['n']: seen.add('объекты')
+                        if s['act']: seen.add(s['act'])
+                        if s['ult'] > 0: seen.add('буря')
+                    s1 = p.evaluate(ST)
+                    if best: best.save(os.path.join(OUT, '%s_%s.png' % (hero, k)))
+                    used = (k == 'atk') or s1['cd'].get(k, 0) > 0
+                    mana = k in ('atk', 'dash') or mp_min < s0['mp'] - 1
+                    effect = hp_min < s0['hp'] - 0.5 or bool(st_seen) or (k == 'dash' and moved > 150) or s1['ult'] > 0 or 'объекты' in seen or len(seen) > 0
+                    visible = mx > idle + 0.012
+                    if ok_cast and used and mana and effect and visible: break
+                    print('       повтор замера «%s» (%d): изменилось %.1f %%, в покое %.1f %%' % (title, attempt + 1, mx * 100, idle * 100))
                 chk('%s: «%s» — применяется, действует, виден на экране (изменилось %.1f %% кадра, в покое %.1f %%)' % (nm, title, mx * 100, idle * 100),
                     ok_cast and used and mana and effect and visible, { 'мана': round(s0['mp'] - mp_min), 'cast': ok_cast, 'cd': s1['cd'].get(k), 'урон': round(s0['hp'] - hp_min), 'состояния': st_seen, 'сдвиг': round(moved), 'виден': round(mx, 4), 'покой': round(idle, 4), 'видел': sorted(seen) })
         chk('ошибок страницы нет', not errs, errs[:3]); b.close()
